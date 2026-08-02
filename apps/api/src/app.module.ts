@@ -5,6 +5,8 @@ import {
   environmentValidationSchema,
 } from './config/environment';
 import { HealthModule } from './health/health.module';
+import { HotelsModule } from './hotels/hotels.module';
+import { NotablePeopleModule } from './notable-people/notable-people.module';
 
 @Module({
   imports: [
@@ -19,6 +21,8 @@ import { HealthModule } from './health/health.module';
       },
     }),
     HealthModule,
+    HotelsModule,
+    NotablePeopleModule,
   ],
 })
 export class AppModule {}

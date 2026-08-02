@@ -172,6 +172,23 @@ published records with verified associations.
 The NestJS backend is located in `apps/api` and exposes a versioned REST API
 under `/api/v1`.
 
+Current public endpoints:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/v1/health` | Check API and database readiness |
+| `GET` | `/api/v1/hotels` | List public hotels with verified associations |
+| `GET` | `/api/v1/hotels/:slug` | Get a hotel, notable people, and evidence sources |
+| `GET` | `/api/v1/notable-people` | List public notable people with verified associations |
+| `GET` | `/api/v1/notable-people/:slug` | Get a person, associated hotels, and evidence sources |
+
+Hotel list filters are `page`, `pageSize`, `query`, `city`, and `countryCode`.
+Notable-person list filters are `page`, `pageSize`, `query`, `category`, and
+`countryCode`. Page size is limited to 100 records.
+
+Public discovery results only include published hotels and notable people whose
+associations are verified and backed by at least one evidence source.
+
 Start the API in development mode from the repository root:
 
 ```bash
