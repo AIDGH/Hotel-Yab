@@ -25,6 +25,9 @@ coverage/
 apps/api/src/generated/prisma/
 apps/api/prisma/data/import.json
 
+# Private, evolving research datasets
+data/
+
 # macOS
 .DS_Store
 
