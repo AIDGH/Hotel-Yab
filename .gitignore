@@ -28,6 +28,9 @@ apps/api/prisma/data/import.json
 # Private, evolving research datasets
 data/
 
+# Local source assets (the app-ready font copy lives under apps/web/public)
+.ttf/
+
 # macOS
 .DS_Store
 
