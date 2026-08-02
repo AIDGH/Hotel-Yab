@@ -4,15 +4,15 @@ Hotel-Yab is a hotel discovery platform designed to help users find hotels and e
 
 ## Project Status
 
-The core discovery backend milestone is complete and ready for frontend
-integration. It includes the PostgreSQL/Prisma relationship graph, public
-evidence-aware discovery endpoints, validation, curated data import, Swagger
-documentation, and automated tests.
+The core discovery backend and the first frontend product slice are complete.
+The project now includes the PostgreSQL/Prisma relationship graph, public
+evidence-aware discovery endpoints, curated data import, Swagger documentation,
+automated tests, and a responsive Persian discovery interface.
 
 User authentication, favorites, reviews, and administration workflows remain
 planned and have not been implemented yet.
 
-## Planned Technology Stack
+## Technology Stack
 
 ### Web Application
 
@@ -65,14 +65,14 @@ React Native App ──────┘
 
 ## Repository Structure
 
-The planned repository structure is:
+The current repository structure is:
 
 ```text
 Hotel-Yab/
 ├── apps/
 │   ├── api/
-│   ├── web/
-│   └── mobile/
+│   └── web/
+├── docs/
 ├── packages/
 ├── README.md
 └── .gitignore
@@ -171,6 +171,11 @@ stores reusable source metadata and a unique URL. `AssociationEvidence` links
 one or more sources to a claim. Public discovery endpoints will only expose
 published records with verified associations.
 
+Video and social-media evidence use `SourceType.VIDEO` or
+`SourceType.SOCIAL_MEDIA_POST`. The source URL is the canonical link. Embedded
+playback and thumbnails will be designed after the delivery format is known
+(for example Instagram, YouTube, or an uploaded video file).
+
 ## Curated Data Import
 
 Data is imported locally instead of exposing an unauthenticated write API.
@@ -228,7 +233,7 @@ pnpm api:dev
 ```
 
 The API listens on port `4000` by default, leaving port `3000` available for the
-future Next.js frontend. Verify that it is running:
+Next.js frontend. Verify that it is running:
 
 ```bash
 curl http://localhost:4000/api/v1/health
@@ -274,6 +279,57 @@ pnpm api:format
 pnpm api:lint:fix
 ```
 
+## Web Application
+
+The Next.js frontend is located in `apps/web`. It uses the App Router, React
+Server Components, TypeScript, and plain CSS. Public data is fetched on the
+Next.js server from the NestJS REST API.
+
+Create an optional local environment file if the API is not available at its
+default address:
+
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
+
+Run the API and frontend in two macOS terminal tabs:
+
+```bash
+pnpm api:dev
+```
+
+```bash
+pnpm web:dev
+```
+
+Open the application at:
+
+```text
+http://localhost:3000
+```
+
+Current frontend routes:
+
+| Path | Purpose |
+| --- | --- |
+| `/` | Discovery landing page |
+| `/hotels` | Search and filter public hotels |
+| `/hotels/:slug` | Hotel details, notable people, and evidence sources |
+| `/notable-people` | Search and filter public notable people |
+| `/notable-people/:slug` | Person details, hotels, and evidence sources |
+
+Run the frontend checks from the repository root:
+
+```bash
+pnpm web:lint
+pnpm web:typecheck
+pnpm web:build
+```
+
+The visual system uses the purple `#635BFF` as its primary brand token with
+white and light-gray surfaces. A system Persian font stack is used until a
+licensed brand font file is added to the repository.
+
 ## Development Approach
 
 Development will proceed incrementally.
@@ -288,7 +344,6 @@ Each major step should:
 
 ## Current Phase
 
-The next phase is the Next.js frontend for hotel and notable-person discovery.
-Real researched records can be added through the curated data import workflow
-without changing the public API contract. Authentication, favorites, reviews,
-and administration features remain later backend milestones.
+The current phase is normalizing and verifying the supplied research data so
+the frontend can display real public records. Authentication, favorites,
+reviews, reporting, and administration features remain later milestones.
