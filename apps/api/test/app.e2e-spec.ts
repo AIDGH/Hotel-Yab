@@ -22,7 +22,7 @@ describe('Health endpoint (e2e)', () => {
     return request(app.getHttpServer())
       .get('/api/v1/health')
       .expect(200)
-      .expect({ status: 'ok' });
+      .expect({ status: 'ok', database: 'up' });
   });
 
   afterAll(async () => {

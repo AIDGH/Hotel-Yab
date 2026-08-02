@@ -85,6 +85,7 @@ single repository.
 
 - Node.js
 - Corepack
+- PostgreSQL 17
 
 From the repository root, enable the package manager version declared in
 `package.json` and install workspace dependencies:
@@ -96,6 +97,38 @@ pnpm install
 
 The workspace currently includes projects located under `apps/*` and
 `packages/*`.
+
+## Local Database Setup
+
+Start the Homebrew PostgreSQL service on macOS:
+
+```bash
+brew services start postgresql@17
+```
+
+Create separate development and test databases once:
+
+```bash
+createdb hotel_yab
+createdb hotel_yab_test
+```
+
+Create the local environment files from their committed examples:
+
+```bash
+cp apps/api/.env.example apps/api/.env
+cp apps/api/.env.test.example apps/api/.env.test
+```
+
+Generate and validate Prisma Client after installing dependencies:
+
+```bash
+pnpm api:prisma:generate
+pnpm api:prisma:validate
+```
+
+Local `.env` files and generated Prisma Client code are intentionally excluded
+from Git.
 
 ## Backend API
 
@@ -118,7 +151,8 @@ Expected response:
 
 ```json
 {
-  "status": "ok"
+  "status": "ok",
+  "database": "up"
 }
 ```
 
@@ -152,4 +186,4 @@ Each major step should:
 
 ## Current Phase
 
-The current phase is repository initialization and backend setup.
+The current phase is core backend data modeling and API development.

@@ -11,6 +11,9 @@
     "api:format": "pnpm --filter @hotel-yab/api format",
     "api:lint": "pnpm --filter @hotel-yab/api lint",
     "api:lint:fix": "pnpm --filter @hotel-yab/api lint:fix",
+    "api:prisma:format": "pnpm --filter @hotel-yab/api prisma:format",
+    "api:prisma:generate": "pnpm --filter @hotel-yab/api prisma:generate",
+    "api:prisma:validate": "pnpm --filter @hotel-yab/api prisma:validate",
     "api:test": "pnpm --filter @hotel-yab/api test",
     "api:test:e2e": "pnpm --filter @hotel-yab/api test:e2e"
   }
