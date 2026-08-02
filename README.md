@@ -1,5 +1,9 @@
 # Hotel-Yab
 
+For a complete cross-chat handoff—including current implementation, file map,
+data state, decisions, known limitations, and roadmap—read
+[`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md).
+
 Hotel-Yab is a hotel discovery platform designed to help users find hotels and explore verified information about celebrities, influencers, actors, artists, and other notable people associated with each hotel.
 
 ## Project Status
