@@ -23,6 +23,7 @@ build/
 out/
 coverage/
 apps/api/src/generated/prisma/
+apps/api/prisma/data/import.json
 
 # macOS
 .DS_Store

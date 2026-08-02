@@ -4,6 +4,11 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { configureApp } from './../src/app.config';
 import { AppModule } from './../src/app.module';
+import { ImportDataset } from './../src/data-import/dataset';
+import {
+  importDataset,
+  ImportSummary,
+} from './../src/data-import/import-dataset';
 import { PrismaService } from './../src/database/prisma.service';
 import { configureSwagger } from './../src/docs/swagger';
 import {
@@ -21,8 +26,52 @@ const fixtureSlugs = [
   'e2e-visible-athlete',
   'e2e-hidden-pending-person',
   'e2e-hidden-unsupported-person',
+  'e2e-import-hotel',
+  'e2e-import-person',
 ];
 const fixtureSourceUrlPrefix = 'https://example.com/hotel-yab-e2e/';
+const importFixture: ImportDataset = {
+  hotels: [
+    {
+      slug: 'e2e-import-hotel',
+      name: 'E2E Import Hotel',
+      countryCode: 'US',
+      city: 'Import City',
+      publicationStatus: PublicationStatus.DRAFT,
+    },
+  ],
+  notablePeople: [
+    {
+      slug: 'e2e-import-person',
+      displayName: 'E2E Import Person',
+      primaryCategory: NotablePersonCategory.PUBLIC_FIGURE,
+      publicationStatus: PublicationStatus.DRAFT,
+    },
+  ],
+  sources: [
+    {
+      url: `${fixtureSourceUrlPrefix}import-source`,
+      type: SourceType.OFFICIAL_WEBSITE,
+      title: 'E2E import source',
+    },
+  ],
+  associations: [
+    {
+      referenceKey: 'e2e-import-person-hotel-visit',
+      hotelSlug: 'e2e-import-hotel',
+      notablePersonSlug: 'e2e-import-person',
+      type: AssociationType.VISITED,
+      summary: 'A test-only pending association imported twice.',
+      verificationStatus: VerificationStatus.PENDING,
+      evidence: [
+        {
+          sourceUrl: `${fixtureSourceUrlPrefix}import-source`,
+          isPrimary: true,
+        },
+      ],
+    },
+  ],
+};
 
 describe('Hotel-Yab API (e2e)', () => {
   let app: INestApplication<App>;
@@ -31,6 +80,7 @@ describe('Hotel-Yab API (e2e)', () => {
   let visiblePersonId: string;
   let visibleAssociationId: string;
   let visibleSourceId: string;
+  let repeatedImportSummary: ImportSummary;
 
   const occurredAt = new Date('2025-01-10T00:00:00.000Z');
   const verifiedAt = new Date('2026-01-12T00:00:00.000Z');
@@ -49,6 +99,8 @@ describe('Hotel-Yab API (e2e)', () => {
     prisma = app.get(PrismaService);
     await removeFixtures();
     await createFixtures();
+    await importDataset(prisma, importFixture);
+    repeatedImportSummary = await importDataset(prisma, importFixture);
   });
 
   async function removeFixtures(): Promise<void> {
@@ -95,6 +147,7 @@ describe('Hotel-Yab API (e2e)', () => {
     });
     const visibleAssociation = await prisma.hotelAssociation.create({
       data: {
+        referenceKey: 'e2e-visible-hotel-stay',
         hotelId: visibleHotel.id,
         notablePersonId: visiblePerson.id,
         type: AssociationType.STAYED,
@@ -150,6 +203,7 @@ describe('Hotel-Yab API (e2e)', () => {
 
     await prisma.hotelAssociation.create({
       data: {
+        referenceKey: 'e2e-hidden-pending-visit',
         hotelId: hotel.id,
         notablePersonId: person.id,
         type: AssociationType.VISITED,
@@ -183,6 +237,7 @@ describe('Hotel-Yab API (e2e)', () => {
 
     await prisma.hotelAssociation.create({
       data: {
+        referenceKey: 'e2e-hidden-unsupported-stay',
         hotelId: hotel.id,
         notablePersonId: person.id,
         type: AssociationType.STAYED,
@@ -217,6 +272,42 @@ describe('Hotel-Yab API (e2e)', () => {
       .set('Origin', 'http://localhost:3000')
       .expect('access-control-allow-origin', 'http://localhost:3000')
       .expect(200);
+  });
+
+  it('imports the same dataset idempotently in one transaction', async () => {
+    expect(repeatedImportSummary).toEqual({
+      hotels: 1,
+      notablePeople: 1,
+      sources: 1,
+      associations: 1,
+    });
+
+    const [hotels, people, sources, associations, evidence] =
+      await prisma.$transaction([
+        prisma.hotel.count({ where: { slug: 'e2e-import-hotel' } }),
+        prisma.notablePerson.count({ where: { slug: 'e2e-import-person' } }),
+        prisma.source.count({
+          where: { url: `${fixtureSourceUrlPrefix}import-source` },
+        }),
+        prisma.hotelAssociation.count({
+          where: { referenceKey: 'e2e-import-person-hotel-visit' },
+        }),
+        prisma.associationEvidence.count({
+          where: {
+            association: {
+              referenceKey: 'e2e-import-person-hotel-visit',
+            },
+          },
+        }),
+      ]);
+
+    expect({ hotels, people, sources, associations, evidence }).toEqual({
+      hotels: 1,
+      people: 1,
+      sources: 1,
+      associations: 1,
+      evidence: 1,
+    });
   });
 
   it('GET /api/v1/hotels lists only evidence-backed verified hotels', () => {

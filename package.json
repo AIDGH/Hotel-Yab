@@ -7,6 +7,7 @@
   "packageManager": "pnpm@11.18.0",
   "scripts": {
     "api:build": "pnpm --filter @hotel-yab/api build",
+    "api:data:import": "pnpm --filter @hotel-yab/api data:import",
     "api:dev": "pnpm --filter @hotel-yab/api start:dev",
     "api:format": "pnpm --filter @hotel-yab/api format",
     "api:lint": "pnpm --filter @hotel-yab/api lint",

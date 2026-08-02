@@ -94,6 +94,7 @@ model NotablePerson {
 
 model HotelAssociation {
   id                 String                @id @default(uuid()) @db.Uuid
+  referenceKey       String                @unique @db.VarChar(200)
   hotelId            String                @db.Uuid
   notablePersonId    String                @db.Uuid
   type               AssociationType

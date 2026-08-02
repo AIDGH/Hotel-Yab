@@ -167,6 +167,34 @@ stores reusable source metadata and a unique URL. `AssociationEvidence` links
 one or more sources to a claim. Public discovery endpoints will only expose
 published records with verified associations.
 
+## Curated Data Import
+
+Data is imported locally instead of exposing an unauthenticated write API.
+Create a private working file from the committed template:
+
+```bash
+cp apps/api/prisma/data/import.example.json apps/api/prisma/data/import.json
+```
+
+Replace the template values with researched data, then run:
+
+```bash
+pnpm api:data:import
+```
+
+The importer validates the complete file before writing and applies it in a
+single database transaction. Every association must reference at least one
+source from the same file. A verified association must also include a
+`verifiedAt` ISO timestamp.
+
+Hotel and notable-person slugs, source URLs, and association `referenceKey`
+values are stable unique identifiers. Re-importing the same file updates those
+records instead of creating duplicates. New records default to `DRAFT` and new
+associations default to `PENDING`, so imports are not public accidentally.
+
+The private `import.json` file is excluded from Git. The committed example is a
+format template only and is not real Hotel-Yab data.
+
 ## Backend API
 
 The NestJS backend is located in `apps/api` and exposes a versioned REST API

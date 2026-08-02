@@ -1,0 +1,42 @@
+{
+  "hotels": [
+    {
+      "slug": "replace-with-real-hotel",
+      "name": "Replace with real hotel",
+      "countryCode": "US",
+      "city": "Replace with city",
+      "publicationStatus": "DRAFT"
+    }
+  ],
+  "notablePeople": [
+    {
+      "slug": "replace-with-real-person",
+      "displayName": "Replace with real person",
+      "primaryCategory": "PUBLIC_FIGURE",
+      "publicationStatus": "DRAFT"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://replace.example/with-real-source",
+      "type": "OFFICIAL_WEBSITE",
+      "title": "Replace with the real source title"
+    }
+  ],
+  "associations": [
+    {
+      "referenceKey": "real-person-real-hotel-association",
+      "hotelSlug": "replace-with-real-hotel",
+      "notablePersonSlug": "replace-with-real-person",
+      "type": "STAYED",
+      "summary": "Replace with an evidence-backed description of the association.",
+      "verificationStatus": "PENDING",
+      "evidence": [
+        {
+          "sourceUrl": "https://replace.example/with-real-source",
+          "isPrimary": true
+        }
+      ]
+    }
+  ]
+}
