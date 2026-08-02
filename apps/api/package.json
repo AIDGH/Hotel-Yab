@@ -16,6 +16,8 @@
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
     "prisma:format": "prisma format",
     "prisma:generate": "prisma generate",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:migrate:dev": "prisma migrate dev",
     "prisma:validate": "prisma validate",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",

@@ -13,6 +13,8 @@
     "api:lint:fix": "pnpm --filter @hotel-yab/api lint:fix",
     "api:prisma:format": "pnpm --filter @hotel-yab/api prisma:format",
     "api:prisma:generate": "pnpm --filter @hotel-yab/api prisma:generate",
+    "api:prisma:migrate:deploy": "pnpm --filter @hotel-yab/api prisma:migrate:deploy",
+    "api:prisma:migrate:dev": "pnpm --filter @hotel-yab/api prisma:migrate:dev",
     "api:prisma:validate": "pnpm --filter @hotel-yab/api prisma:validate",
     "api:test": "pnpm --filter @hotel-yab/api test",
     "api:test:e2e": "pnpm --filter @hotel-yab/api test:e2e"

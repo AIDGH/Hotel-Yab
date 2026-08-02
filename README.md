@@ -120,6 +120,12 @@ cp apps/api/.env.example apps/api/.env
 cp apps/api/.env.test.example apps/api/.env.test
 ```
 
+In both copied files, replace `YOUR_MACOS_USERNAME` with the value returned by:
+
+```bash
+whoami
+```
+
 Generate and validate Prisma Client after installing dependencies:
 
 ```bash
@@ -127,8 +133,39 @@ pnpm api:prisma:generate
 pnpm api:prisma:validate
 ```
 
+Create a new development migration after changing the Prisma schema:
+
+```bash
+pnpm --filter @hotel-yab/api exec prisma migrate dev --name migration_name
+```
+
+Apply committed migrations without creating new ones:
+
+```bash
+pnpm api:prisma:migrate:deploy
+```
+
 Local `.env` files and generated Prisma Client code are intentionally excluded
 from Git.
+
+## Core Data Model
+
+The verified relationship graph is modeled as:
+
+```text
+Hotel ──< HotelAssociation >── NotablePerson
+                    │
+                    v
+          AssociationEvidence
+                    │
+                    v
+                  Source
+```
+
+`HotelAssociation` stores the claim and its verification status. `Source`
+stores reusable source metadata and a unique URL. `AssociationEvidence` links
+one or more sources to a claim. Public discovery endpoints will only expose
+published records with verified associations.
 
 ## Backend API
 

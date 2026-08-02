@@ -7,3 +7,135 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum PublicationStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum NotablePersonCategory {
+  ACTOR
+  ATHLETE
+  CREATOR
+  ENTREPRENEUR
+  INFLUENCER
+  MUSICIAN
+  POLITICIAN
+  PUBLIC_FIGURE
+  OTHER
+}
+
+enum AssociationType {
+  STAYED
+  VISITED
+  ATTENDED_EVENT
+  COLLABORATED
+  ENDORSED
+  OWNED
+  FILMED_AT
+  OTHER
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum SourceType {
+  NEWS_ARTICLE
+  OFFICIAL_WEBSITE
+  SOCIAL_MEDIA_POST
+  INTERVIEW
+  VIDEO
+  PHOTO
+  OTHER
+}
+
+model Hotel {
+  id                String             @id @default(uuid()) @db.Uuid
+  slug              String             @unique @db.VarChar(160)
+  name              String             @db.VarChar(200)
+  description       String?            @db.Text
+  countryCode       String             @db.Char(2)
+  city              String             @db.VarChar(120)
+  address           String?            @db.Text
+  latitude          Decimal?           @db.Decimal(9, 6)
+  longitude         Decimal?           @db.Decimal(9, 6)
+  websiteUrl        String?            @db.Text
+  imageUrl          String?            @db.Text
+  publicationStatus PublicationStatus  @default(DRAFT)
+  associations      HotelAssociation[]
+  createdAt         DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime           @updatedAt @db.Timestamptz(3)
+
+  @@index([countryCode, city])
+  @@index([publicationStatus])
+}
+
+model NotablePerson {
+  id                String                @id @default(uuid()) @db.Uuid
+  slug              String                @unique @db.VarChar(160)
+  displayName       String                @db.VarChar(200)
+  primaryCategory   NotablePersonCategory
+  occupation        String?               @db.VarChar(200)
+  biography         String?               @db.Text
+  countryCode       String?               @db.Char(2)
+  imageUrl          String?               @db.Text
+  publicationStatus PublicationStatus     @default(DRAFT)
+  associations      HotelAssociation[]
+  createdAt         DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime              @updatedAt @db.Timestamptz(3)
+
+  @@index([primaryCategory])
+  @@index([publicationStatus])
+}
+
+model HotelAssociation {
+  id                 String                @id @default(uuid()) @db.Uuid
+  hotelId            String                @db.Uuid
+  notablePersonId    String                @db.Uuid
+  type               AssociationType
+  summary            String                @db.Text
+  occurredAt         DateTime?             @db.Timestamptz(3)
+  verificationStatus VerificationStatus    @default(PENDING)
+  verificationNotes  String?               @db.Text
+  verifiedAt         DateTime?             @db.Timestamptz(3)
+  hotel              Hotel                 @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  notablePerson      NotablePerson         @relation(fields: [notablePersonId], references: [id], onDelete: Cascade)
+  evidence           AssociationEvidence[]
+  createdAt          DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime              @updatedAt @db.Timestamptz(3)
+
+  @@index([hotelId, verificationStatus])
+  @@index([notablePersonId, verificationStatus])
+  @@index([type])
+}
+
+model Source {
+  id          String                @id @default(uuid()) @db.Uuid
+  url         String                @unique @db.Text
+  type        SourceType
+  title       String                @db.VarChar(300)
+  publisher   String?               @db.VarChar(200)
+  author      String?               @db.VarChar(200)
+  publishedAt DateTime?             @db.Timestamptz(3)
+  archivedUrl String?               @db.Text
+  evidence    AssociationEvidence[]
+  createdAt   DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime              @updatedAt @db.Timestamptz(3)
+}
+
+model AssociationEvidence {
+  associationId String           @db.Uuid
+  sourceId      String           @db.Uuid
+  isPrimary     Boolean          @default(false)
+  note          String?          @db.Text
+  association   HotelAssociation @relation(fields: [associationId], references: [id], onDelete: Cascade)
+  source        Source           @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  createdAt     DateTime         @default(now()) @db.Timestamptz(3)
+
+  @@id([associationId, sourceId])
+  @@index([sourceId])
+}
