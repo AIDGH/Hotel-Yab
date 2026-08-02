@@ -80,6 +80,8 @@ describe('Hotel-Yab API (e2e)', () => {
   let visiblePersonId: string;
   let visibleAssociationId: string;
   let visibleSourceId: string;
+  let hiddenPendingHotelId: string;
+  let hiddenUnsupportedHotelId: string;
   let repeatedImportSummary: ImportSummary;
 
   const occurredAt = new Date('2025-01-10T00:00:00.000Z');
@@ -214,6 +216,8 @@ describe('Hotel-Yab API (e2e)', () => {
         },
       },
     });
+
+    hiddenPendingHotelId = hotel.id;
   }
 
   async function createHiddenUnsupportedFixture(): Promise<void> {
@@ -246,6 +250,8 @@ describe('Hotel-Yab API (e2e)', () => {
         verifiedAt,
       },
     });
+
+    hiddenUnsupportedHotelId = hotel.id;
   }
 
   it('GET /api/v1/health checks the database', () => {
@@ -310,9 +316,9 @@ describe('Hotel-Yab API (e2e)', () => {
     });
   });
 
-  it('GET /api/v1/hotels lists only evidence-backed verified hotels', () => {
+  it('GET /api/v1/hotels lists public hotels with order-independent search', () => {
     return request(app.getHttpServer())
-      .get('/api/v1/hotels?query=E2E%20Visible')
+      .get('/api/v1/hotels?query=Visible%20E2E')
       .expect(200)
       .expect({
         data: [
@@ -331,13 +337,36 @@ describe('Hotel-Yab API (e2e)', () => {
       });
   });
 
-  it('does not expose pending or unsupported hotel associations', () => {
+  it('lists public hotels without exposing pending or unsupported associations', () => {
     return request(app.getHttpServer())
       .get('/api/v1/hotels?query=E2E%20Hidden')
       .expect(200)
-      .expect({
-        data: [],
-        meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
+      .expect((response) => {
+        expect(response.body).toEqual({
+          data: [
+            {
+              id: hiddenPendingHotelId,
+              slug: 'e2e-hidden-pending-hotel',
+              name: 'E2E Hidden Pending Hotel',
+              description: null,
+              countryCode: 'US',
+              city: 'Test City',
+              imageUrl: null,
+              associationCount: 0,
+            },
+            {
+              id: hiddenUnsupportedHotelId,
+              slug: 'e2e-hidden-unsupported-hotel',
+              name: 'E2E Hidden Unsupported Hotel',
+              description: null,
+              countryCode: 'US',
+              city: 'Test City',
+              imageUrl: null,
+              associationCount: 0,
+            },
+          ],
+          meta: { page: 1, pageSize: 20, total: 2, totalPages: 1 },
+        });
       });
   });
 
@@ -474,9 +503,22 @@ describe('Hotel-Yab API (e2e)', () => {
       .expect(400);
   });
 
-  it('returns 404 for a non-public hotel slug', () => {
+  it('returns an empty verified-association list for a public pending hotel', () => {
     return request(app.getHttpServer())
       .get('/api/v1/hotels/e2e-hidden-pending-hotel')
+      .expect(200)
+      .expect((response) => {
+        const body = response.body as {
+          data: { slug: string; associations: unknown[] };
+        };
+        expect(body.data.slug).toBe('e2e-hidden-pending-hotel');
+        expect(body.data.associations).toEqual([]);
+      });
+  });
+
+  it('returns 404 for a draft hotel slug', () => {
+    return request(app.getHttpServer())
+      .get('/api/v1/hotels/e2e-import-hotel')
       .expect(404);
   });
 

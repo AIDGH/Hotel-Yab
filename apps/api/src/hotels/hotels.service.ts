@@ -37,19 +37,22 @@ export class HotelsService {
     query: HotelQueryDto,
   ): Promise<PaginatedResponse<HotelListItem>> {
     const { page, pageSize } = query;
-    const search = query.query?.trim();
+    const searchTokens = query.query
+      ? normalizeSearchText(query.query).split(/\s+/).filter(Boolean)
+      : [];
     const city = query.city?.trim();
     const countryCode = query.countryCode?.toUpperCase();
 
     const where = {
       publicationStatus: PublicationStatus.PUBLISHED,
-      associations: { some: publicAssociationWhere },
-      ...(search
+      ...(searchTokens.length > 0
         ? {
-            OR: [
-              { name: { contains: search, mode: 'insensitive' as const } },
-              { city: { contains: search, mode: 'insensitive' as const } },
-            ],
+            AND: searchTokens.map((token) => ({
+              OR: [
+                { name: { contains: token, mode: 'insensitive' as const } },
+                { city: { contains: token, mode: 'insensitive' as const } },
+              ],
+            })),
           }
         : {}),
       ...(city ? { city: { equals: city, mode: 'insensitive' as const } } : {}),
@@ -94,7 +97,6 @@ export class HotelsService {
       where: {
         slug,
         publicationStatus: PublicationStatus.PUBLISHED,
-        associations: { some: publicAssociationWhere },
       },
       select: {
         id: true,
@@ -176,4 +178,12 @@ export class HotelsService {
       },
     };
   }
+}
+
+function normalizeSearchText(value: string): string {
+  return value
+    .replace(/[يى]/g, 'ی')
+    .replace(/ك/g, 'ک')
+    .replace(/\u200c/g, ' ')
+    .trim();
 }

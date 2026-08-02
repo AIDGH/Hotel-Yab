@@ -17,7 +17,7 @@ export class HotelsController {
   constructor(private readonly hotelsService: HotelsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List public hotels with verified associations' })
+  @ApiOperation({ summary: 'List public hotels' })
   @ApiOkResponse({ description: 'Paginated public hotel results' })
   @ApiBadRequestResponse({ description: 'Invalid query parameters' })
   findAll(@Query() query: HotelQueryDto) {
@@ -25,7 +25,9 @@ export class HotelsController {
   }
 
   @Get(':slug')
-  @ApiOperation({ summary: 'Get a public hotel with people and evidence' })
+  @ApiOperation({
+    summary: 'Get a public hotel with verified people and evidence',
+  })
   @ApiParam({ name: 'slug', example: 'example-hotel' })
   @ApiOkResponse({ description: 'Hotel details with traceable evidence' })
   @ApiNotFoundResponse({ description: 'Hotel is missing or not public' })
