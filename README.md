@@ -207,6 +207,13 @@ associations default to `PENDING`, so imports are not public accidentally.
 The private `import.json` file is excluded from Git. The committed example is a
 format template only and is not real Hotel-Yab data.
 
+The structured private research workbook is stored locally at
+`data/Hotel-Yab_Data_Workbook.xlsx`. It has separate `Hotels`, `People`,
+`Associations`, and `Sources` sheets and replaces color-based relationship
+matching. See [the workbook guide](docs/data-workbook-guide.md) before editing
+or verifying records. The workbook-to-database sync command has not been built
+yet.
+
 ## Backend API
 
 The NestJS backend is located in `apps/api` and exposes a versioned REST API
