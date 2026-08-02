@@ -5,6 +5,7 @@ import { App } from 'supertest/types';
 import { configureApp } from './../src/app.config';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/database/prisma.service';
+import { configureSwagger } from './../src/docs/swagger';
 import {
   AssociationType,
   NotablePersonCategory,
@@ -42,6 +43,7 @@ describe('Hotel-Yab API (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     configureApp(app);
+    configureSwagger(app);
     await app.init();
 
     prisma = app.get(PrismaService);
@@ -196,6 +198,25 @@ describe('Hotel-Yab API (e2e)', () => {
       .get('/api/v1/health')
       .expect(200)
       .expect({ status: 'ok', database: 'up' });
+  });
+
+  it('serves interactive and machine-readable API documentation', async () => {
+    await request(app.getHttpServer())
+      .get('/api/docs')
+      .expect('content-type', /html/)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/docs-json')
+      .expect('content-type', /json/)
+      .expect(200);
+  });
+
+  it('allows requests from the configured frontend origin', () => {
+    return request(app.getHttpServer())
+      .get('/api/v1/health')
+      .set('Origin', 'http://localhost:3000')
+      .expect('access-control-allow-origin', 'http://localhost:3000')
+      .expect(200);
   });
 
   it('GET /api/v1/hotels lists only evidence-backed verified hotels', () => {

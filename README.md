@@ -195,10 +195,11 @@ Start the API in development mode from the repository root:
 pnpm api:dev
 ```
 
-The server listens on port `3000` by default. Verify that it is running:
+The API listens on port `4000` by default, leaving port `3000` available for the
+future Next.js frontend. Verify that it is running:
 
 ```bash
-curl http://localhost:3000/api/v1/health
+curl http://localhost:4000/api/v1/health
 ```
 
 Expected response:
@@ -208,6 +209,19 @@ Expected response:
   "status": "ok",
   "database": "up"
 }
+```
+
+Explore and execute the API in Swagger UI while the development server is
+running:
+
+```text
+http://localhost:4000/api/docs
+```
+
+The OpenAPI JSON document is available at:
+
+```text
+http://localhost:4000/api/docs-json
 ```
 
 Run the backend checks from the repository root:
