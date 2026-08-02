@@ -4,5 +4,14 @@
   "private": true,
   "description": "Hotel discovery platform with verified hotel and notable-person associations.",
   "license": "UNLICENSED",
-  "packageManager": "pnpm@11.18.0"
+  "packageManager": "pnpm@11.18.0",
+  "scripts": {
+    "api:build": "pnpm --filter @hotel-yab/api build",
+    "api:dev": "pnpm --filter @hotel-yab/api start:dev",
+    "api:format": "pnpm --filter @hotel-yab/api format",
+    "api:lint": "pnpm --filter @hotel-yab/api lint",
+    "api:lint:fix": "pnpm --filter @hotel-yab/api lint:fix",
+    "api:test": "pnpm --filter @hotel-yab/api test",
+    "api:test:e2e": "pnpm --filter @hotel-yab/api test:e2e"
+  }
 }

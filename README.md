@@ -97,6 +97,47 @@ pnpm install
 The workspace currently includes projects located under `apps/*` and
 `packages/*`.
 
+## Backend API
+
+The NestJS backend is located in `apps/api` and exposes a versioned REST API
+under `/api/v1`.
+
+Start the API in development mode from the repository root:
+
+```bash
+pnpm api:dev
+```
+
+The server listens on port `3000` by default. Verify that it is running:
+
+```bash
+curl http://localhost:3000/api/v1/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+Run the backend checks from the repository root:
+
+```bash
+pnpm api:lint
+pnpm api:test
+pnpm api:test:e2e
+pnpm api:build
+```
+
+Format backend files or apply automatic lint fixes explicitly:
+
+```bash
+pnpm api:format
+pnpm api:lint:fix
+```
+
 ## Development Approach
 
 Development will proceed incrementally.
