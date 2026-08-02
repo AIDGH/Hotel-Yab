@@ -1,0 +1,89 @@
+export type PaginationMeta = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+export type PaginatedResponse<T> = {
+  data: T[];
+  meta: PaginationMeta;
+};
+
+export type HotelListItem = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  countryCode: string;
+  city: string;
+  imageUrl: string | null;
+  associationCount: number;
+};
+
+export type NotablePersonListItem = {
+  id: string;
+  slug: string;
+  displayName: string;
+  primaryCategory: string;
+  occupation: string | null;
+  countryCode: string | null;
+  imageUrl: string | null;
+  associationCount: number;
+};
+
+export type EvidenceSource = {
+  id: string;
+  url: string;
+  type: string;
+  title: string;
+  publisher: string | null;
+  author: string | null;
+  publishedAt: string | null;
+  archivedUrl: string | null;
+  isPrimary: boolean;
+  note: string | null;
+};
+
+export type PublicAssociation = {
+  id: string;
+  type: string;
+  summary: string;
+  occurredAt: string | null;
+  verificationStatus: string;
+  verifiedAt: string | null;
+  sources: EvidenceSource[];
+};
+
+export type HotelDetail = Omit<HotelListItem, "associationCount"> & {
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  websiteUrl: string | null;
+  associations: Array<
+    PublicAssociation & {
+      notablePerson: Omit<NotablePersonListItem, "associationCount" | "countryCode">;
+    }
+  >;
+};
+
+export type NotablePersonDetail = Omit<
+  NotablePersonListItem,
+  "associationCount"
+> & {
+  biography: string | null;
+  associations: Array<
+    PublicAssociation & {
+      hotel: Pick<
+        HotelListItem,
+        "id" | "slug" | "name" | "countryCode" | "city" | "imageUrl"
+      >;
+    }
+  >;
+};
+
+export type ApiEnvelope<T> = { data: T };
+
+export type ApiResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; status?: number; message: string };

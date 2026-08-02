@@ -1,0 +1,39 @@
+import { formatDate, sourceLabel } from "@/lib/labels";
+import type { EvidenceSource } from "@/lib/types";
+
+export function SourceList({ sources }: { sources: EvidenceSource[] }) {
+  return (
+    <div className="source-list">
+      {sources.map((source) => {
+        const isMedia = source.type === "VIDEO" || source.type === "SOCIAL_MEDIA_POST";
+        const publishedAt = formatDate(source.publishedAt);
+
+        return (
+          <a
+            className={`source-card ${isMedia ? "source-card-media" : ""}`}
+            href={source.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            key={source.id}
+          >
+            <span className="source-icon" aria-hidden="true">
+              {isMedia ? "▶" : "↗"}
+            </span>
+            <span className="source-copy">
+              <span className="source-type">
+                {sourceLabel(source.type)}
+                {source.isPrimary ? <em>منبع اصلی</em> : null}
+              </span>
+              <strong>{source.title}</strong>
+              <small>
+                {[source.publisher, publishedAt].filter(Boolean).join(" · ") ||
+                  "مشاهده منبع اصلی"}
+              </small>
+            </span>
+            <span className="source-action">{isMedia ? "مشاهده مدرک" : "باز کردن"}</span>
+          </a>
+        );
+      })}
+    </div>
+  );
+}
