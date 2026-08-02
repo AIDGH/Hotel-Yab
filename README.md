@@ -76,6 +76,27 @@ Hotel-Yab/
 
 The `mobile` application will be added in a future phase.
 
+## Package Management
+
+Hotel-Yab uses pnpm workspaces to manage applications and shared packages in a
+single repository.
+
+### Prerequisites
+
+- Node.js
+- Corepack
+
+From the repository root, enable the package manager version declared in
+`package.json` and install workspace dependencies:
+
+```bash
+corepack enable
+pnpm install
+```
+
+The workspace currently includes projects located under `apps/*` and
+`packages/*`.
+
 ## Development Approach
 
 Development will proceed incrementally.
