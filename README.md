@@ -4,9 +4,13 @@ Hotel-Yab is a hotel discovery platform designed to help users find hotels and e
 
 ## Project Status
 
-The project is currently in the initial development phase.
+The core discovery backend milestone is complete and ready for frontend
+integration. It includes the PostgreSQL/Prisma relationship graph, public
+evidence-aware discovery endpoints, validation, curated data import, Swagger
+documentation, and automated tests.
 
-The first development milestone is to build the backend API, database structure, user authentication, and the core hotel data model.
+User authentication, favorites, reviews, and administration workflows remain
+planned and have not been implemented yet.
 
 ## Planned Technology Stack
 
@@ -284,4 +288,7 @@ Each major step should:
 
 ## Current Phase
 
-The current phase is core backend data modeling and API development.
+The next phase is the Next.js frontend for hotel and notable-person discovery.
+Real researched records can be added through the curated data import workflow
+without changing the public API contract. Authentication, favorites, reviews,
+and administration features remain later backend milestones.
