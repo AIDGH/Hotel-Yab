@@ -168,8 +168,9 @@ Hotel ──< HotelAssociation >── NotablePerson
 
 `HotelAssociation` stores the claim and its verification status. `Source`
 stores reusable source metadata and a unique URL. `AssociationEvidence` links
-one or more sources to a claim. Public discovery endpoints will only expose
-published records with verified associations.
+one or more sources to a claim. Published hotels can appear in public discovery
+before they have a verified association. A relationship is exposed only when it
+is verified and backed by evidence.
 
 Video and social-media evidence use `SourceType.VIDEO` or
 `SourceType.SOCIAL_MEDIA_POST`. The source URL is the canonical link. Embedded
@@ -214,7 +215,7 @@ Current public endpoints:
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/v1/health` | Check API and database readiness |
-| `GET` | `/api/v1/hotels` | List public hotels with verified associations |
+| `GET` | `/api/v1/hotels` | List public hotels and their verified-association counts |
 | `GET` | `/api/v1/hotels/:slug` | Get a hotel, notable people, and evidence sources |
 | `GET` | `/api/v1/notable-people` | List public notable people with verified associations |
 | `GET` | `/api/v1/notable-people/:slug` | Get a person, associated hotels, and evidence sources |
@@ -223,8 +224,10 @@ Hotel list filters are `page`, `pageSize`, `query`, `city`, and `countryCode`.
 Notable-person list filters are `page`, `pageSize`, `query`, `category`, and
 `countryCode`. Page size is limited to 100 records.
 
-Public discovery results only include published hotels and notable people whose
-associations are verified and backed by at least one evidence source.
+Hotel discovery includes every published hotel, including hotels that do not yet
+have a verified relationship. Hotel details expose only verified associations
+backed by at least one evidence source. Notable people remain public only when
+they have at least one such association.
 
 Start the API in development mode from the repository root:
 
@@ -327,8 +330,8 @@ pnpm web:build
 ```
 
 The visual system uses the purple `#635BFF` as its primary brand token with
-white and light-gray surfaces. A system Persian font stack is used until a
-licensed brand font file is added to the repository.
+white and light-gray surfaces. The bundled `B-NAZANIN.TTF` file is loaded with
+`@font-face`; system fonts remain as loading and compatibility fallbacks.
 
 ## Development Approach
 
