@@ -10,6 +10,7 @@
     "api:data:import": "pnpm --filter @hotel-yab/api data:import",
     "api:dev": "pnpm --filter @hotel-yab/api start:dev",
     "api:format": "pnpm --filter @hotel-yab/api format",
+    "api:format:check": "pnpm --filter @hotel-yab/api format:check",
     "api:lint": "pnpm --filter @hotel-yab/api lint",
     "api:lint:fix": "pnpm --filter @hotel-yab/api lint:fix",
     "api:prisma:format": "pnpm --filter @hotel-yab/api prisma:format",
@@ -18,6 +19,7 @@
     "api:prisma:migrate:dev": "pnpm --filter @hotel-yab/api prisma:migrate:dev",
     "api:prisma:validate": "pnpm --filter @hotel-yab/api prisma:validate",
     "api:test": "pnpm --filter @hotel-yab/api test",
-    "api:test:e2e": "pnpm --filter @hotel-yab/api test:e2e"
+    "api:test:e2e": "pnpm --filter @hotel-yab/api test:e2e",
+    "api:typecheck": "pnpm --filter @hotel-yab/api typecheck"
   }
 }

@@ -9,6 +9,7 @@
     "build": "nest build",
     "data:import": "tsx prisma/import-data.ts prisma/data/import.json",
     "format": "prettier --write \"src/**/*.ts\" \"!src/generated/**\" \"test/**/*.ts\" \"prisma/**/*.ts\" \"prisma.config.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"!src/generated/**\" \"test/**/*.ts\" \"prisma/**/*.ts\" \"prisma.config.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -24,7 +25,8 @@
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:cov": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json"
+    "test:e2e": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

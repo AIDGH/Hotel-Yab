@@ -255,7 +255,9 @@ http://localhost:4000/api/docs-json
 Run the backend checks from the repository root:
 
 ```bash
+pnpm api:format:check
 pnpm api:lint
+pnpm api:typecheck
 pnpm api:test
 pnpm api:test:e2e
 pnpm api:build
