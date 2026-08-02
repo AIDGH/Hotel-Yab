@@ -60,14 +60,14 @@ Repository Structure
 
 The planned repository structure is:
 
-Hotel-Yab/
-├── apps/
-│   ├── api/
-│   ├── web/
-│   └── mobile/
-├── packages/
-├── README.md
-└── .gitignore
+Hotel-Yab/  
+├── apps/  
+│   ├── api/  
+│   ├── web/  
+│   └── mobile/  
+├── packages/  
+├── README.md  
+└── .gitignore  
 
 The mobile application will be added in a future phase.
 
