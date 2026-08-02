@@ -1169,6 +1169,10 @@ img {
   font-weight: 900;
 }
 
+.verification-row > .verification-pending {
+  color: var(--brand-dark);
+}
+
 .verification-row small {
   color: var(--muted);
 }
@@ -1177,6 +1181,29 @@ img {
   display: grid;
   gap: 10px;
   margin-top: 14px;
+}
+
+.evidence-placeholder {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 13px;
+  border: 1px dashed rgba(99, 91, 255, 0.3);
+  border-radius: 14px;
+  color: var(--ink-soft);
+  background: var(--brand-pale);
+}
+
+.evidence-placeholder strong,
+.evidence-placeholder small {
+  display: block;
+}
+
+.evidence-placeholder small {
+  color: var(--muted);
+  font-size: 0.72rem;
 }
 
 .source-card {

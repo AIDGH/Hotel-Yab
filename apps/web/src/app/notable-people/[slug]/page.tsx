@@ -41,6 +41,9 @@ export default async function PersonPage({ params }: PersonPageProps) {
   }
 
   const person = result.value.data;
+  const hasVerifiedAssociations = person.associations.some(
+    ({ verificationStatus }) => verificationStatus === "VERIFIED",
+  );
 
   return (
     <main className="detail-page">
@@ -57,7 +60,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
           <p className="detail-location">{person.occupation ?? "چهره شناخته‌شده"}</p>
           <p>
             {person.biography ??
-              "این پروفایل فقط هتل‌هایی را نمایش می‌دهد که ارتباط آن‌ها با این فرد بررسی و منبع‌دهی شده باشد."}
+              "هتل‌های مرتبط با این فرد نمایش داده می‌شوند و وضعیت بررسی هر رابطه به‌صورت شفاف مشخص است."}
           </p>
           <div className="detail-actions">
             <span>{person.associations.length.toLocaleString("fa-IR")} هتل مرتبط</span>
@@ -69,7 +72,11 @@ export default async function PersonPage({ params }: PersonPageProps) {
         <div className="container detail-content">
           <div className="detail-main">
             <span className="section-eyebrow">هتل‌های مرتبط</span>
-            <h2>ارتباط‌های مستند این چهره</h2>
+            <h2>
+              {hasVerifiedAssociations
+                ? "ارتباط‌های این چهره"
+                : "ارتباط‌های در حال تکمیل این چهره"}
+            </h2>
             <div className="association-list">
               {person.associations.map((association) => (
                 <article className="association-card" key={association.id}>
@@ -91,10 +98,22 @@ export default async function PersonPage({ params }: PersonPageProps) {
                     </div>
                   </div>
                   <div className="verification-row">
-                    <span>✓ تأییدشده</span>
-                    {association.verifiedAt ? (
-                      <small>بررسی در {formatDate(association.verifiedAt)}</small>
-                    ) : null}
+                    <span
+                      className={
+                        association.verificationStatus === "VERIFIED"
+                          ? ""
+                          : "verification-pending"
+                      }
+                    >
+                      {association.verificationStatus === "VERIFIED"
+                        ? "✓ تأییدشده"
+                        : "◇ در حال تکمیل"}
+                    </span>
+                    <small>
+                      {association.verifiedAt
+                        ? `بررسی در ${formatDate(association.verifiedAt)}`
+                        : "هنوز تأیید نهایی نشده"}
+                    </small>
                   </div>
                   <SourceList sources={association.sources} />
                 </article>

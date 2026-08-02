@@ -17,7 +17,10 @@ export function PersonCard({ person }: { person: NotablePersonListItem }) {
           <h3>{person.displayName}</h3>
           <p>{person.occupation ?? "چهره شناخته‌شده"}</p>
           <div className="card-meta">
-            <span>{person.associationCount.toLocaleString("fa-IR")} هتل مرتبط</span>
+            <span>
+              {person.associationCount.toLocaleString("fa-IR")} هتل مرتبط
+              {person.verifiedAssociationCount === 0 ? " · در حال تکمیل" : ""}
+            </span>
             <strong aria-hidden="true">←</strong>
           </div>
         </div>

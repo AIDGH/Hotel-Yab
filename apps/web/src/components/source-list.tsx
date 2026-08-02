@@ -2,6 +2,20 @@ import { formatDate, sourceLabel } from "@/lib/labels";
 import type { EvidenceSource } from "@/lib/types";
 
 export function SourceList({ sources }: { sources: EvidenceSource[] }) {
+  if (sources.length === 0) {
+    return (
+      <div className="evidence-placeholder">
+        <span className="source-icon" aria-hidden="true">
+          ▶
+        </span>
+        <span>
+          <strong>جای عکس، ویدئو یا لینک منبع</strong>
+          <small>رسانه و منبع این ارتباط بعداً اضافه می‌شود.</small>
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="source-list">
       {sources.map((source) => {

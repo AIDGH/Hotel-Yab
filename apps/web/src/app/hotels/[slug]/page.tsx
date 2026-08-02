@@ -41,7 +41,10 @@ export default async function HotelPage({ params }: HotelPageProps) {
   }
 
   const hotel = result.value.data;
-  const hasVerifiedAssociations = hotel.associations.length > 0;
+  const hasAssociations = hotel.associations.length > 0;
+  const hasVerifiedAssociations = hotel.associations.some(
+    ({ verificationStatus }) => verificationStatus === "VERIFIED",
+  );
 
   return (
     <main className="detail-page">
@@ -67,8 +70,8 @@ export default async function HotelPage({ params }: HotelPageProps) {
           <p className="detail-location">⌖ {hotel.city}</p>
           <p>
             {hotel.description ??
-              (hasVerifiedAssociations
-                ? "اطلاعات این هتل بر پایه‌ی رابطه‌های بررسی‌شده و منابع قابل پیگیری نمایش داده می‌شود."
+              (hasAssociations
+                ? "افراد مرتبط با این هتل نمایش داده می‌شوند و وضعیت بررسی هر رابطه به‌صورت شفاف مشخص است."
                 : "این هتل در فهرست عمومی ثبت شده و ارتباط‌های آن در حال بررسی و منبع‌دهی است.")}
           </p>
           <div className="detail-actions">
@@ -77,7 +80,7 @@ export default async function HotelPage({ params }: HotelPageProps) {
                 صفحه رسمی هتل
               </a>
             ) : null}
-            <span>{hotel.associations.length.toLocaleString("fa-IR")} ارتباط مستند</span>
+            <span>{hotel.associations.length.toLocaleString("fa-IR")} چهره مرتبط</span>
           </div>
         </div>
       </section>
@@ -87,7 +90,7 @@ export default async function HotelPage({ params }: HotelPageProps) {
           <div className="detail-main">
             <span className="section-eyebrow">ردپای چهره‌ها</span>
             <h2>چه کسانی با این هتل ارتباط داشته‌اند؟</h2>
-            {hasVerifiedAssociations ? (
+            {hasAssociations ? (
               <div className="association-list">
                 {hotel.associations.map((association) => (
                   <article className="association-card" key={association.id}>
@@ -108,10 +111,22 @@ export default async function HotelPage({ params }: HotelPageProps) {
                       </div>
                     </div>
                     <div className="verification-row">
-                      <span>✓ تأییدشده</span>
-                      {association.verifiedAt ? (
-                        <small>بررسی در {formatDate(association.verifiedAt)}</small>
-                      ) : null}
+                      <span
+                        className={
+                          association.verificationStatus === "VERIFIED"
+                            ? ""
+                            : "verification-pending"
+                        }
+                      >
+                        {association.verificationStatus === "VERIFIED"
+                          ? "✓ تأییدشده"
+                          : "◇ در حال تکمیل"}
+                      </span>
+                      <small>
+                        {association.verifiedAt
+                          ? `بررسی در ${formatDate(association.verifiedAt)}`
+                          : "هنوز تأیید نهایی نشده"}
+                      </small>
                     </div>
                     <SourceList sources={association.sources} />
                   </article>
@@ -126,15 +141,15 @@ export default async function HotelPage({ params }: HotelPageProps) {
             )}
           </div>
           <aside className="detail-aside">
-            <h3>چرا این اطلاعات قابل اعتماد است؟</h3>
+            <h3>وضعیت هر ارتباط شفاف است</h3>
             <p>
-              هر ارتباط قبل از انتشار باید وضعیت تأییدشده و حداقل یک منبع
-              قابل بازبینی داشته باشد.
+              رابطه‌های اولیه با نشان «در حال تکمیل» منتشر می‌شوند و تا قبل
+              از بررسی نهایی، تأییدشده محسوب نمی‌شوند.
             </p>
             <ul>
-              <li>منبع مستقیم یا رسانه‌ای</li>
-              <li>زمان آخرین بررسی</li>
-              <li>تفکیک ادعا از واقعیت تأییدشده</li>
+              <li>جای مشخص برای عکس، ویدئو یا لینک</li>
+              <li>نشان جداگانه برای رابطهٔ تأییدشده</li>
+              <li>عدم نمایش رابطه‌های ردشده</li>
             </ul>
           </aside>
         </div>

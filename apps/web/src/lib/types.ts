@@ -19,6 +19,7 @@ export type HotelListItem = {
   city: string;
   imageUrl: string | null;
   associationCount: number;
+  verifiedAssociationCount: number;
 };
 
 export type NotablePersonListItem = {
@@ -30,6 +31,7 @@ export type NotablePersonListItem = {
   countryCode: string | null;
   imageUrl: string | null;
   associationCount: number;
+  verifiedAssociationCount: number;
 };
 
 export type EvidenceSource = {
@@ -55,7 +57,10 @@ export type PublicAssociation = {
   sources: EvidenceSource[];
 };
 
-export type HotelDetail = Omit<HotelListItem, "associationCount"> & {
+export type HotelDetail = Omit<
+  HotelListItem,
+  "associationCount" | "verifiedAssociationCount"
+> & {
   address: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -69,7 +74,7 @@ export type HotelDetail = Omit<HotelListItem, "associationCount"> & {
 
 export type NotablePersonDetail = Omit<
   NotablePersonListItem,
-  "associationCount"
+  "associationCount" | "verifiedAssociationCount"
 > & {
   biography: string | null;
   associations: Array<

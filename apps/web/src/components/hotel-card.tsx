@@ -3,7 +3,8 @@ import type { HotelListItem } from "@/lib/types";
 import { MediaTile } from "./media-tile";
 
 export function HotelCard({ hotel }: { hotel: HotelListItem }) {
-  const hasVerifiedAssociations = hotel.associationCount > 0;
+  const hasAssociations = hotel.associationCount > 0;
+  const hasVerifiedAssociations = hotel.verifiedAssociationCount > 0;
 
   return (
     <article className="hotel-card">
@@ -16,7 +17,11 @@ export function HotelCard({ hotel }: { hotel: HotelListItem }) {
             }`}
           >
             <span>{hasVerifiedAssociations ? "✓" : "◇"}</span>
-            {hasVerifiedAssociations ? "دارای ارتباط تأییدشده" : "هتل ثبت‌شده"}
+            {hasVerifiedAssociations
+              ? "دارای ارتباط تأییدشده"
+              : hasAssociations
+                ? "روابط در حال تکمیل"
+                : "هتل ثبت‌شده"}
           </span>
         </div>
         <div className="hotel-card-body">
@@ -26,12 +31,12 @@ export function HotelCard({ hotel }: { hotel: HotelListItem }) {
           </div>
           <p>
             {hotel.description ??
-              (hasVerifiedAssociations
+              (hasAssociations
                 ? "ارتباط‌های مستند این هتل با چهره‌های شناخته‌شده را ببینید."
                 : "اطلاعات و ارتباط‌های این هتل در حال تکمیل است.")}
           </p>
           <div className="card-meta">
-            <span>{hotel.associationCount.toLocaleString("fa-IR")} ارتباط مستند</span>
+            <span>{hotel.associationCount.toLocaleString("fa-IR")} چهره مرتبط</span>
             <strong aria-hidden="true">←</strong>
           </div>
         </div>

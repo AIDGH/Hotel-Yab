@@ -6,7 +6,7 @@ import { notableCategories } from "@/lib/labels";
 
 export const metadata: Metadata = {
   title: "کشف چهره‌ها",
-  description: "چهره‌ها و هتل‌هایی که ارتباط مستند با آن‌ها دارند.",
+  description: "چهره‌ها، هتل‌های مرتبط و وضعیت بررسی هر رابطه.",
 };
 
 export const dynamic = "force-dynamic";
@@ -29,11 +29,11 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
     <main className="listing-page">
       <section className="page-hero page-hero-compact page-hero-people">
         <div className="container">
-          <span className="eyebrow">چهره‌های منبع‌دار</span>
+          <span className="eyebrow">فهرست چهره‌ها</span>
           <h1>از آدم‌های مورد علاقه‌تان به هتل برسید</h1>
           <p>
-            پروفایل هر فرد فقط با رابطه‌های تأییدشده و منابع قابل مشاهده
-            نمایش داده می‌شود.
+            پروفایل‌های در حال تکمیل هم نمایش داده می‌شوند؛ وضعیت تأیید و
+            منابع هر رابطه به‌صورت شفاف مشخص است.
           </p>
           <form className="filter-bar" method="get">
             <label>
@@ -81,7 +81,7 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
             title={result.ok ? "چهره‌ای با این فیلتر پیدا نشد" : "API در دسترس نیست"}
             description={
               result.ok
-                ? "فیلتر را تغییر دهید یا بعد از تکمیل راستی‌آزمایی داده‌ها دوباره سر بزنید."
+                ? "فیلتر را تغییر دهید و دوباره جست‌وجو کنید."
                 : "برای نمایش داده‌ها، ابتدا بک‌اند را با pnpm api:dev اجرا کنید."
             }
           />
