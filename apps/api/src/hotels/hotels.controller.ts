@@ -26,7 +26,7 @@ export class HotelsController {
 
   @Get(':slug')
   @ApiOperation({
-    summary: 'Get a public hotel with verified people and evidence',
+    summary: 'Get a public hotel with pending or verified people links',
   })
   @ApiParam({ name: 'slug', example: 'example-hotel' })
   @ApiOkResponse({ description: 'Hotel details with traceable evidence' })

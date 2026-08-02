@@ -8,7 +8,7 @@ import {
 } from '../generated/prisma/enums';
 import { NotablePersonQueryDto } from './dto/notable-person-query.dto';
 
-const publicAssociationWhere = {
+const verifiedAssociationWhere = {
   verificationStatus: VerificationStatus.VERIFIED,
   hotel: {
     publicationStatus: PublicationStatus.PUBLISHED,
@@ -16,6 +16,16 @@ const publicAssociationWhere = {
   evidence: {
     some: {},
   },
+} satisfies Prisma.HotelAssociationWhereInput;
+
+const visibleAssociationWhere = {
+  hotel: {
+    publicationStatus: PublicationStatus.PUBLISHED,
+  },
+  OR: [
+    { verificationStatus: VerificationStatus.PENDING },
+    verifiedAssociationWhere,
+  ],
 } satisfies Prisma.HotelAssociationWhereInput;
 
 type NotablePersonListItem = {
@@ -27,6 +37,7 @@ type NotablePersonListItem = {
   countryCode: string | null;
   imageUrl: string | null;
   associationCount: number;
+  verifiedAssociationCount: number;
 };
 
 @Injectable()
@@ -42,7 +53,6 @@ export class NotablePeopleService {
 
     const where = {
       publicationStatus: PublicationStatus.PUBLISHED,
-      associations: { some: publicAssociationWhere },
       ...(search
         ? {
             OR: [
@@ -79,9 +89,13 @@ export class NotablePeopleService {
           occupation: true,
           countryCode: true,
           imageUrl: true,
+          associations: {
+            where: verifiedAssociationWhere,
+            select: { id: true },
+          },
           _count: {
             select: {
-              associations: { where: publicAssociationWhere },
+              associations: { where: visibleAssociationWhere },
             },
           },
         },
@@ -90,9 +104,10 @@ export class NotablePeopleService {
     ]);
 
     return {
-      data: people.map(({ _count, ...person }) => ({
+      data: people.map(({ associations, _count, ...person }) => ({
         ...person,
         associationCount: _count.associations,
+        verifiedAssociationCount: associations.length,
       })),
       meta: createPaginationMeta(page, pageSize, total),
     };
@@ -103,7 +118,6 @@ export class NotablePeopleService {
       where: {
         slug,
         publicationStatus: PublicationStatus.PUBLISHED,
-        associations: { some: publicAssociationWhere },
       },
       select: {
         id: true,
@@ -115,7 +129,7 @@ export class NotablePeopleService {
         countryCode: true,
         imageUrl: true,
         associations: {
-          where: publicAssociationWhere,
+          where: visibleAssociationWhere,
           orderBy: [{ verifiedAt: 'desc' }, { createdAt: 'desc' }],
           select: {
             id: true,

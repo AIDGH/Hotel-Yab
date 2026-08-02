@@ -8,7 +8,7 @@ import { createPaginationMeta, PaginatedResponse } from '../common/pagination';
 import { PrismaService } from '../database/prisma.service';
 import { HotelQueryDto } from './dto/hotel-query.dto';
 
-const publicAssociationWhere = {
+const verifiedAssociationWhere = {
   verificationStatus: VerificationStatus.VERIFIED,
   notablePerson: {
     publicationStatus: PublicationStatus.PUBLISHED,
@@ -16,6 +16,16 @@ const publicAssociationWhere = {
   evidence: {
     some: {},
   },
+} satisfies Prisma.HotelAssociationWhereInput;
+
+const visibleAssociationWhere = {
+  notablePerson: {
+    publicationStatus: PublicationStatus.PUBLISHED,
+  },
+  OR: [
+    { verificationStatus: VerificationStatus.PENDING },
+    verifiedAssociationWhere,
+  ],
 } satisfies Prisma.HotelAssociationWhereInput;
 
 type HotelListItem = {
@@ -27,6 +37,7 @@ type HotelListItem = {
   city: string;
   imageUrl: string | null;
   associationCount: number;
+  verifiedAssociationCount: number;
 };
 
 @Injectable()
@@ -73,9 +84,13 @@ export class HotelsService {
           countryCode: true,
           city: true,
           imageUrl: true,
+          associations: {
+            where: verifiedAssociationWhere,
+            select: { id: true },
+          },
           _count: {
             select: {
-              associations: { where: publicAssociationWhere },
+              associations: { where: visibleAssociationWhere },
             },
           },
         },
@@ -84,9 +99,10 @@ export class HotelsService {
     ]);
 
     return {
-      data: hotels.map(({ _count, ...hotel }) => ({
+      data: hotels.map(({ associations, _count, ...hotel }) => ({
         ...hotel,
         associationCount: _count.associations,
+        verifiedAssociationCount: associations.length,
       })),
       meta: createPaginationMeta(page, pageSize, total),
     };
@@ -111,7 +127,7 @@ export class HotelsService {
         websiteUrl: true,
         imageUrl: true,
         associations: {
-          where: publicAssociationWhere,
+          where: visibleAssociationWhere,
           orderBy: [{ verifiedAt: 'desc' }, { createdAt: 'desc' }],
           select: {
             id: true,

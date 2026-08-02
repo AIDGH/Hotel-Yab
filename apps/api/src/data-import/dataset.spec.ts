@@ -52,11 +52,27 @@ describe('validateDataset', () => {
     });
   });
 
-  it('rejects associations without evidence', () => {
+  it('accepts a pending association while its evidence is being collected', () => {
     const dataset = structuredClone(validDataset);
     dataset.associations[0].evidence = [];
 
-    expect(() => validateDataset(dataset)).toThrow('Invalid import dataset');
+    expect(validateDataset(dataset).associations[0]).toMatchObject({
+      verificationStatus: 'PENDING',
+      evidence: [],
+    });
+  });
+
+  it('rejects a verified association without evidence', () => {
+    const dataset = structuredClone(validDataset);
+    Object.assign(dataset.associations[0], {
+      verificationStatus: 'VERIFIED',
+      verifiedAt: '2026-01-12T00:00:00.000Z',
+      evidence: [],
+    });
+
+    expect(() => validateDataset(dataset)).toThrow(
+      'requires at least one evidence source',
+    );
   });
 
   it('requires a verification timestamp for verified associations', () => {

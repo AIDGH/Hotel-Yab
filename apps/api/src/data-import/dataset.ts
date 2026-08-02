@@ -179,7 +179,6 @@ const datasetSchema = Joi.object<ImportDataset>({
             }).unknown(false),
           )
           .unique('sourceUrl')
-          .min(1)
           .required(),
       }).unknown(false),
     )
@@ -215,6 +214,15 @@ function validateReferences(dataset: ImportDataset): void {
     if (!personSlugs.has(association.notablePersonSlug)) {
       throw new Error(
         `Association "${association.referenceKey}" references unknown notable person "${association.notablePersonSlug}"`,
+      );
+    }
+
+    if (
+      association.verificationStatus === VerificationStatus.VERIFIED &&
+      association.evidence.length === 0
+    ) {
+      throw new Error(
+        `Verified association "${association.referenceKey}" requires at least one evidence source`,
       );
     }
 

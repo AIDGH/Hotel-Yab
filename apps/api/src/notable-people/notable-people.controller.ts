@@ -17,9 +17,7 @@ export class NotablePeopleController {
   constructor(private readonly notablePeopleService: NotablePeopleService) {}
 
   @Get()
-  @ApiOperation({
-    summary: 'List public notable people with verified associations',
-  })
+  @ApiOperation({ summary: 'List public notable people' })
   @ApiOkResponse({ description: 'Paginated public notable-person results' })
   @ApiBadRequestResponse({ description: 'Invalid query parameters' })
   findAll(@Query() query: NotablePersonQueryDto) {
@@ -27,7 +25,9 @@ export class NotablePeopleController {
   }
 
   @Get(':slug')
-  @ApiOperation({ summary: 'Get a public person with hotels and evidence' })
+  @ApiOperation({
+    summary: 'Get a public person with pending or verified hotel links',
+  })
   @ApiParam({ name: 'slug', example: 'example-person' })
   @ApiOkResponse({ description: 'Person details with traceable evidence' })
   @ApiNotFoundResponse({ description: 'Person is missing or not public' })

@@ -81,6 +81,8 @@ describe('Hotel-Yab API (e2e)', () => {
   let visibleAssociationId: string;
   let visibleSourceId: string;
   let hiddenPendingHotelId: string;
+  let hiddenPendingPersonId: string;
+  let hiddenPendingAssociationId: string;
   let hiddenUnsupportedHotelId: string;
   let repeatedImportSummary: ImportSummary;
 
@@ -195,15 +197,7 @@ describe('Hotel-Yab API (e2e)', () => {
         publicationStatus: PublicationStatus.PUBLISHED,
       },
     });
-    const source = await prisma.source.create({
-      data: {
-        url: `${fixtureSourceUrlPrefix}pending-source`,
-        type: SourceType.NEWS_ARTICLE,
-        title: 'E2E pending source',
-      },
-    });
-
-    await prisma.hotelAssociation.create({
+    const association = await prisma.hotelAssociation.create({
       data: {
         referenceKey: 'e2e-hidden-pending-visit',
         hotelId: hotel.id,
@@ -211,13 +205,12 @@ describe('Hotel-Yab API (e2e)', () => {
         type: AssociationType.VISITED,
         summary: 'A test-only pending claim.',
         verificationStatus: VerificationStatus.PENDING,
-        evidence: {
-          create: { sourceId: source.id },
-        },
       },
     });
 
     hiddenPendingHotelId = hotel.id;
+    hiddenPendingPersonId = person.id;
+    hiddenPendingAssociationId = association.id;
   }
 
   async function createHiddenUnsupportedFixture(): Promise<void> {
@@ -331,13 +324,14 @@ describe('Hotel-Yab API (e2e)', () => {
             city: 'Test City',
             imageUrl: null,
             associationCount: 1,
+            verifiedAssociationCount: 1,
           },
         ],
         meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
       });
   });
 
-  it('lists public hotels without exposing pending or unsupported associations', () => {
+  it('counts pending relationships without treating them as verified', () => {
     return request(app.getHttpServer())
       .get('/api/v1/hotels?query=E2E%20Hidden')
       .expect(200)
@@ -352,7 +346,8 @@ describe('Hotel-Yab API (e2e)', () => {
               countryCode: 'US',
               city: 'Test City',
               imageUrl: null,
-              associationCount: 0,
+              associationCount: 1,
+              verifiedAssociationCount: 0,
             },
             {
               id: hiddenUnsupportedHotelId,
@@ -363,6 +358,7 @@ describe('Hotel-Yab API (e2e)', () => {
               city: 'Test City',
               imageUrl: null,
               associationCount: 0,
+              verifiedAssociationCount: 0,
             },
           ],
           meta: { page: 1, pageSize: 20, total: 2, totalPages: 1 },
@@ -438,6 +434,7 @@ describe('Hotel-Yab API (e2e)', () => {
             countryCode: 'US',
             imageUrl: null,
             associationCount: 1,
+            verifiedAssociationCount: 1,
           },
         ],
         meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
@@ -503,16 +500,65 @@ describe('Hotel-Yab API (e2e)', () => {
       .expect(400);
   });
 
-  it('returns an empty verified-association list for a public pending hotel', () => {
+  it('returns a clearly pending relationship without fake evidence', () => {
     return request(app.getHttpServer())
       .get('/api/v1/hotels/e2e-hidden-pending-hotel')
       .expect(200)
+      .expect({
+        data: {
+          id: hiddenPendingHotelId,
+          slug: 'e2e-hidden-pending-hotel',
+          name: 'E2E Hidden Pending Hotel',
+          description: null,
+          countryCode: 'US',
+          city: 'Test City',
+          address: null,
+          latitude: null,
+          longitude: null,
+          websiteUrl: null,
+          imageUrl: null,
+          associations: [
+            {
+              id: hiddenPendingAssociationId,
+              type: 'VISITED',
+              summary: 'A test-only pending claim.',
+              occurredAt: null,
+              verificationStatus: 'PENDING',
+              verifiedAt: null,
+              notablePerson: {
+                id: hiddenPendingPersonId,
+                slug: 'e2e-hidden-pending-person',
+                displayName: 'E2E Hidden Pending Person',
+                primaryCategory: 'ACTOR',
+                occupation: null,
+                imageUrl: null,
+              },
+              sources: [],
+            },
+          ],
+        },
+      });
+  });
+
+  it('publishes a pending person profile with an explicit pending hotel', () => {
+    return request(app.getHttpServer())
+      .get('/api/v1/notable-people/e2e-hidden-pending-person')
+      .expect(200)
       .expect((response) => {
-        const body = response.body as {
-          data: { slug: string; associations: unknown[] };
-        };
-        expect(body.data.slug).toBe('e2e-hidden-pending-hotel');
-        expect(body.data.associations).toEqual([]);
+        const body = response.body as { data: unknown };
+
+        expect(body.data).toMatchObject({
+          id: hiddenPendingPersonId,
+          slug: 'e2e-hidden-pending-person',
+          associations: [
+            {
+              id: hiddenPendingAssociationId,
+              verificationStatus: 'PENDING',
+              sources: [],
+              hotel: { id: hiddenPendingHotelId },
+            },
+          ],
+        });
       });
   });
 
