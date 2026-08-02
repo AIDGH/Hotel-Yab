@@ -3,14 +3,20 @@ import type { HotelListItem } from "@/lib/types";
 import { MediaTile } from "./media-tile";
 
 export function HotelCard({ hotel }: { hotel: HotelListItem }) {
+  const hasVerifiedAssociations = hotel.associationCount > 0;
+
   return (
     <article className="hotel-card">
       <Link href={`/hotels/${hotel.slug}`} aria-label={`مشاهده ${hotel.name}`}>
         <div className="hotel-card-media">
           <MediaTile imageUrl={hotel.imageUrl} label={hotel.name} variant="hotel" />
-          <span className="verified-badge">
-            <span>✓</span>
-            اطلاعات تأییدشده
+          <span
+            className={`status-badge${
+              hasVerifiedAssociations ? "" : " status-badge-neutral"
+            }`}
+          >
+            <span>{hasVerifiedAssociations ? "✓" : "◇"}</span>
+            {hasVerifiedAssociations ? "دارای ارتباط تأییدشده" : "هتل ثبت‌شده"}
           </span>
         </div>
         <div className="hotel-card-body">
@@ -20,7 +26,9 @@ export function HotelCard({ hotel }: { hotel: HotelListItem }) {
           </div>
           <p>
             {hotel.description ??
-              "ارتباط‌های مستند این هتل با چهره‌های شناخته‌شده را ببینید."}
+              (hasVerifiedAssociations
+                ? "ارتباط‌های مستند این هتل با چهره‌های شناخته‌شده را ببینید."
+                : "اطلاعات و ارتباط‌های این هتل در حال تکمیل است.")}
           </p>
           <div className="card-meta">
             <span>{hotel.associationCount.toLocaleString("fa-IR")} ارتباط مستند</span>

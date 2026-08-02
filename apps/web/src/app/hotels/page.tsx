@@ -5,7 +5,7 @@ import { getHotels } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "کشف هتل‌ها",
-  description: "فهرست هتل‌های دارای ارتباط مستند و تأییدشده.",
+  description: "فهرست هتل‌ها و ارتباط‌های مستند و تأییدشده‌ی آن‌ها.",
 };
 
 export const dynamic = "force-dynamic";
@@ -28,11 +28,11 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
     <main className="listing-page">
       <section className="page-hero page-hero-compact">
         <div className="container">
-          <span className="eyebrow">هتل‌های منبع‌دار</span>
+          <span className="eyebrow">فهرست هتل‌ها</span>
           <h1>هتل را با داستان آدم‌ها کشف کنید</h1>
           <p>
-            نتایج فقط شامل هتل‌هایی است که حداقل یک ارتباط تأییدشده و دارای
-            منبع دارند.
+            همه‌ی هتل‌های منتشرشده را ببینید؛ ارتباط با چهره‌ها فقط پس از
+            تأیید و ثبت منبع نمایش داده می‌شود.
           </p>
           <form className="filter-bar" method="get">
             <label>
@@ -73,7 +73,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
             title={result.ok ? "هتلی با این فیلتر پیدا نشد" : "API در دسترس نیست"}
             description={
               result.ok
-                ? "فیلترها را تغییر دهید یا پس از انتشار داده‌های تأییدشده دوباره سر بزنید."
+                ? "فیلترها را تغییر دهید و دوباره جست‌وجو کنید."
                 : "برای نمایش داده‌ها، ابتدا بک‌اند را با pnpm api:dev اجرا کنید."
             }
           />

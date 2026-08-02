@@ -1,3 +1,13 @@
+@font-face {
+  font-family: "B Nazanin";
+  src:
+    local("B Nazanin"),
+    url("/fonts/B-NAZANIN.TTF") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
   --brand: #635bff;
   --brand-dark: #4b43e8;
@@ -35,7 +45,7 @@ body {
   color: var(--ink);
   background: var(--surface);
   font-family:
-    IRANYekanX, Vazirmatn, Tahoma, "Segoe UI", Arial, sans-serif;
+    "B Nazanin", Nazanin, Tahoma, "Segoe UI", Arial, sans-serif;
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -653,7 +663,7 @@ img {
   backdrop-filter: blur(10px);
 }
 
-.verified-badge {
+.status-badge {
   position: absolute;
   right: 22px;
   bottom: 20px;
@@ -669,7 +679,7 @@ img {
   font-weight: 800;
 }
 
-.verified-badge > span {
+.status-badge > span {
   display: grid;
   width: 18px;
   height: 18px;
@@ -678,6 +688,14 @@ img {
   color: #fff;
   background: var(--success);
   font-size: 0.68rem;
+}
+
+.status-badge-neutral {
+  color: var(--brand-dark);
+}
+
+.status-badge-neutral > span {
+  background: var(--brand);
 }
 
 .hotel-card-body {
@@ -1029,7 +1047,7 @@ img {
   font-size: 0.82rem;
 }
 
-.verified-badge-static {
+.status-badge-static {
   position: static;
   width: fit-content;
   color: #067451;
@@ -1536,7 +1554,7 @@ img {
     text-align: center;
   }
 
-  .verified-badge-static,
+  .status-badge-static,
   .detail-actions {
     margin-inline: auto;
   }

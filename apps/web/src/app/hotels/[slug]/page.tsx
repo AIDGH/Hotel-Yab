@@ -41,6 +41,7 @@ export default async function HotelPage({ params }: HotelPageProps) {
   }
 
   const hotel = result.value.data;
+  const hasVerifiedAssociations = hotel.associations.length > 0;
 
   return (
     <main className="detail-page">
@@ -52,20 +53,28 @@ export default async function HotelPage({ params }: HotelPageProps) {
           <Link className="back-link" href="/hotels">
             بازگشت به هتل‌ها ←
           </Link>
-          <span className="verified-badge verified-badge-static">
-            <span>✓</span>
-            دارای ارتباط تأییدشده
+          <span
+            className={`status-badge status-badge-static${
+              hasVerifiedAssociations ? "" : " status-badge-neutral"
+            }`}
+          >
+            <span>{hasVerifiedAssociations ? "✓" : "◇"}</span>
+            {hasVerifiedAssociations
+              ? "دارای ارتباط تأییدشده"
+              : "روابط در حال بررسی"}
           </span>
           <h1>{hotel.name}</h1>
           <p className="detail-location">⌖ {hotel.city}</p>
           <p>
             {hotel.description ??
-              "اطلاعات این هتل بر پایه‌ی رابطه‌های بررسی‌شده و منابع قابل پیگیری نمایش داده می‌شود."}
+              (hasVerifiedAssociations
+                ? "اطلاعات این هتل بر پایه‌ی رابطه‌های بررسی‌شده و منابع قابل پیگیری نمایش داده می‌شود."
+                : "این هتل در فهرست عمومی ثبت شده و ارتباط‌های آن در حال بررسی و منبع‌دهی است.")}
           </p>
           <div className="detail-actions">
             {hotel.websiteUrl ? (
               <a className="button" href={hotel.websiteUrl} target="_blank" rel="noreferrer">
-                وب‌سایت هتل
+                صفحه رسمی هتل
               </a>
             ) : null}
             <span>{hotel.associations.length.toLocaleString("fa-IR")} ارتباط مستند</span>
@@ -78,35 +87,43 @@ export default async function HotelPage({ params }: HotelPageProps) {
           <div className="detail-main">
             <span className="section-eyebrow">ردپای چهره‌ها</span>
             <h2>چه کسانی با این هتل ارتباط داشته‌اند؟</h2>
-            <div className="association-list">
-              {hotel.associations.map((association) => (
-                <article className="association-card" key={association.id}>
-                  <div className="association-person">
-                    <MediaTile
-                      imageUrl={association.notablePerson.imageUrl}
-                      label={association.notablePerson.displayName}
-                      variant="person"
-                    />
-                    <div>
-                      <span>{associationLabel(association.type)}</span>
-                      <h3>
-                        <Link href={`/notable-people/${association.notablePerson.slug}`}>
-                          {association.notablePerson.displayName}
-                        </Link>
-                      </h3>
-                      <p>{association.summary}</p>
+            {hasVerifiedAssociations ? (
+              <div className="association-list">
+                {hotel.associations.map((association) => (
+                  <article className="association-card" key={association.id}>
+                    <div className="association-person">
+                      <MediaTile
+                        imageUrl={association.notablePerson.imageUrl}
+                        label={association.notablePerson.displayName}
+                        variant="person"
+                      />
+                      <div>
+                        <span>{associationLabel(association.type)}</span>
+                        <h3>
+                          <Link href={`/notable-people/${association.notablePerson.slug}`}>
+                            {association.notablePerson.displayName}
+                          </Link>
+                        </h3>
+                        <p>{association.summary}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="verification-row">
-                    <span>✓ تأییدشده</span>
-                    {association.verifiedAt ? (
-                      <small>بررسی در {formatDate(association.verifiedAt)}</small>
-                    ) : null}
-                  </div>
-                  <SourceList sources={association.sources} />
-                </article>
-              ))}
-            </div>
+                    <div className="verification-row">
+                      <span>✓ تأییدشده</span>
+                      {association.verifiedAt ? (
+                        <small>بررسی در {formatDate(association.verifiedAt)}</small>
+                      ) : null}
+                    </div>
+                    <SourceList sources={association.sources} />
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                kind="empty"
+                title="هنوز رابطه‌ی تأییدشده‌ای منتشر نشده"
+                description="رابطه‌ها پس از ثبت منبع و تکمیل بررسی در این بخش نمایش داده می‌شوند."
+              />
+            )}
           </div>
           <aside className="detail-aside">
             <h3>چرا این اطلاعات قابل اعتماد است؟</h3>
