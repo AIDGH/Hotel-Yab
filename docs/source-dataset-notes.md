@@ -51,11 +51,17 @@ At least three Instagram post URLs are currently present in column `T`. These
 can become `Source` records with type `SOCIAL_MEDIA_POST` or `VIDEO`, depending
 on the actual content. The URL remains the canonical evidence link.
 
-## Safe Import Policy
+## Current Preview Import Policy
 
-The initial conversion must keep hotels and people as `DRAFT` and associations
-as `PENDING`. A relationship can only become `VERIFIED` and public after it has
-at least one reviewed evidence source and a verification timestamp.
+The current local preview imports 15 hotels, 157 people, 152 relationships, and
+3 source URLs. Hotels and people are `PUBLISHED` so their pages can be reviewed
+in the product. Every spreadsheet-derived relationship remains `PENDING` and is
+visibly labeled as incomplete. Missing media is represented by an empty UI
+placeholder, never by a fabricated URL.
+
+A relationship can only become `VERIFIED` after it has at least one reviewed
+evidence source and a verification timestamp. `REJECTED` relationships and
+verified relationships without evidence are not returned by the public API.
 
 The conversion should preserve the original Instagram ID and source URL, use a
 normalized lowercase value for stable matching, and never infer a precise

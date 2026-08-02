@@ -170,7 +170,9 @@ Hotel ──< HotelAssociation >── NotablePerson
 stores reusable source metadata and a unique URL. `AssociationEvidence` links
 one or more sources to a claim. Published hotels can appear in public discovery
 before they have a verified association. A relationship is exposed only when it
-is verified and backed by evidence.
+is either explicitly marked as a pending preview or verified and backed by
+evidence. Pending previews are labeled as incomplete and never receive the
+verified badge.
 
 Video and social-media evidence use `SourceType.VIDEO` or
 `SourceType.SOCIAL_MEDIA_POST`. The source URL is the canonical link. Embedded
@@ -193,9 +195,9 @@ pnpm api:data:import
 ```
 
 The importer validates the complete file before writing and applies it in a
-single database transaction. Every association must reference at least one
-source from the same file. A verified association must also include a
-`verifiedAt` ISO timestamp.
+single database transaction. Pending associations may use an empty `evidence`
+array while research is incomplete. A verified association must reference at
+least one source from the same file and include a `verifiedAt` ISO timestamp.
 
 Hotel and notable-person slugs, source URLs, and association `referenceKey`
 values are stable unique identifiers. Re-importing the same file updates those
@@ -215,19 +217,20 @@ Current public endpoints:
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/v1/health` | Check API and database readiness |
-| `GET` | `/api/v1/hotels` | List public hotels and their verified-association counts |
+| `GET` | `/api/v1/hotels` | List public hotels and pending/verified association counts |
 | `GET` | `/api/v1/hotels/:slug` | Get a hotel, notable people, and evidence sources |
-| `GET` | `/api/v1/notable-people` | List public notable people with verified associations |
+| `GET` | `/api/v1/notable-people` | List public notable people and association counts |
 | `GET` | `/api/v1/notable-people/:slug` | Get a person, associated hotels, and evidence sources |
 
 Hotel list filters are `page`, `pageSize`, `query`, `city`, and `countryCode`.
 Notable-person list filters are `page`, `pageSize`, `query`, `category`, and
 `countryCode`. Page size is limited to 100 records.
 
-Hotel discovery includes every published hotel, including hotels that do not yet
-have a verified relationship. Hotel details expose only verified associations
-backed by at least one evidence source. Notable people remain public only when
-they have at least one such association.
+Discovery includes every published hotel and notable person. Details may show
+pending relationships as clearly labeled research previews, including an empty
+media/source placeholder. Verified relationships are exposed only when backed
+by at least one evidence source. Rejected relationships and verified records
+without evidence are never exposed.
 
 Start the API in development mode from the repository root:
 
