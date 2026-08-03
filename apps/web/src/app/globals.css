@@ -57,6 +57,11 @@ body {
   unicode-bidi: isolate;
 }
 
+.latin-number {
+  font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+  unicode-bidi: isolate;
+}
+
 button,
 input,
 select {
