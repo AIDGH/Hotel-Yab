@@ -1,12 +1,10 @@
 const categoryLabels: Record<string, string> = {
   ACTOR: "بازیگر",
   ATHLETE: "ورزشکار",
-  CREATOR: "تولیدکننده محتوا",
-  ENTREPRENEUR: "کارآفرین",
   INFLUENCER: "اینفلوئنسر",
   MUSICIAN: "موسیقی‌دان",
-  POLITICIAN: "چهره سیاسی",
-  PUBLIC_FIGURE: "چهره عمومی",
+  // POLITICIAN: "چهره سیاسی",
+  // PUBLIC_FIGURE: "چهره عمومی",
   OTHER: "سایر",
 };
 
@@ -16,7 +14,7 @@ const associationLabels: Record<string, string> = {
   ATTENDED_EVENT: "در رویداد شرکت کرده",
   COLLABORATED: "همکاری داشته",
   ENDORSED: "تأیید یا معرفی کرده",
-  OWNED: "مالکیت داشته",
+  // OWNED: "مالکیت داشته",
   FILMED_AT: "در این مکان فیلم‌برداری کرده",
   OTHER: "ارتباط ثبت‌شده",
 };

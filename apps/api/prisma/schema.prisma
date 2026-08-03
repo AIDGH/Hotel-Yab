@@ -17,12 +17,10 @@ enum PublicationStatus {
 enum NotablePersonCategory {
   ACTOR
   ATHLETE
-  CREATOR
-  ENTREPRENEUR
   INFLUENCER
   MUSICIAN
-  POLITICIAN
-  PUBLIC_FIGURE
+  // POLITICIAN
+  // PUBLIC_FIGURE
   OTHER
 }
 

@@ -108,6 +108,33 @@ Hotel-Yab پلتفرمی برای کشف هتل‌ها از مسیر افراد 
     اضافه شد؛ کارت‌ها و صفحه‌های جزئیات آن را به‌شکل `@handle` کنار اطلاعات
     غیرتکراری حرفه/دنبال‌کننده نمایش می‌دهند و جست‌وجوی چهره آیدی را هم پوشش
     می‌دهد.
+27. Notable Person Categories
+The notable person category taxonomy was simplified.
+Previous categories:
+- ACTOR
+- ATHLETE
+- CREATOR
+- ENTREPRENEUR
+- INFLUENCER
+- MUSICIAN
+- POLITICIAN
+- PUBLIC_FIGURE
+- OTHER
+Current categories:
+- ACTOR
+- ATHLETE
+- INFLUENCER
+- MUSICIAN
+- OTHER
+Removed categories:
+- CREATOR
+- ENTREPRENEUR
+- POLITICIAN
+- PUBLIC_FIGURE
+
+Reason:
+The initial category set was too broad and created overlap between categories.
+The MVP focuses on clear and user-understandable categories.
 
 ## 4. تکنولوژی و معماری
 
