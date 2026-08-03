@@ -7,7 +7,7 @@ export function compactPersonOccupation(
   if (!value || value === category) {
     return null;
   }
-
+  
   const redundantPrefix = `${category} · `;
   return value.startsWith(redundantPrefix)
     ? value.slice(redundantPrefix.length)
@@ -18,19 +18,19 @@ export function PersonOccupation({ value }: { value: string }) {
   const match = FOLLOWER_COUNT_PATTERN.exec(value);
 
   if (!match || match.index === undefined) {
-    return value;
+    return <span className="person-occupation">{value}</span>;
   }
 
   const start = match.index;
   const end = start + match[0].length;
 
   return (
-    <>
+    <span className="person-occupation">
       {value.slice(0, start)}
       <bdi className="latin-number" dir="ltr" lang="en">
         {match[0]}
       </bdi>
       {value.slice(end)}
-    </>
+    </span>
   );
 }

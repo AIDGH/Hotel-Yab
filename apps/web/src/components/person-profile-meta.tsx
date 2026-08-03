@@ -1,6 +1,9 @@
 import { categoryLabel } from "@/lib/labels";
 import { PersonInstagramHandle } from "./person-instagram-handle";
-import { compactPersonOccupation, PersonOccupation } from "./person-occupation";
+import {
+  compactPersonOccupation,
+  PersonOccupation,
+} from "./person-occupation";
 
 type PersonProfileMetaProps = {
   instagramHandle: string | null;
@@ -20,15 +23,22 @@ export function PersonProfileMeta({
     categoryLabel(primaryCategory),
   );
 
-  if (!instagramHandle && !compactOccupation) {
+  const displayedOccupation =
+    compactOccupation ?? (!instagramHandle ? occupation : null);
+
+  if (!instagramHandle && !displayedOccupation) {
     return null;
   }
 
   return (
     <div className={`person-profile-meta ${className}`.trim()}>
-      {instagramHandle ? <PersonInstagramHandle handle={instagramHandle} /> : null}
-      {instagramHandle && compactOccupation ? <span aria-hidden="true">·</span> : null}
-      {compactOccupation ? <PersonOccupation value={compactOccupation} /> : null}
+      {displayedOccupation ? (
+        <PersonOccupation value={displayedOccupation} />
+      ) : null}
+      
+      {instagramHandle ? (
+        <PersonInstagramHandle handle={instagramHandle} />
+      ) : null}
     </div>
   );
 }

@@ -777,22 +777,40 @@ img {
   padding: 16px 11px 12px;
 }
 
-.person-profile-meta {
+/* .person-profile-meta {
   display: flex;
-  min-height: 27px;
-  align-items: baseline;
-  gap: 7px;
-  margin-top: 7px;
-  color: var(--muted);
-  font-size: 0.82rem;
-  line-height: 1.7;
+  flex-direction: column;
+  gap: 2px;
+} */
+
+.person-profile-meta {
+  display: grid;
+  grid-template-rows: 18px 18px;
+  row-gap: 2px;
+  min-height: 38px;
+  width: 100%;
+  text-align: right;
 }
 
 .person-instagram-handle {
+  display: block;
+  width: 100%;
   color: var(--brand-dark);
   font-family: Tahoma, "Segoe UI", Arial, sans-serif;
   font-size: 0.78rem;
+  line-height: 18px;
+  direction: ltr;
+  text-align: right;
   unicode-bidi: isolate;
+}
+
+.person-occupation {
+  display: block;
+  width: 100%;
+  color: #6b7280;
+  font-size: 0.78rem;
+  line-height: 18px;
+  text-align: right;
 }
 
 .process-grid {
