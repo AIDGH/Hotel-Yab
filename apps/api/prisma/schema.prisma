@@ -20,8 +20,8 @@ enum NotablePersonCategory {
   INFLUENCER
   MUSICIAN
   // POLITICIAN
-  // PUBLIC_FIGURE
-  OTHER
+  PUBLIC_FIGURE
+  // OTHER
 }
 
 enum AssociationType {

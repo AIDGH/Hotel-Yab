@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { EmptyState } from "@/components/empty-state";
 import { HotelCard } from "@/components/hotel-card";
 import { getHotels } from "@/lib/api";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "کشف هتل‌ها",
@@ -18,11 +19,41 @@ function readParam(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
+function createHotelsPageHref(
+  currentParams: Record<string, string | string[] | undefined>,
+  page: number,
+): string {
+  const nextParams = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(currentParams)) {
+    const normalizedValue = readParam(value);
+
+    if (key !== "page" && normalizedValue) {
+      nextParams.set(key, normalizedValue);
+    }
+  }
+
+  if (page > 1) {
+    nextParams.set("page", String(page));
+  }
+
+  const queryString = nextParams.toString();
+
+  return queryString ? `/hotels?${queryString}` : "/hotels";
+}
+
 export default async function HotelsPage({ searchParams }: HotelsPageProps) {
   const params = await searchParams;
+  const requestedPage = Number.parseInt(readParam(params.page), 10);
+  
+  const page =
+    Number.isFinite(requestedPage) && requestedPage > 0
+      ? requestedPage
+      : 1;
+      
   const query = readParam(params.query);
   const city = readParam(params.city);
-  const result = await getHotels({ query, city, pageSize: 24 });
+  const result = await getHotels({ query, city, pageSize: 9, page });
 
   return (
     <main className="listing-page">
@@ -62,11 +93,44 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
         </div>
 
         {result.ok && result.value.data.length > 0 ? (
-          <div className="card-grid">
-            {result.value.data.map((hotel) => (
-              <HotelCard hotel={hotel} key={hotel.id} />
-            ))}
-          </div>
+          <>
+            <div className="card-grid">
+              {result.value.data.map((hotel) => (
+                <HotelCard hotel={hotel} key={hotel.id} />
+              ))}
+            </div>
+
+            {result.value.meta.totalPages > 1 ? (
+              <nav className="pagination" aria-label="صفحه‌بندی هتل‌ها">
+                {page > 1 ? (
+                  <Link
+                    className="button pagination-secondary"
+                    href={createHotelsPageHref(params, page - 1)}
+                  >
+                    صفحه قبل
+                  </Link>
+                ) : (
+                  <span aria-hidden="true" />
+                )}
+
+                <span>
+                  صفحه {page.toLocaleString("fa-IR")} از{" "}
+                  {result.value.meta.totalPages.toLocaleString("fa-IR")}
+                </span>
+
+                {page < result.value.meta.totalPages ? (
+                  <Link
+                    className="button pagination-secondary"
+                    href={createHotelsPageHref(params, page + 1)}
+                  >
+                    صفحه بعد
+                  </Link>
+                ) : (
+                  <span aria-hidden="true" />
+                )}
+              </nav>
+            ) : null}
+          </>
         ) : (
           <EmptyState
             kind={result.ok ? "empty" : "unavailable"}

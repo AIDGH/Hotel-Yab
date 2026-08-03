@@ -32,10 +32,10 @@ export function PersonProfileMeta({
 
   return (
     <div className={`person-profile-meta ${className}`.trim()}>
-      {displayedOccupation ? (
+      {displayedOccupation ? ( 
         <PersonOccupation value={displayedOccupation} />
       ) : null}
-      
+
       {instagramHandle ? (
         <PersonInstagramHandle handle={instagramHandle} />
       ) : null}

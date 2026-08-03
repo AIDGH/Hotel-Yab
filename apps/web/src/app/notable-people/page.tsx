@@ -120,7 +120,7 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
                 </span>
                 {page < result.value.meta.totalPages ? (
                   <Link
-                    className="button"
+                    className="button pagination-secondary"
                     href={createPeoplePageHref({ query, category, page: page + 1 })}
                   >
                     {/*نمایش ۲۴ چهره بعدی */}

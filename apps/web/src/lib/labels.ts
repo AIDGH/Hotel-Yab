@@ -4,8 +4,8 @@ const categoryLabels: Record<string, string> = {
   INFLUENCER: "اینفلوئنسر",
   MUSICIAN: "موسیقی‌دان",
   // POLITICIAN: "چهره سیاسی",
-  // PUBLIC_FIGURE: "چهره عمومی",
-  OTHER: "سایر",
+  PUBLIC_FIGURE: "چهره عمومی",
+  // OTHER: "سایر",
 };
 
 const associationLabels: Record<string, string> = {

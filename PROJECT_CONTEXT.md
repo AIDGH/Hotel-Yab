@@ -136,6 +136,8 @@ Reason:
 The initial category set was too broad and created overlap between categories.
 The MVP focuses on clear and user-understandable categories.
 
+28. صفحه‌بندی قبلی/بعدی با حفظ فیلترهای فعال به فهرست هتل‌ها اضافه شد.
+
 ## 4. تکنولوژی و معماری
 
 ### Repository
