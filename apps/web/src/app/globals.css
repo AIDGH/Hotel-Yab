@@ -1022,6 +1022,37 @@ img {
   font-size: 0.8rem;
 }
 
+.pagination {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  margin-top: 42px;
+}
+
+.pagination > :first-child {
+  justify-self: start;
+}
+
+.pagination > :last-child {
+  justify-self: end;
+}
+
+.pagination > span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.pagination-secondary {
+  color: var(--brand-dark);
+  background: var(--brand-soft);
+  border-color: transparent;
+}
+
+.pagination-secondary:hover {
+  color: #fff;
+}
+
 .detail-page {
   min-height: 60vh;
 }
@@ -1653,6 +1684,22 @@ img {
     grid-column: 1 / -1;
     width: 100%;
     margin-top: 6px;
+  }
+
+  .pagination {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pagination > span {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: center;
+  }
+
+  .pagination .button {
+    width: 100%;
+    padding-inline: 12px;
+    font-size: 0.78rem;
   }
 
   .story-card-person {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { PersonCard } from "@/components/person-card";
 import { getNotablePeople } from "@/lib/api";
@@ -19,11 +20,36 @@ function readParam(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
+function readPage(value: string | string[] | undefined): number {
+  const page = Number.parseInt(readParam(value), 10);
+  return Number.isSafeInteger(page) && page > 0 ? page : 1;
+}
+
+function createPeoplePageHref({
+  query,
+  category,
+  page,
+}: {
+  query: string;
+  category: string;
+  page: number;
+}): string {
+  const params = new URLSearchParams();
+
+  if (query) params.set("query", query);
+  if (category) params.set("category", category);
+  if (page > 1) params.set("page", String(page));
+
+  const search = params.toString();
+  return search ? `/notable-people?${search}` : "/notable-people";
+}
+
 export default async function PeoplePage({ searchParams }: PeoplePageProps) {
   const params = await searchParams;
   const query = readParam(params.query);
   const category = readParam(params.category);
-  const result = await getNotablePeople({ query, category, pageSize: 24 });
+  const page = readPage(params.page);
+  const result = await getNotablePeople({ query, category, page, pageSize: 24 });
 
   return (
     <main className="listing-page">
@@ -70,11 +96,41 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
         </div>
 
         {result.ok && result.value.data.length > 0 ? (
-          <div className="people-grid">
-            {result.value.data.map((person) => (
-              <PersonCard person={person} key={person.id} />
-            ))}
-          </div>
+          <>
+            <div className="people-grid">
+              {result.value.data.map((person) => (
+                <PersonCard person={person} key={person.id} />
+              ))}
+            </div>
+            {result.value.meta.totalPages > 1 ? (
+              <nav className="pagination" aria-label="صفحه‌بندی چهره‌ها">
+                {page > 1 ? (
+                  <Link
+                    className="button pagination-secondary"
+                    href={createPeoplePageHref({ query, category, page: page - 1 })}
+                  >
+                    صفحه قبل
+                  </Link>
+                ) : (
+                  <span aria-hidden="true" />
+                )}
+                <span>
+                  صفحه {page.toLocaleString("fa-IR")} از{" "}
+                  {result.value.meta.totalPages.toLocaleString("fa-IR")}
+                </span>
+                {page < result.value.meta.totalPages ? (
+                  <Link
+                    className="button"
+                    href={createPeoplePageHref({ query, category, page: page + 1 })}
+                  >
+                    نمایش ۲۴ چهره بعدی
+                  </Link>
+                ) : (
+                  <span aria-hidden="true" />
+                )}
+              </nav>
+            ) : null}
+          </>
         ) : (
           <EmptyState
             kind={result.ok ? "empty" : "unavailable"}
