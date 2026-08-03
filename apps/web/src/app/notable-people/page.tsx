@@ -123,7 +123,8 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
                     className="button"
                     href={createPeoplePageHref({ query, category, page: page + 1 })}
                   >
-                    نمایش ۲۴ چهره بعدی
+                    {/*نمایش ۲۴ چهره بعدی */}
+                    صفحه بعد
                   </Link>
                 ) : (
                   <span aria-hidden="true" />

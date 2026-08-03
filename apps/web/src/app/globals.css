@@ -295,7 +295,7 @@ img {
 .hero-copy h1 {
   max-width: 680px;
   margin-top: 24px;
-  font-size: clamp(2.55rem, 5vw, 4.45rem);
+  font-size: clamp(2.3rem, 4.5vw, 4rem);
   line-height: 1.24;
   letter-spacing: -0.065em;
 }
@@ -1549,7 +1549,7 @@ img {
   }
 
   .hero-copy h1 {
-    font-size: 2.45rem;
+    font-size: 2.2rem;
   }
 
   .hero-copy > p {
@@ -1695,7 +1695,7 @@ img {
   }
 
   .hero-copy h1 {
-    font-size: 2.08rem;
+    font-size: 1.9rem;
   }
 
   .hero-search {
