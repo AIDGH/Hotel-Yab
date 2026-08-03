@@ -776,6 +776,24 @@ img {
   padding: 16px 11px 12px;
 }
 
+.person-profile-meta {
+  display: flex;
+  min-height: 27px;
+  align-items: baseline;
+  gap: 7px;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+
+.person-instagram-handle {
+  color: var(--brand-dark);
+  font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+  font-size: 0.78rem;
+  unicode-bidi: isolate;
+}
+
 .process-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1199,6 +1217,11 @@ img {
 .association-person h3 {
   margin-top: 2px;
   font-size: 1.14rem;
+}
+
+.association-person h3 + .person-instagram-handle {
+  display: inline-block;
+  margin-top: 4px;
 }
 
 .association-person p {

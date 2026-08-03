@@ -134,6 +134,7 @@ describe('Hotel-Yab API (e2e)', () => {
       data: {
         slug: 'e2e-visible-athlete',
         displayName: 'E2E Visible Athlete',
+        instagramHandle: 'e2e_visible_athlete',
         primaryCategory: NotablePersonCategory.ATHLETE,
         occupation: 'Test athlete',
         countryCode: 'US',
@@ -395,6 +396,7 @@ describe('Hotel-Yab API (e2e)', () => {
                 id: visiblePersonId,
                 slug: 'e2e-visible-athlete',
                 displayName: 'E2E Visible Athlete',
+                instagramHandle: 'e2e_visible_athlete',
                 primaryCategory: 'ATHLETE',
                 occupation: 'Test athlete',
                 imageUrl: null,
@@ -429,6 +431,7 @@ describe('Hotel-Yab API (e2e)', () => {
             id: visiblePersonId,
             slug: 'e2e-visible-athlete',
             displayName: 'E2E Visible Athlete',
+            instagramHandle: 'e2e_visible_athlete',
             primaryCategory: 'ATHLETE',
             occupation: 'Test athlete',
             countryCode: 'US',
@@ -441,6 +444,23 @@ describe('Hotel-Yab API (e2e)', () => {
       });
   });
 
+  it('GET /api/v1/notable-people searches by Instagram handle', () => {
+    return request(app.getHttpServer())
+      .get('/api/v1/notable-people?query=e2e_visible_athlete')
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          data: [
+            {
+              id: visiblePersonId,
+              instagramHandle: 'e2e_visible_athlete',
+            },
+          ],
+          meta: { total: 1 },
+        });
+      });
+  });
+
   it('GET /api/v1/notable-people/:slug returns hotels and sources', () => {
     return request(app.getHttpServer())
       .get('/api/v1/notable-people/e2e-visible-athlete')
@@ -450,6 +470,7 @@ describe('Hotel-Yab API (e2e)', () => {
           id: visiblePersonId,
           slug: 'e2e-visible-athlete',
           displayName: 'E2E Visible Athlete',
+          instagramHandle: 'e2e_visible_athlete',
           primaryCategory: 'ATHLETE',
           occupation: 'Test athlete',
           biography: null,
@@ -529,6 +550,7 @@ describe('Hotel-Yab API (e2e)', () => {
                 id: hiddenPendingPersonId,
                 slug: 'e2e-hidden-pending-person',
                 displayName: 'E2E Hidden Pending Person',
+                instagramHandle: null,
                 primaryCategory: 'ACTOR',
                 occupation: null,
                 imageUrl: null,

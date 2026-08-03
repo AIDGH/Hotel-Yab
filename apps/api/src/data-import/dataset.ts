@@ -28,6 +28,7 @@ export type HotelImportRecord = {
 export type NotablePersonImportRecord = {
   slug: string;
   displayName: string;
+  instagramHandle?: string | null;
   primaryCategory: NotablePersonCategory;
   occupation?: string | null;
   biography?: string | null;
@@ -107,6 +108,11 @@ const datasetSchema = Joi.object<ImportDataset>({
       Joi.object<NotablePersonImportRecord>({
         slug: Joi.string().pattern(slugPattern).max(160).required(),
         displayName: Joi.string().trim().min(1).max(200).required(),
+        instagramHandle: Joi.string()
+          .trim()
+          .pattern(/^[A-Za-z0-9._]+$/)
+          .max(30)
+          .allow(null),
         primaryCategory: Joi.string()
           .valid(...Object.values(NotablePersonCategory))
           .required(),

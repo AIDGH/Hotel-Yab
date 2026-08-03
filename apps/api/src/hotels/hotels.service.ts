@@ -141,6 +141,7 @@ export class HotelsService {
                 id: true,
                 slug: true,
                 displayName: true,
+                instagramHandle: true,
                 primaryCategory: true,
                 occupation: true,
                 imageUrl: true,

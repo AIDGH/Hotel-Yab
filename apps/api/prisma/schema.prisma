@@ -78,6 +78,7 @@ model NotablePerson {
   id                String                @id @default(uuid()) @db.Uuid
   slug              String                @unique @db.VarChar(160)
   displayName       String                @db.VarChar(200)
+  instagramHandle   String?               @db.VarChar(30)
   primaryCategory   NotablePersonCategory
   occupation        String?               @db.VarChar(200)
   biography         String?               @db.Text

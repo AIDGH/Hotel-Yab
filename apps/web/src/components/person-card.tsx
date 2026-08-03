@@ -3,7 +3,7 @@ import { categoryLabel } from "@/lib/labels";
 import type { NotablePersonListItem } from "@/lib/types";
 import { MediaTile } from "./media-tile";
 import { PersonDisplayName } from "./person-display-name";
-import { PersonOccupation } from "./person-occupation";
+import { PersonProfileMeta } from "./person-profile-meta";
 
 export function PersonCard({ person }: { person: NotablePersonListItem }) {
   return (
@@ -19,9 +19,11 @@ export function PersonCard({ person }: { person: NotablePersonListItem }) {
           <h3>
             <PersonDisplayName name={person.displayName} />
           </h3>
-          <p>
-            <PersonOccupation value={person.occupation ?? "چهره شناخته‌شده"} />
-          </p>
+          <PersonProfileMeta
+            instagramHandle={person.instagramHandle}
+            occupation={person.occupation}
+            primaryCategory={person.primaryCategory}
+          />
           <div className="card-meta">
             <span>
               {person.associationCount.toLocaleString("fa-IR")} هتل مرتبط

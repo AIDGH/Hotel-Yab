@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
 import { MediaTile } from "@/components/media-tile";
 import { PersonDisplayName } from "@/components/person-display-name";
-import { PersonOccupation } from "@/components/person-occupation";
+import { PersonProfileMeta } from "@/components/person-profile-meta";
 import { SourceList } from "@/components/source-list";
 import { getNotablePerson } from "@/lib/api";
 import { associationLabel, categoryLabel, formatDate } from "@/lib/labels";
@@ -61,9 +61,12 @@ export default async function PersonPage({ params }: PersonPageProps) {
           <h1>
             <PersonDisplayName name={person.displayName} />
           </h1>
-          <p className="detail-location">
-            <PersonOccupation value={person.occupation ?? "چهره شناخته‌شده"} />
-          </p>
+          <PersonProfileMeta
+            className="detail-location"
+            instagramHandle={person.instagramHandle}
+            occupation={person.occupation}
+            primaryCategory={person.primaryCategory}
+          />
           <p>
             {person.biography ??
               "هتل‌های مرتبط با این فرد نمایش داده می‌شوند و وضعیت بررسی هر رابطه به‌صورت شفاف مشخص است."}

@@ -1,5 +1,19 @@
 const FOLLOWER_COUNT_PATTERN = /[0-9][0-9,.]*[KMB]?(?=\s*دنبال‌کننده)/i;
 
+export function compactPersonOccupation(
+  value: string | null,
+  category: string,
+): string | null {
+  if (!value || value === category) {
+    return null;
+  }
+
+  const redundantPrefix = `${category} · `;
+  return value.startsWith(redundantPrefix)
+    ? value.slice(redundantPrefix.length)
+    : value;
+}
+
 export function PersonOccupation({ value }: { value: string }) {
   const match = FOLLOWER_COUNT_PATTERN.exec(value);
 

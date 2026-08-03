@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
 import { MediaTile } from "@/components/media-tile";
 import { PersonDisplayName } from "@/components/person-display-name";
+import { PersonInstagramHandle } from "@/components/person-instagram-handle";
 import { SourceList } from "@/components/source-list";
 import { getHotel } from "@/lib/api";
 import { associationLabel, formatDate } from "@/lib/labels";
@@ -110,6 +111,11 @@ export default async function HotelPage({ params }: HotelPageProps) {
                             />
                           </Link>
                         </h3>
+                        {association.notablePerson.instagramHandle ? (
+                          <PersonInstagramHandle
+                            handle={association.notablePerson.instagramHandle}
+                          />
+                        ) : null}
                         <p>{association.summary}</p>
                       </div>
                     </div>

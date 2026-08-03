@@ -32,6 +32,7 @@ type NotablePersonListItem = {
   id: string;
   slug: string;
   displayName: string;
+  instagramHandle: string | null;
   primaryCategory: string;
   occupation: string | null;
   countryCode: string | null;
@@ -68,6 +69,12 @@ export class NotablePeopleService {
                   mode: 'insensitive' as const,
                 },
               },
+              {
+                instagramHandle: {
+                  contains: search,
+                  mode: 'insensitive' as const,
+                },
+              },
             ],
           }
         : {}),
@@ -85,6 +92,7 @@ export class NotablePeopleService {
           id: true,
           slug: true,
           displayName: true,
+          instagramHandle: true,
           primaryCategory: true,
           occupation: true,
           countryCode: true,
@@ -123,6 +131,7 @@ export class NotablePeopleService {
         id: true,
         slug: true,
         displayName: true,
+        instagramHandle: true,
         primaryCategory: true,
         occupation: true,
         biography: true,

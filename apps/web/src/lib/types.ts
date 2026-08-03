@@ -26,6 +26,7 @@ export type NotablePersonListItem = {
   id: string;
   slug: string;
   displayName: string;
+  instagramHandle: string | null;
   primaryCategory: string;
   occupation: string | null;
   countryCode: string | null;

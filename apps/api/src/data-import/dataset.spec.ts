@@ -62,6 +62,26 @@ describe('validateDataset', () => {
     });
   });
 
+  it('accepts an optional Instagram handle without the @ prefix', () => {
+    const dataset = structuredClone(validDataset);
+    Object.assign(dataset.notablePeople[0], {
+      instagramHandle: 'example.person_1',
+    });
+
+    expect(validateDataset(dataset).notablePeople[0]).toMatchObject({
+      instagramHandle: 'example.person_1',
+    });
+  });
+
+  it('rejects an Instagram handle containing the @ prefix', () => {
+    const dataset = structuredClone(validDataset);
+    Object.assign(dataset.notablePeople[0], {
+      instagramHandle: '@example.person',
+    });
+
+    expect(() => validateDataset(dataset)).toThrow('instagramHandle');
+  });
+
   it('rejects a verified association without evidence', () => {
     const dataset = structuredClone(validDataset);
     Object.assign(dataset.associations[0], {

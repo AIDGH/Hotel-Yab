@@ -41,6 +41,7 @@ export async function importDataset(
     for (const person of dataset.notablePeople) {
       const data = {
         displayName: person.displayName,
+        instagramHandle: person.instagramHandle ?? null,
         primaryCategory: person.primaryCategory,
         occupation: person.occupation ?? null,
         biography: person.biography ?? null,

@@ -21,6 +21,10 @@ One row represents one notable person. `slug`, `displayName`,
 `primaryCategory`, and `publicationStatus` are required. A person can exist
 before a hotel relationship is known.
 
+Keep `displayName` for the real public name and `instagramHandle` for the
+optional Instagram username without the `@` prefix. Do not derive the handle
+from `slug`; the slug is only Hotel-Yab's stable URL identifier.
+
 ### Associations
 
 One row represents one hotel-person relationship. `hotelSlug` and

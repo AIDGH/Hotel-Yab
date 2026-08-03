@@ -12,6 +12,7 @@
     {
       "slug": "replace-with-real-person",
       "displayName": "Replace with real person",
+      "instagramHandle": "replace_with_real_handle",
       "primaryCategory": "PUBLIC_FIGURE",
       "publicationStatus": "DRAFT"
     }
