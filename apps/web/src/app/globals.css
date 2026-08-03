@@ -51,6 +51,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.latin-identifier {
+  font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+  letter-spacing: normal;
+  unicode-bidi: isolate;
+}
+
 button,
 input,
 select {

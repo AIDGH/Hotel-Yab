@@ -2,6 +2,7 @@ import Link from "next/link";
 import { categoryLabel } from "@/lib/labels";
 import type { NotablePersonListItem } from "@/lib/types";
 import { MediaTile } from "./media-tile";
+import { PersonDisplayName } from "./person-display-name";
 
 export function PersonCard({ person }: { person: NotablePersonListItem }) {
   return (
@@ -14,7 +15,9 @@ export function PersonCard({ person }: { person: NotablePersonListItem }) {
         />
         <div className="person-card-copy">
           <span>{categoryLabel(person.primaryCategory)}</span>
-          <h3>{person.displayName}</h3>
+          <h3>
+            <PersonDisplayName name={person.displayName} />
+          </h3>
           <p>{person.occupation ?? "چهره شناخته‌شده"}</p>
           <div className="card-meta">
             <span>

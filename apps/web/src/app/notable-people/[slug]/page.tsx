@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
 import { MediaTile } from "@/components/media-tile";
+import { PersonDisplayName } from "@/components/person-display-name";
 import { SourceList } from "@/components/source-list";
 import { getNotablePerson } from "@/lib/api";
 import { associationLabel, categoryLabel, formatDate } from "@/lib/labels";
@@ -56,7 +57,9 @@ export default async function PersonPage({ params }: PersonPageProps) {
             بازگشت به چهره‌ها ←
           </Link>
           <span className="section-eyebrow">{categoryLabel(person.primaryCategory)}</span>
-          <h1>{person.displayName}</h1>
+          <h1>
+            <PersonDisplayName name={person.displayName} />
+          </h1>
           <p className="detail-location">{person.occupation ?? "چهره شناخته‌شده"}</p>
           <p>
             {person.biography ??

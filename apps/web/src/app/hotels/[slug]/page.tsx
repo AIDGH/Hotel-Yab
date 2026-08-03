@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
 import { MediaTile } from "@/components/media-tile";
+import { PersonDisplayName } from "@/components/person-display-name";
 import { SourceList } from "@/components/source-list";
 import { getHotel } from "@/lib/api";
 import { associationLabel, formatDate } from "@/lib/labels";
@@ -104,7 +105,9 @@ export default async function HotelPage({ params }: HotelPageProps) {
                         <span>{associationLabel(association.type)}</span>
                         <h3>
                           <Link href={`/notable-people/${association.notablePerson.slug}`}>
-                            {association.notablePerson.displayName}
+                            <PersonDisplayName
+                              name={association.notablePerson.displayName}
+                            />
                           </Link>
                         </h3>
                         <p>{association.summary}</p>
