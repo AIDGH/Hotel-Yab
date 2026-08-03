@@ -655,7 +655,9 @@ img {
 }
 
 .media-tile-person {
-  border-radius: 20px;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
   background-image:
     radial-gradient(circle at 65% 24%, rgba(255, 255, 255, 0.52), transparent 26%),
     linear-gradient(145deg, #a49eff, #4b43e8 78%);
@@ -759,8 +761,10 @@ img {
   padding: 9px;
 }
 
-.person-card .media-tile {
-  height: 214px;
+.person-card .media-tile-person {
+  width: min(100%, 214px);
+  height: auto;
+  margin-inline: auto;
 }
 
 .person-card-copy {
@@ -1042,13 +1046,16 @@ img {
   border-radius: 22px;
 }
 
-.detail-media-person {
+.detail-media.detail-media-person {
   width: min(100%, 410px);
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
   justify-self: center;
 }
 
 .detail-media-person .media-tile {
-  border-radius: 28px;
+  border-radius: 50%;
 }
 
 .back-link {
@@ -1133,6 +1140,10 @@ img {
   height: 86px;
   flex: 0 0 auto;
   border-radius: 17px;
+}
+
+.association-person .media-tile-person {
+  border-radius: 50%;
 }
 
 .association-hotel .media-tile {
@@ -1550,10 +1561,6 @@ img {
     display: grid;
     grid-template-columns: 120px minmax(0, 1fr);
     align-items: center;
-  }
-
-  .person-card .media-tile {
-    height: 145px;
   }
 
   .process-card.featured {
