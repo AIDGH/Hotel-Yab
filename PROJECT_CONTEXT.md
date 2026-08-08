@@ -1,181 +1,188 @@
-# Hotel-Yab — Project Context and Handoff
+# Hotel-Yab — Project Context
 
-> این فایل مرجع اصلی تحویل پروژه بین چت‌ها و توسعه‌دهنده‌هاست. در شروع هر
-> گفت‌وگوی جدید، کل این فایل را در اختیار دستیار قرار بده. بعد از هر تغییر
-> مهم در معماری، داده، workflow، API یا UI باید این فایل به‌روزرسانی شود.
+> این فایل مرجع اصلی وضعیت فعلی پروژه و handoff بین چت‌ها و توسعه‌دهنده‌هاست.
+> جزئیات تخصصی در فایل‌های `docs/` نگهداری می‌شوند و این فایل باید خلاصه، به‌روز و قابل اتکا باقی بماند.
 
-آخرین به‌روزرسانی محتوایی: ۲۰۲۶-۰۸-۰۳
+آخرین به‌روزرسانی محتوایی: ۲۰۲۶-۰۸-۰۸
 
-## 1. شیوهٔ همکاری با صاحب پروژه
+---
+
+## 1. شیوه همکاری
 
 - زبان توضیحات ترجیحاً فارسی است؛ نام کدها و اصطلاحات فنی انگلیسی باقی بمانند.
-- سیستم‌عامل macOS است و همهٔ فرمان‌ها باید برای macOS نوشته شوند.
-- ترتیب هر کار باید این باشد:
-  1. Learning: مفهوم و دلیل را توضیح بده.
-  2. Design: طراحی، trade-off و انتخاب پروژه را توضیح بده.
-  3. Implementation: تغییر را پیاده‌سازی کن.
-  4. Testing: روش تست و نتیجه را گزارش کن.
-  5. Documentation: اگر ساختار یا workflow تغییر کرد، مستندات را به‌روز کن.
-- قبل از افزودن library، framework یا مفهوم جدید توضیح بده:
+- سیستم‌عامل توسعه macOS است.
+- قبل از استفاده از library، framework، pattern یا مفهوم جدید توضیح داده شود:
   - چیست؛
   - چرا لازم است؛
   - چگونه کار می‌کند؛
   - جایگزین‌ها چیست؛
-  - چرا Hotel-Yab آن را انتخاب می‌کند.
+  - چرا برای Hotel-Yab مناسب است.
+- ترتیب کار ترجیحاً:
+  1. Learning
+  2. Design
+  3. Implementation
+  4. Testing
+  5. Documentation
 - تغییر معماری بزرگ بدون هماهنگی انجام نشود.
-- کد خوانا و ساده بر abstraction یا optimization زودهنگام اولویت دارد.
-- از معماری microservice، GraphQL، Redis و Docker تا زمانی که نیاز واقعی
-  نداریم استفاده نشود.
+- سادگی و خوانایی کد بر abstraction یا optimization زودهنگام اولویت دارد.
+- فعلاً بدون نیاز واقعی از Microservice، GraphQL، Redis و Docker استفاده نشود.
 - هر commit فقط یک تغییر منطقی داشته باشد.
-- بدون درخواست صریح کاربر push انجام نشود.
-- داده‌ها یا تغییرات موجود کاربر حذف یا overwrite نشوند.
+- بدون درخواست صریح کاربر `push` انجام نشود.
+- داده یا تغییرات موجود کاربر حذف یا overwrite نشوند.
+- بعد از هر تغییر پروژه مشخص شود کدام فایل‌های مستندات باید به‌روزرسانی شوند.
+
+---
 
 ## 2. هدف محصول
 
-Hotel-Yab پلتفرمی برای کشف هتل‌ها از مسیر افراد شناخته‌شده است؛ مانند
-بازیگران، ورزشکاران، خوانندگان، اینفلوئنسرها و سایر چهره‌های عمومی.
+Hotel-Yab پلتفرمی برای کشف هتل‌ها از مسیر ارتباط آن‌ها با افراد شناخته‌شده است؛ مانند:
 
-ارزش اصلی محصول یک graph قابل پیگیری میان هتل، شخص و مدرک است، نه رزرو اتاق.
-نمونهٔ ادعاها:
+- بازیگران؛
+- ورزشکاران؛
+- خوانندگان؛
+- اینفلوئنسرها؛
+- سایر چهره‌های عمومی.
 
-- یک ورزشکار در هتل مشخصی اقامت داشته است؛
-- یک بازیگر در رویدادی در یک هتل حضور داشته است؛
-- یک اینفلوئنسر با هتل همکاری کرده است.
+ارزش اصلی محصول صرفاً نمایش هتل نیست، بلکه ایجاد یک graph قابل پیگیری میان:
 
-هر رابطه وضعیت بررسی دارد. رابطه‌های اولیه می‌توانند با برچسب واضح
-`PENDING` برای preview نمایش داده شوند، اما فقط رابطه‌ای که منبع بازبینی‌شده
-و تاریخ بررسی دارد می‌تواند `VERIFIED` و دارای نشان سبز باشد.
+```text
+Hotel
+  ↕
+Association
+  ↕
+Notable Person
+  ↕
+Evidence / Source
+```
 
-## 3. وضعیت محصول در یک نگاه
+نمونه یک association:
 
-پروژه تمام نشده است، اما یک prototype عمومی و قابل‌نمایش داریم.
+- یک بازیگر در هتلی حضور داشته؛
+- یک ورزشکار در هتلی اقامت داشته؛
+- یک اینفلوئنسر با هتل همکاری کرده؛
+- یک فرد شناخته‌شده در رویدادی در هتل حضور داشته است.
 
-موارد موجود:
+Hotel-Yab در حال حاضر سرویس رزرو هتل نیست.
 
-- monorepo با pnpm workspaces؛
-- REST API نسخه‌بندی‌شده با NestJS؛
-- PostgreSQL و Prisma؛
-- مدل هتل، شخص، رابطه، مدرک و منبع؛
-- import تراکنشی و idempotent برای دیتای curated؛
-- API سلامت، هتل‌ها و چهره‌ها؛
-- جست‌وجوی هتل با کلمات مستقل از ترتیب؛
-- رابط Next.js فارسی و RTL؛
-- صفحهٔ اصلی، فهرست و جزئیات هتل‌ها و چهره‌ها؛
-- نمایش جداگانهٔ رابطه‌های pending و verified؛
-- placeholder برای عکس، ویدئو یا لینک هنوز تکمیل‌نشده؛
-- فونت B Nazanin و تم بنفش/سفید؛
-- دادهٔ اولیه و تست‌های واحد/E2E.
+---
 
-تعریف فعلی: «prototype قابل ارائه»، نه «MVP production-ready» و نه محصول کامل.
+## 3. وضعیت فعلی محصول
 
-## 3.1. تاریخچهٔ milestoneهای انجام‌شده
+پروژه در وضعیت **prototype قابل ارائه** قرار دارد.
 
-1. repository اولیه با `apps/`, `packages/`, pnpm workspace و README آماده شد.
-2. NestJS backend داخل `apps/api` ایجاد و با root scriptها یکپارچه شد.
-3. environment validation، CORS، URI versioning و global DTO validation اضافه شد.
-4. PostgreSQL و Prisma 7 متصل شدند و migrationهای graph اصلی ساخته شدند.
-5. health endpoint و Swagger/OpenAPI اضافه و تست شدند.
-6. مدل رابطهٔ قابل‌ردیابی Hotel–Person–Evidence–Source پیاده شد.
-7. importer خصوصی، تراکنشی و idempotent با reference validation ساخته شد.
-8. endpointهای public هتل و شخص، pagination، فیلتر و جزئیات منبع ساخته شدند.
-9. تست‌های واحد و E2E برای سلامت، import، CORS، query validation و سیاست انتشار
-   اضافه شدند.
-10. Excel و PDF پژوهشی اولیه بررسی و قواعد conversion مستند شدند.
-11. Next.js frontend داخل `apps/web` ایجاد و به REST API متصل شد.
-12. رابط فارسی RTL با تم بنفش/سفید، landing، list و detail pageها ساخته شد.
-13. B Nazanin به‌صورت فایل font داخلی اضافه شد.
-14. جست‌وجوی هتل از exact phrase به token-based contains ارتقا پیدا کرد.
-15. نمایش همهٔ هتل‌های PUBLISHED حتی بدون verified relationship فعال شد.
-16. ۱۵ هتل، ۱۵۷ شخص، ۱۵۲ رابطهٔ اولیه و ۳ source وارد دیتابیس محلی شدند.
-17. pending preview با badge جدا و placeholder رسانه پیاده شد.
-18. workbook چهار-sheet استاندارد از دادهٔ فعلی ساخته و راهنمای آن نوشته شد.
-19. این فایل handoff جامع برای ادامهٔ کار میان چت‌ها ساخته شد.
-20. نمایش عکس واقعی هتل‌ها و چهره‌ها از حالت برش‌خوردهٔ `cover` به فیت دقیق در
-    کادر تغییر کرد؛ در نتیجه کل عکس دیده می‌شود، هرچند ممکن است نسبت تصویر کمی
-    کشیده یا فشرده شود.
-21. شناسه‌های لاتین چهره‌ها با فونت لاتین و جهت مستقل `ltr` نمایش داده می‌شوند
-    تا رقم‌های لاتین در فونت B Nazanin به‌شکل رقم فارسی دیده نشوند.
-22. قاب رسانهٔ چهره‌ها در کارت‌ها، صفحهٔ جزئیات و فهرست ارتباط‌ها دایره‌ای شد؛
-    قاب رسانهٔ هتل‌ها همچنان مستطیلی باقی ماند.
-23. تعداد دنبال‌کننده داخل توضیح چهره با فونت لاتین نمایش داده می‌شود تا مقادیری
-    مانند `361K` بر اثر گلیف‌های B Nazanin به‌شکل `۳۶۱K` دیده نشوند.
-24. صفحهٔ فهرست چهره‌ها کنترل صفحه‌بندی دارد و با دکمه‌های «صفحه بعد» و
-    «صفحه قبل» امکان حرکت میان تمام نتایج را با حفظ فیلترها فراهم می‌کند.
-25. اندازهٔ تیتر اصلی landing برای خوانایی بهتر کاهش یافت: در دسکتاپ
-    `clamp(2.3rem, 4.5vw, 4rem)`، زیر ۷۶۰ پیکسل `2.2rem` و زیر ۴۸۰ پیکسل
-    `1.9rem` استفاده می‌شود.
-26. `instagramHandle` به‌صورت اختیاری و مستقل از slug و نام واقعی به مدل چهره
-    اضافه شد؛ کارت‌ها و صفحه‌های جزئیات آن را به‌شکل `@handle` کنار اطلاعات
-    غیرتکراری حرفه/دنبال‌کننده نمایش می‌دهند و جست‌وجوی چهره آیدی را هم پوشش
-    می‌دهد.
-27. Notable Person Categories
-The notable person category taxonomy was simplified.
-Previous categories:
-- ACTOR
-- ATHLETE
-- CREATOR
-- ENTREPRENEUR
-- INFLUENCER
-- MUSICIAN
-- POLITICIAN
-- PUBLIC_FIGURE
-- OTHER
-Current categories:
-- ACTOR
-- ATHLETE
-- INFLUENCER
-- MUSICIAN
-- OTHER
-Removed categories:
-- CREATOR
-- ENTREPRENEUR
-- POLITICIAN
-- PUBLIC_FIGURE
+هنوز production-ready نیست، اما بخش اصلی discovery کار می‌کند.
 
-Reason:
-The initial category set was too broad and created overlap between categories.
-The MVP focuses on clear and user-understandable categories.
+### موارد پیاده‌سازی‌شده
 
-28. صفحه‌بندی قبلی/بعدی با حفظ فیلترهای فعال به فهرست هتل‌ها اضافه شد.
+- Monorepo با pnpm workspaces
+- Backend با NestJS و TypeScript
+- REST API نسخه‌بندی‌شده
+- PostgreSQL
+- Prisma ORM
+- Next.js frontend
+- رابط فارسی و RTL
+- صفحه اصلی
+- فهرست هتل‌ها
+- صفحه جزئیات هتل
+- فهرست چهره‌ها
+- صفحه جزئیات چهره
+- Search و Filter
+- Pagination برای هتل‌ها و چهره‌ها
+- مدل Hotel
+- مدل NotablePerson
+- مدل Association
+- مدل Source و Evidence
+- نمایش associationهای `PENDING` و `VERIFIED`
+- importer تراکنشی و idempotent
+- داده اولیه هتل‌ها و افراد
+- تصاویر محلی هتل و شخص
+- Instagram Handle چهره‌ها
+- Occupation و Biography
+- Unit Test و E2E Test
+- Swagger / OpenAPI
 
-## 4. تکنولوژی و معماری
+---
+
+## 4. معماری فنی
+
+معماری فعلی:
+
+```text
+User / Browser
+      ↓
+Next.js Frontend
+      ↓
+NestJS REST API
+      ↓
+Prisma ORM
+      ↓
+PostgreSQL
+```
 
 ### Repository
 
-- Monorepo: pnpm workspaces
-- معماری backend: Modular Monolith
-- زبان اصلی: TypeScript
-
-### Backend
-
-- NestJS 11
-- REST API
-- مسیر پایه: `/api/v1`
-- Swagger/OpenAPI در development
-- Prisma 7 با PostgreSQL adapter
-- PostgreSQL
-- Joi برای validation فایل import و environment
-- class-validator برای query DTOهای API
-- Jest و Supertest برای تست
+```text
+Hotel-Yab/
+├── apps/
+│   ├── web/
+│   └── api/
+├── docs/
+├── packages/
+├── PROJECT_CONTEXT.md
+└── package.json
+```
 
 ### Frontend
 
-- Next.js 16 با App Router
+- Next.js 16
 - React 19
 - TypeScript
+- App Router
 - React Server Components
-- CSS معمولی، بدون UI framework
-- رابط فارسی، `dir="rtl"`
-- فونت bundled B Nazanin
+- CSS معمولی بدون UI Framework
+- RTL Persian UI
 
-### تصمیم‌های مهم
+مسیر:
 
-- فعلاً microservice نداریم؛ دامنه هنوز نیاز به جداسازی deployment ندارد.
-- GraphQL نداریم؛ REST ساده و کافی است.
-- Redis نداریم؛ caching و queue هنوز مسئلهٔ واقعی نیست.
-- Docker نداریم؛ محیط محلی macOS فعلاً مستقیم و ساده‌تر است.
-- write API عمومی نداریم؛ دادهٔ پژوهشی از import محلی وارد می‌شود.
-- فایل‌های دادهٔ خام و `import.json` خصوصی‌اند و در Git قرار نمی‌گیرند.
+```text
+apps/web/
+```
+
+### Backend
+
+- Node.js
+- TypeScript
+- NestJS 11
+- REST API
+- Prisma 7
+- PostgreSQL
+- Joi
+- class-validator
+- Jest
+- Supertest
+
+مسیر:
+
+```text
+apps/api/
+```
+
+### معماری Backend
+
+فعلاً:
+
+```text
+Modular Monolith
+```
+
+Microservice در وضعیت فعلی نیاز پروژه نیست.
+
+جزئیات:
+
+- معماری سیستم: `docs/ARCHITECTURE.md`
+- تصمیم‌های معماری و دلایل آن‌ها: `docs/DECISIONS.md`
+
+---
 
 ## 5. مدل داده
 
@@ -184,140 +191,250 @@ The MVP focuses on clear and user-understandable categories.
 ```text
 Hotel ──< HotelAssociation >── NotablePerson
                     │
-                    v
+                    ↓
           AssociationEvidence
                     │
-                    v
+                    ↓
                   Source
 ```
 
 ### Hotel
 
-اطلاعات پایهٔ هتل شامل slug، نام، شهر، کشور، توضیح، مختصات، وب‌سایت، تصویر
-و وضعیت انتشار.
+اطلاعاتی مانند:
+
+- slug
+- name
+- city
+- country
+- description
+- coordinates
+- website
+- imageUrl
+- publicationStatus
 
 ### NotablePerson
 
-پروفایل شخص شامل slug، نام نمایشی، آیدی اختیاری اینستاگرام، دسته‌بندی، حرفه،
-بیوگرافی، کشور، تصویر و وضعیت انتشار. `instagramHandle` بدون علامت `@` ذخیره
-می‌شود و نباید از روی slug حدس زده شود.
+اطلاعاتی مانند:
+
+- slug
+- displayName
+- instagramHandle
+- primaryCategory
+- occupation
+- biography
+- country
+- imageUrl
+- publicationStatus
+
+`instagramHandle` بدون `@` ذخیره می‌شود و نباید از slug حدس زده شود.
+
+### دسته‌بندی فعلی افراد
+
+```text
+ACTOR
+ATHLETE
+INFLUENCER
+MUSICIAN
+OTHER
+```
+
+دسته‌بندی‌های قبلی زیر حذف شده‌اند:
+
+```text
+CREATOR
+ENTREPRENEUR
+POLITICIAN
+PUBLIC_FIGURE
+```
+
+اطلاعات حرفه‌ای دقیق‌تر در `occupation` قرار می‌گیرد.
 
 ### HotelAssociation
 
-رابطهٔ میان هتل و شخص. شامل:
+رابطه میان هتل و فرد.
 
-- `referenceKey`: شناسهٔ پایدار و یکتا؛
-- `type`: نوع رابطه؛
-- `summary`: توضیح ادعا؛
-- `verificationStatus`: `PENDING`, `VERIFIED`, `REJECTED`؛
-- `verifiedAt`: زمان بررسی نهایی؛
-- `verificationNotes`: یادداشت داخلی که در API عمومی نمایش داده نمی‌شود.
+اطلاعات مهم:
 
-### Source و AssociationEvidence
+- `referenceKey`
+- `type`
+- `summary`
+- `verificationStatus`
+- `verifiedAt`
+- `verificationNotes`
 
-`Source` اطلاعات URL و نوع منبع را نگه می‌دارد. `AssociationEvidence` یک
-رابطه را به یک یا چند منبع متصل می‌کند و مشخص می‌کند کدام منبع اصلی است.
+وضعیت‌های verification:
 
-انواع منبع شامل خبر، وب‌سایت رسمی، پست شبکه اجتماعی، مصاحبه، ویدئو، عکس و
-سایر است.
+```text
+PENDING
+VERIFIED
+REJECTED
+```
+
+### Source و Evidence
+
+`Source` اطلاعات منبع را نگهداری می‌کند.
+
+`AssociationEvidence` یک association را به یک یا چند source متصل می‌کند.
+
+جزئیات کامل مدل داده:
+
+`docs/DATABASE.md`
+
+---
 
 ## 6. سیاست انتشار و اعتماد
 
-- Hotel و NotablePerson فقط با `publicationStatus=PUBLISHED` در discovery
-  عمومی دیده می‌شوند.
-- رابطهٔ `PENDING` می‌تواند برای preview نمایش داده شود، اما UI آن را واضح
-  «در حال تکمیل» می‌نامد.
-- رابطهٔ `VERIFIED` فقط وقتی نمایش داده می‌شود که حداقل یک evidence داشته
-  باشد.
-- رابطهٔ `REJECTED` نمایش داده نمی‌شود.
-- رابطه‌ای که اشتباهاً VERIFIED شده ولی evidence ندارد نمایش داده نمی‌شود.
-- URL یا مدرک جعلی برای پرکردن جای خالی ساخته نمی‌شود.
-- تا زمانی که مدرک نوع دقیق رابطه را ثابت نکرده، `type=OTHER` باقی می‌ماند.
+اصل اصلی:
+
+> وجود یک record در دیتابیس به معنی قابل انتشار بودن آن نیست.
+
+Flow کلی:
+
+```text
+Collected Data
+      ↓
+Structured Data
+      ↓
+Verification
+      ↓
+Publication Rules
+      ↓
+Public Website
+```
+
+قواعد فعلی:
+
+- Hotel فقط در صورت `PUBLISHED` بودن در discovery دیده می‌شود.
+- NotablePerson فقط در صورت `PUBLISHED` بودن دیده می‌شود.
+- Association با وضعیت `PENDING` می‌تواند با برچسب واضح نمایش داده شود.
+- Association با وضعیت `VERIFIED` باید evidence معتبر داشته باشد.
+- Association با وضعیت `REJECTED` نمایش داده نمی‌شود.
+- URL یا evidence جعلی برای پرکردن جای خالی ساخته نمی‌شود.
+- اطلاعات نامطمئن باید خالی بماند و حدس زده نشود.
+- تا زمانی که نوع دقیق رابطه مشخص نشده، `type=OTHER` قابل استفاده است.
+
+جزئیات کامل:
+
+`docs/DATA_POLICY.md`
+
+---
 
 ## 7. وضعیت فعلی داده
 
-فایل خصوصی runtime:
+آخرین شمارش شناخته‌شده:
+
+- ۱۵ هتل `PUBLISHED`
+- ۱۵۷ شخص `PUBLISHED`
+- ۱۵۲ association با وضعیت `PENDING`
+- ۳ source اولیه Instagram
+- ۱۴۹ association بدون evidence
+- ۱۶ شخص بدون رابطه مشخص با هتل
+
+دیتای runtime خصوصی:
 
 ```text
 apps/api/prisma/data/import.json
 ```
 
-این فایل در `.gitignore` است.
+این فایل در Git قرار نمی‌گیرد.
 
-آخرین شمارش شناخته‌شده:
-
-- ۱۵ هتل PUBLISHED؛
-- ۱۵۷ شخص PUBLISHED؛
-- ۱۵۲ رابطه PENDING؛
-- ۳ منبع Instagram؛
-- ۱۴۹ رابطه بدون evidence؛
-- ۱۶ شخص که فعلاً رابطهٔ هتل مشخصی ندارند.
-
-منابع اولیه از این فایل‌های خصوصی استخراج شدند:
+دیتای پژوهشی اولیه:
 
 ```text
 data/Influencer_Hotel_Tracker.xlsx
 data/Influencer_Hotel_Tracker.pdf
 ```
 
-Excel ساختاریافتهٔ جدید:
+Workbook ساختاریافته فعلی:
 
 ```text
 data/Hotel-Yab_Data_Workbook.xlsx
 ```
 
-این workbook چهار sheet دارد:
+Sheetها:
 
-- `Hotels`
-- `People`
-- `Associations`
-- `Sources`
+```text
+Hotels
+People
+Associations
+Sources
+```
 
-رابطه‌ها دیگر نباید با رنگ سلول تعریف شوند؛ هر رابطه یک ردیف مستقل دارد.
-راهنمای کامل در `docs/data-workbook-guide.md` است.
+راهنما:
 
-محدودیت فعلی: workbook هنوز مستقیماً به JSON/PostgreSQL sync نمی‌شود.
-ساخت فرمان `pnpm data:sync` مهم‌ترین قدم بعدی pipeline داده است.
+```text
+docs/data-workbook-guide.md
+```
 
-## 8. تصاویر و رسانه‌ها
+### محدودیت فعلی Pipeline
 
-### تصاویر bundled داخل پروژه
+Workbook هنوز مستقیماً با دیتابیس sync نمی‌شود.
 
-تصاویر محلی frontend باید زیر `apps/web/public` قرار بگیرند:
+Flow هدف:
+
+```text
+Research Spreadsheet
+        ↓
+Clean Dataset
+        ↓
+Sync Script
+        ↓
+PostgreSQL
+        ↓
+Website
+```
+
+ساخت یک sync process امن با validation، duplicate detection و dry-run از مراحل آینده پروژه است.
+
+---
+
+## 8. تصاویر و رسانه
+
+تصاویر محلی frontend:
 
 ```text
 apps/web/public/images/hotels/
 apps/web/public/images/people/
 ```
 
-در وضعیت فعلی importer، `imageUrl` باید URL کامل `http` یا `https` باشد. برای
-فایل محلی در development می‌توان از آدرس localhost استفاده کرد:
+`imageUrl` در داده فعلی به URL رسانه اشاره می‌کند.
 
-```json
-"imageUrl": "http://localhost:3000/images/hotels/example.png"
-```
+در development ممکن است URL به localhost اشاره کند، اما در production باید storage یا URL پایدار استفاده شود.
 
-در production باید localhost با دامنه یا storage پایدار جایگزین شود. استفاده
-از `https://example.com/...` فقط نمونه است و فایل محلی را نمایش نمی‌دهد.
+رسانه مرتبط با Association باید به عنوان `Source` و `Evidence` مدل شود.
 
-تصویر نمونهٔ فعلی:
+تصویر پروفایل Hotel یا Person جای evidence رابطه را نمی‌گیرد.
 
-```text
-apps/web/public/images/hotels/parsian-esteghlal1.png
-```
+### کارهای محتوایی آینده
 
-برای رسانهٔ رابطه، عکس/ویدئو/پست به‌عنوان `Source` و evidence ثبت می‌شود؛
-`imageUrl` شخص یا هتل جای evidence رابطه را نمی‌گیرد.
+- تکمیل عکس هتل‌ها
+- تکمیل عکس افراد
+- پیدا کردن Instagramهای ناقص
+- پیدا کردن ویدئوهای مرتبط
+- ثبت لینک Source
+- تکمیل Biography
+- تکمیل Occupation
+- افزایش Evidence associationها
+
+---
 
 ## 9. API عمومی
 
+Base path:
+
+```text
+/api/v1
+```
+
+Endpointهای فعلی:
+
 | Method | Path | توضیح |
 | --- | --- | --- |
-| GET | `/api/v1/health` | سلامت API و اتصال دیتابیس |
-| GET | `/api/v1/hotels` | فهرست هتل‌های عمومی |
-| GET | `/api/v1/hotels/:slug` | جزئیات هتل و رابطه‌ها |
-| GET | `/api/v1/notable-people` | فهرست چهره‌های عمومی |
-| GET | `/api/v1/notable-people/:slug` | جزئیات شخص و هتل‌ها |
+| GET | `/api/v1/health` | سلامت API و دیتابیس |
+| GET | `/api/v1/hotels` | فهرست هتل‌ها |
+| GET | `/api/v1/hotels/:slug` | جزئیات هتل |
+| GET | `/api/v1/notable-people` | فهرست چهره‌ها |
+| GET | `/api/v1/notable-people/:slug` | جزئیات چهره |
 
 Swagger در development:
 
@@ -326,78 +443,116 @@ http://localhost:4000/api/docs
 http://localhost:4000/api/docs-json
 ```
 
-### فیلترهای هتل
+### فیلتر هتل‌ها
 
-- `page`
-- `pageSize`، حداکثر ۱۰۰
-- `query`
-- `city`
-- `countryCode`
+```text
+page
+pageSize
+query
+city
+countryCode
+```
 
-جست‌وجوی هتل:
+### فیلتر چهره‌ها
 
-- متن را به tokenهای جدا تقسیم می‌کند؛
-- ترتیب کلمات مهم نیست؛
-- هر token می‌تواند بخشی از نام یا شهر باشد؛
-- `ی/ي/ى` و `ک/ك` نرمال می‌شوند؛
-- نیم‌فاصله به فاصله تبدیل می‌شود؛
-- query با Prisma پارامتری اجرا می‌شود و raw regex ندارد.
+```text
+page
+pageSize
+query
+category
+countryCode
+```
 
-مثال: `استقلال پارسیان`، هتل «هتل پارسیان استقلال» را پیدا می‌کند.
+جزئیات قرارداد API:
 
-### فیلترهای چهره
+`docs/API.md`
 
-- `page`
-- `pageSize`
-- `query`
-- `category`
-- `countryCode`
+---
 
-### countها
+## 10. Frontend
 
-- `associationCount`: تعداد رابطه‌های قابل نمایش شامل pending و verified؛
-- `verifiedAssociationCount`: تعداد رابطه‌های واقعاً verified و evidence-backed.
+Routeهای اصلی:
 
-## 10. مسیرهای frontend
+```text
+/
+```
 
-| Path | توضیح |
-| --- | --- |
-| `/` | landing page و discovery اولیه |
-| `/hotels` | فهرست، جست‌وجو و فیلتر هتل‌ها |
-| `/hotels/:slug` | جزئیات هتل، افراد و منابع |
-| `/notable-people` | فهرست و فیلتر چهره‌ها |
-| `/notable-people/:slug` | پروفایل شخص، هتل‌ها و منابع |
+Landing Page
 
-Frontend داده را در Server Componentها از API می‌گیرد و از `cache: no-store`
-استفاده می‌کند تا دادهٔ محلی تازه نمایش داده شود.
+```text
+/hotels
+```
+
+فهرست و جست‌وجوی هتل‌ها
+
+```text
+/hotels/:slug
+```
+
+صفحه جزئیات هتل
+
+```text
+/notable-people
+```
+
+فهرست و فیلتر چهره‌ها
+
+```text
+/notable-people/:slug
+```
+
+صفحه جزئیات فرد
+
+### قابلیت‌های فعلی UI
+
+- RTL
+- Search
+- Filter
+- Pagination
+- Hotel Card
+- Person Card
+- Instagram Handle
+- Occupation
+- Biography
+- Association Count
+- Verified Association Count
+- Media Placeholder
+- Empty State
+- API Unavailable State
+- صفحات Detail
+
+Pagination فیلترهای فعال را هنگام رفتن به صفحه قبل یا بعد حفظ می‌کند.
+
+---
 
 ## 11. اجرای پروژه روی macOS
 
-### پیش‌نیاز
+### پیش‌نیازها
 
 - Node.js
-- pnpm 11.18.0 از طریق Corepack یا نصب سازگار
-- PostgreSQL محلی
+- pnpm
+- PostgreSQL
 
-یادداشت محیط محلی: `pnpm --version` قبلاً `11.18.0` بوده و کار می‌کند. پوشهٔ
-cache مربوط به Corepack در گذشته با مالکیت root دیده شده بود؛ اگر بعداً خطای
-permission در دانلود package manager رخ داد، مالکیت همان cache باید بررسی شود،
-نه اینکه commandهای پروژه با `sudo` اجرا شوند.
+نسخه pnpm شناخته‌شده:
 
-### نصب dependencyها
+```text
+11.18.0
+```
+
+### نصب dependency
 
 ```bash
 pnpm install --frozen-lockfile
 ```
 
-### environment بک‌اند
+### Environment بک‌اند
 
 ```bash
 cp apps/api/.env.example apps/api/.env
 cp apps/api/.env.test.example apps/api/.env.test
 ```
 
-مقادیر مهم:
+مقادیر اصلی:
 
 ```env
 DATABASE_URL="postgresql://YOUR_MACOS_USERNAME@localhost:5432/hotel_yab"
@@ -406,25 +561,27 @@ PORT=4000
 SWAGGER_ENABLED=true
 ```
 
-### migration و import
+### Migration
 
 ```bash
 pnpm api:prisma:migrate:deploy
+```
+
+### Import Data
+
+```bash
 pnpm api:data:import
 ```
 
-Importer کل فایل را قبل از write اعتبارسنجی می‌کند، داخل یک transaction اجرا
-می‌شود و با slug/referenceKey/URL به‌صورت idempotent upsert می‌کند.
-
-### اجرای development
-
-ترمینال اول:
+### اجرای Backend
 
 ```bash
 pnpm api:dev
 ```
 
-ترمینال دوم:
+### اجرای Frontend
+
+در ترمینال جدا:
 
 ```bash
 pnpm web:dev
@@ -438,7 +595,9 @@ API:      http://localhost:4000/api/v1
 Health:   http://localhost:4000/api/v1/health
 ```
 
-## 12. فرمان‌های تست و بررسی
+---
+
+## 12. تست و بررسی
 
 ### Backend
 
@@ -451,12 +610,14 @@ pnpm api:test:e2e
 pnpm api:build
 ```
 
-آخرین نتیجهٔ ثبت‌شده پیش از این handoff:
+آخرین وضعیت ثبت‌شده:
 
-- ۲ test suite واحد موفق؛
-- ۶ تست واحد؛
-- ۱۳ تست E2E موفق؛
-- format، lint، typecheck و build موفق.
+- Unit tests موفق
+- E2E tests موفق
+- format موفق
+- lint موفق
+- typecheck موفق
+- build موفق
 
 ### Frontend
 
@@ -466,251 +627,377 @@ pnpm web:typecheck
 pnpm web:build
 ```
 
-آخرین نتیجهٔ ثبت‌شده: هر سه موفق.
+آخرین وضعیت ثبت‌شده:
 
-## 13. نقشهٔ فایل‌ها
+هر سه command موفق بوده‌اند.
 
-فایل‌های generated، dependencyها و build outputها در این نقشه نیامده‌اند.
+---
+
+## 13. فایل‌های مهم پروژه
 
 ### Root
 
-- `package.json`: scriptهای مشترک monorepo برای API، web، Prisma و تست‌ها.
-- `pnpm-workspace.yaml`: workspaceهای `apps/*` و `packages/*` و اجازهٔ build
-  dependencyهای native.
-- `pnpm-lock.yaml`: نسخه‌های دقیق dependencyها برای نصب قابل تکرار.
-- `.gitignore`: env، build، dependency، data و فایل import خصوصی را حذف می‌کند.
-- `README.md`: راهنمای setup و معرفی سطح بالا.
-- `PROJECT_CONTEXT.md`: همین سند جامع handoff و وضعیت پروژه.
+```text
+PROJECT_CONTEXT.md
+README.md
+package.json
+pnpm-workspace.yaml
+pnpm-lock.yaml
+.gitignore
+```
 
-### Backend config
+### Backend
 
-- `apps/api/package.json`: dependencyها و commandهای NestJS/Prisma/Jest.
-- `apps/api/nest-cli.json`: تنظیم build و source root برای Nest CLI.
-- `apps/api/tsconfig.json`: تنظیم TypeScript بک‌اند.
-- `apps/api/tsconfig.build.json`: فایل‌های لازم برای build production.
-- `apps/api/eslint.config.mjs`: قوانین lint TypeScript/NestJS.
-- `apps/api/.prettierrc`: style formatter بک‌اند.
-- `apps/api/.env.example`: نمونهٔ environment development.
-- `apps/api/.env.test.example`: نمونهٔ environment دیتابیس تست.
-- `apps/api/prisma.config.ts`: مسیر schema/migration و DATABASE_URL برای Prisma 7.
+```text
+apps/api/src/
+apps/api/prisma/schema.prisma
+apps/api/prisma/migrations/
+apps/api/prisma/import-data.ts
+apps/api/prisma/data/import.example.json
+```
 
-### Prisma و import
+### Frontend
 
-- `apps/api/prisma/schema.prisma`: enumها و مدل‌های Hotel، NotablePerson،
-  HotelAssociation، Source و AssociationEvidence.
-- `apps/api/prisma/migrations/20260802145722_init_core_graph/migration.sql`:
-  migration اولیهٔ graph.
-- `apps/api/prisma/migrations/20260802182848_add_association_reference_key/migration.sql`:
-  افزودن referenceKey یکتا برای import idempotent.
-- `apps/api/prisma/migrations/migration_lock.toml`: provider قفل‌شدهٔ migration.
-- `apps/api/prisma/import-data.ts`: CLI خواندن JSON، validation و اجرای importer.
-- `apps/api/prisma/data/import.example.json`: نمونهٔ format فایل import.
-- `apps/api/prisma/data/import.json`: دیتای خصوصی runtime؛ در Git نیست.
+```text
+apps/web/src/app/
+apps/web/src/components/
+apps/web/src/lib/
+apps/web/public/images/
+```
 
-### Backend bootstrap و shared infrastructure
+### Data
 
-- `apps/api/src/main.ts`: ساخت Nest app، اعمال config، Swagger و listen.
-- `apps/api/src/app.module.ts`: composition root و ثبت moduleها.
-- `apps/api/src/app.config.ts`: prefix، URI versioning، validation pipe و CORS.
-- `apps/api/src/config/environment.ts`: type و Joi schema برای env.
-- `apps/api/src/docs/swagger.ts`: ساخت Swagger و JSON OpenAPI.
-- `apps/api/src/database/prisma.module.ts`: PrismaService به‌صورت global module.
-- `apps/api/src/database/prisma.service.ts`: اتصال Prisma به PostgreSQL با
-  `PrismaPg` و lifecycle connect/disconnect.
+```text
+data/Hotel-Yab_Data_Workbook.xlsx
+data/Influencer_Hotel_Tracker.xlsx
+data/Influencer_Hotel_Tracker.pdf
+```
 
-### Backend common و health
+---
 
-- `apps/api/src/common/dto/pagination-query.dto.ts`: validation page/pageSize.
-- `apps/api/src/common/dto/slug-param.dto.ts`: validation slug مسیر.
-- `apps/api/src/common/pagination.ts`: ساخت metadata استاندارد pagination.
-- `apps/api/src/health/health.module.ts`: module سلامت.
-- `apps/api/src/health/health.controller.ts`: `SELECT 1` برای readiness دیتابیس.
-- `apps/api/src/health/health.controller.spec.ts`: تست واحد health.
+## 14. Documentation
 
-### Backend hotel discovery
+مستندات تخصصی پروژه:
 
-- `apps/api/src/hotels/hotels.module.ts`: module دامنهٔ هتل.
-- `apps/api/src/hotels/hotels.controller.ts`: endpointهای list/detail هتل.
-- `apps/api/src/hotels/hotels.service.ts`: query Prisma، جست‌وجوی token-based،
-  سیاست visible/verified و mapping response.
-- `apps/api/src/hotels/dto/hotel-query.dto.ts`: validation فیلترهای هتل.
+### Architecture
 
-### Backend notable-person discovery
+```text
+docs/ARCHITECTURE.md
+```
 
-- `apps/api/src/notable-people/notable-people.module.ts`: module چهره‌ها.
-- `apps/api/src/notable-people/notable-people.controller.ts`: endpointهای
-  list/detail شخص.
-- `apps/api/src/notable-people/notable-people.service.ts`: query شخص، رابطه‌های
-  pending/verified و منبع‌ها.
-- `apps/api/src/notable-people/dto/notable-person-query.dto.ts`: validation
-  فیلترهای شخص.
+ساختار سیستم و ارتباط اجزا.
 
-### Backend data import
+### Decisions
 
-- `apps/api/src/data-import/dataset.ts`: type و Joi validation دیتاست، reference
-  integrity، evidence و image URL.
-- `apps/api/src/data-import/import-dataset.ts`: upsert تراکنشی هتل، شخص، منبع،
-  رابطه و evidence.
-- `apps/api/src/data-import/dataset.spec.ts`: تست قواعد dataset.
+```text
+docs/DECISIONS.md
+```
 
-### Backend tests
+دلایل تصمیم‌های فنی و محصولی مهم.
 
-- `apps/api/test/app.e2e-spec.ts`: تست E2E سلامت، Swagger، CORS، import، search،
-  privacy یادداشت‌ها، pending/verified و 404/400.
-- `apps/api/test/jest-e2e.json`: تنظیم Jest برای تست E2E.
+### API
 
-### Frontend config و public assets
+```text
+docs/API.md
+```
 
-- `apps/web/package.json`: Next/React و commandهای build/lint/typecheck.
-- `apps/web/tsconfig.json`: TypeScript و alias `@/*`.
-- `apps/web/eslint.config.mjs`: lint مخصوص Next.js.
-- `apps/web/next.config.ts`: محل config آیندهٔ Next.js؛ فعلاً minimal.
-- `apps/web/.env.example`: `API_BASE_URL` برای server-side fetch.
-- `apps/web/public/fonts/B-NAZANIN.TTF`: فونت فارسی bundled.
-- `apps/web/public/images/hotels/`: تصاویر محلی هتل‌ها.
-- `apps/web/public/images/people/`: محل پیشنهادی تصاویر چهره‌ها.
+Endpointها، Query Parameterها و قرارداد API.
 
-### Frontend App Router
+### Database
 
-- `apps/web/src/app/layout.tsx`: metadata، RTL، header/footer و CSS global.
-- `apps/web/src/app/globals.css`: design tokens، layout، responsive rules،
-  B Nazanin، cardها، badgeها و placeholder رسانه.
-- `apps/web/src/app/page.tsx`: landing page، hero، search و preview داده.
-- `apps/web/src/app/hotels/page.tsx`: list/filter هتل‌ها.
-- `apps/web/src/app/hotels/[slug]/page.tsx`: جزئیات هتل و کارت رابطه‌ها.
-- `apps/web/src/app/notable-people/page.tsx`: list/filter چهره‌ها.
-- `apps/web/src/app/notable-people/[slug]/page.tsx`: پروفایل شخص و هتل‌ها.
-- `apps/web/src/app/not-found.tsx`: صفحهٔ 404 فارسی.
-- `apps/web/src/app/favicon.ico`: favicon.
+```text
+docs/DATABASE.md
+```
 
-### Frontend components
+مدل‌ها، رابطه‌ها و ساختار دیتابیس.
 
-- `apps/web/src/components/brand-mark.tsx`: نشان متنی/گرافیکی برند.
-- `apps/web/src/components/site-header.tsx`: header و navigation.
-- `apps/web/src/components/site-footer.tsx`: footer و لینک‌های محصول.
-- `apps/web/src/components/section-heading.tsx`: عنوان مشترک sectionها.
-- `apps/web/src/components/hotel-card.tsx`: کارت هتل و وضعیت رابطه‌ها.
-- `apps/web/src/components/person-card.tsx`: کارت شخص و count هتل‌ها.
-- `apps/web/src/components/media-tile.tsx`: نمایش background image یا fallback
-  بنفش/حرف اول.
-- `apps/web/src/components/source-list.tsx`: لینک sourceهای واقعی یا placeholder
-  عکس/ویدئو/لینک.
-- `apps/web/src/components/empty-state.tsx`: حالت خالی و API unavailable.
+### Data Policy
 
-### Frontend data layer
+```text
+docs/DATA_POLICY.md
+```
 
-- `apps/web/src/lib/api.ts`: fetch تایپ‌شدهٔ server-side به NestJS و ساخت query.
-- `apps/web/src/lib/types.ts`: قرارداد responseهای API در frontend.
-- `apps/web/src/lib/labels.ts`: ترجمهٔ enumها و format تاریخ فارسی.
+قواعد جمع‌آوری، verification و publication داده.
 
-### Documentation و data
+### Changelog
 
-- `docs/source-dataset-notes.md`: ساختار Excel/PDF اولیه، قواعد conversion و
-  محدودیت داده.
-- `docs/data-workbook-guide.md`: راهنمای workbook چهار-sheet جدید.
-- `data/Hotel-Yab_Data_Workbook.xlsx`: فایل کاری ساختاریافته و خصوصی.
-- `data/Influencer_Hotel_Tracker.xlsx`: فایل پژوهشی اولیه و رنگ‌محور.
-- `data/Influencer_Hotel_Tracker.pdf`: نسخهٔ دیداری فایل اولیه.
+```text
+docs/CHANGELOG.md
+```
 
-## 14. موارد ناتمام و مشکلات شناخته‌شده
+تاریخچه تغییرات مهم پروژه.
 
-### P0 — قدم بعدی پیشنهادی
+### TODO
 
-- ساخت converter پایدار `Hotel-Yab_Data_Workbook.xlsx` به import JSON.
-- افزودن command مانند `pnpm data:sync` با dry-run و گزارش خطا.
-- تست referenceها، duplicateها و VERIFIED بدون evidence قبل از write.
+```text
+docs/TODO.md
+```
 
-### P1 — لازم برای MVP قابل مدیریت
+کارهای باز و roadmap اجرایی پروژه.
 
-- پنل admin برای CRUD هتل، شخص، رابطه و source؛
-- login و authorization ادمین؛
-- workflow بررسی و تغییر PENDING به VERIFIED/REJECTED؛
-- upload و storage پایدار عکس/ویدئو؛
-- تکمیل نام واقعی، دسته‌بندی، عکس و biography افراد؛
-- تکمیل evidence بیشتر رابطه‌ها؛
-- pagination controls در frontend؛
-- امکان گزارش اطلاعات اشتباه؛
-- تست component/UI فرانت‌اند.
+### سایر مستندات Data
 
-### P2 — production readiness
+```text
+docs/source-dataset-notes.md
+docs/data-workbook-guide.md
+```
 
-- انتخاب hosting برای Next.js، NestJS و PostgreSQL؛
-- object storage/CDN برای media؛
-- domain و HTTPS؛
-- secret management؛
-- backup و restore دیتابیس؛
-- logging، error tracking و monitoring؛
-- rate limiting و security review؛
-- CI برای lint/typecheck/test/build؛
-- SEO، OpenGraph، sitemap و metadata کامل؛
-- accessibility و performance audit.
+`PROJECT_CONTEXT.md` باید خلاصه وضعیت جاری پروژه باقی بماند و جزئیات تخصصی را به این فایل‌ها ارجاع دهد.
 
-### P3 — قابلیت‌های محصول آینده
+---
 
-- حساب کاربر؛
-- favorites؛
-- review؛
-- moderation؛
-- mobile app با React Native و Expo؛
-- recommendation و discovery پیشرفته.
+## 15. Product Roadmap
 
-### محدودیت‌های دادهٔ فعلی
+ترتیب فعلی توسعه:
 
-- همهٔ ۱۵۲ رابطه هنوز PENDING هستند.
-- بیشتر رابطه‌ها evidence ندارند.
-- بسیاری از displayNameها در واقع Instagram handle هستند.
-- بیشتر categoryها موقتاً `PUBLIC_FIGURE` هستند.
-- follower countها ممکن است قدیمی شوند و evidence محسوب نمی‌شوند.
-- نوع بیشتر رابطه‌ها `OTHER` است تا زمانی که منبع دقیق بررسی شود.
-- دیتابیس فعلی local است و با Git به سیستم دیگری منتقل نمی‌شود.
+```text
+1. Core Website
+      ↓
+2. Images & Content Enrichment
+      ↓
+3. Videos & Sources
+      ↓
+4. Continue Data Collection
+      ↓
+5. Clean Dataset / Second Spreadsheet
+      ↓
+6. Data Sync Pipeline
+      ↓
+7. User Accounts
+      ↓
+8. Admin & Scale
+```
 
-### محدودیت‌های UI فعلی
+### Phase 1 — Core Website
 
-- فهرست چهره‌ها در هر صفحه ۲۴ مورد نشان می‌دهد و کنترل رفتن به صفحهٔ قبل و بعد دارد.
+تمرکز فعلی:
+
+- تقویت صفحات موجود
+- بهبود Detail Pageها
+- بهبود Search
+- Responsive
+- UI polish
+- بهبود نمایش associationها
+- Loading / Error / Empty states
+
+### Phase 2 — Content
+
+- عکس هتل‌ها
+- عکس افراد
+- Instagram
+- Biography
+- Occupation
+- ویدئو
+- لینک Source
+
+### Phase 3 — Data
+
+- ادامه جمع‌آوری دیتا
+- تکمیل Workbook
+- Clean Dataset
+- Second Spreadsheet
+- Sync Script
+- Validation
+- Duplicate Detection
+- Dry Run
+
+### Phase 4 — User System
+
+بعد از پایدار شدن Core Product و Data Pipeline:
+
+- Account
+- Login
+- Favorites
+- Saved Hotels
+- Personalization
+- User Contribution
+
+### Phase 5 — Scale
+
+- Admin Panel
+- Moderation
+- Production Hosting
+- Media Storage
+- Analytics
+- Monitoring
+- SEO
+- CI/CD
+
+جزئیات اجرایی و وضعیت checkboxها در:
+
+```text
+docs/TODO.md
+```
+
+---
+
+## 16. محدودیت‌های مهم فعلی
+
+### Data
+
+- بیشتر associationها هنوز `PENDING` هستند.
+- بیشتر associationها evidence ندارند.
+- داده اولیه هنوز نیاز به enrichment دارد.
+- follower count ممکن است قدیمی شود و evidence محسوب نمی‌شود.
+- بسیاری از associationها تا بررسی source همچنان `OTHER` هستند.
+- دیتابیس فعلی local است.
+
+### Media
+
 - media upload UI وجود ندارد.
-- عکس‌های واقعی با CSS background و اندازهٔ `100% 100%` دقیقاً داخل کادر فیت
-  می‌شوند؛ این انتخاب از برش جلوگیری می‌کند، اما ممکن است نسبت تصویر را تغییر دهد.
-- placeholderهای بنفش بدون عکس همچنان با `cover` نمایش داده می‌شوند.
-- fallback بنفش هنگام نبودن یا خراب بودن URL عمداً نمایش داده می‌شود.
+- storage production هنوز انتخاب نشده است.
+- برخی تصاویر هنوز missing یا placeholder هستند.
 
-## 15. Definition of Done برای MVP اولیه
+### Product
 
-MVP زمانی قابل قبول است که:
+- User Account وجود ندارد.
+- Admin Panel وجود ندارد.
+- Moderation UI وجود ندارد.
+- Data Sync اتوماتیک هنوز ساخته نشده است.
+- Production infrastructure هنوز نهایی نشده است.
 
-- کاربر بتواند هتل و شخص را جست‌وجو و صفحه‌بندی کند؛
-- هر صفحه تصویر و اطلاعات پایهٔ مناسب داشته باشد؛
-- pending و verified کاملاً از هم قابل تشخیص باشند؛
-- هر verified relationship حداقل یک منبع قابل بازبینی داشته باشد؛
-- ادمین بتواند بدون ویرایش مستقیم JSON داده را مدیریت و تأیید کند؛
-- کاربر بتواند اطلاعات اشتباه را گزارش کند؛
-- برنامه روی production با دیتابیس، backup و media storage پایدار اجرا شود؛
-- تست‌ها و CI مسیر اصلی را پوشش دهند.
+---
 
-## 16. Git و ایمنی تغییرات
+## 17. Definition of Done برای MVP
 
-- branch فعلی معمولاً `main` است؛ قبل از کار `git status --short --branch`
-  اجرا شود.
-- ممکن است branch محلی از `origin/main` جلوتر باشد؛ بدون درخواست کاربر push
-  نکن.
-- `data/`, envها و `apps/api/prisma/data/import.json` عمداً ignored هستند.
-- assetهای عمومی زیر `apps/web/public` باید در Git قرار بگیرند.
-- از `git add .` استفاده نشود؛ فایل‌ها به‌صورت دقیق stage شوند تا دادهٔ خصوصی
-  یا تغییر کاربر وارد commit نشود.
+MVP اولیه زمانی قابل قبول است که:
 
-## 17. Checklist به‌روزرسانی این سند
+- کاربر بتواند هتل و شخص را جست‌وجو کند؛
+- لیست‌ها pagination داشته باشند؛
+- Detail Pageها اطلاعات قابل استفاده داشته باشند؛
+- عکس و اطلاعات پایه برای بخش اصلی داده‌ها تکمیل شده باشد؛
+- `PENDING` و `VERIFIED` کاملاً قابل تشخیص باشند؛
+- هر رابطه `VERIFIED` حداقل یک evidence معتبر داشته باشد؛
+- pipeline داده بدون ویرایش دستی JSON قابل استفاده باشد؛
+- داده‌ها duplicate یا ناسازگار وارد نشوند؛
+- مدیریت داده برای ادمین قابل انجام باشد؛
+- برنامه روی production infrastructure پایدار اجرا شود؛
+- media storage پایدار وجود داشته باشد؛
+- مسیرهای اصلی با test و CI پوشش داده شوند.
 
-پس از هر کار مهم، این موارد بررسی و اصلاح شوند:
+---
 
-- وضعیت محصول در بخش ۳؛
-- شمارش و وضعیت داده در بخش ۷؛
-- endpointها و رفتار API در بخش ۹؛
-- commandها و نتیجهٔ تست در بخش ۱۲؛
-- نقشهٔ فایل‌ها در بخش ۱۳؛
-- roadmap و محدودیت‌ها در بخش ۱۴؛
-- اگر تصمیم معماری جدیدی گرفته شد، دلیل و alternatives در بخش ۴؛
-- تاریخ بالای فایل.
+## 18. Git و ایمنی
 
-در تحویل به چت بعدی، علاوه بر این فایل بهتر است خروجی این فرمان نیز ارسال شود:
+قبل از تغییر:
+
+```bash
+git status --short --branch
+```
+
+قواعد:
+
+- branch معمولاً `main` است.
+- بدون درخواست کاربر push انجام نشود.
+- از `git add .` استفاده نشود.
+- فایل‌ها به‌صورت دقیق stage شوند.
+- `data/` خصوصی است.
+- envها private هستند.
+- `apps/api/prisma/data/import.json` private است.
+- assetهای عمومی داخل `apps/web/public` باید در Git قرار بگیرند.
+- داده یا تغییر موجود کاربر بدون هماهنگی حذف نشود.
+
+---
+
+## 19. قواعد به‌روزرسانی مستندات
+
+بعد از هر تغییر مهم پروژه بررسی شود که کدام مستند باید تغییر کند.
+
+### `PROJECT_CONTEXT.md`
+
+وقتی تغییر مهمی در یکی از این موارد رخ داد:
+
+- وضعیت کلی محصول
+- معماری اصلی
+- تکنولوژی‌ها
+- وضعیت داده
+- roadmap
+- workflow
+- نحوه اجرای پروژه
+
+### `docs/ARCHITECTURE.md`
+
+وقتی ساختار سیستم یا مسئولیت لایه‌ها تغییر کرد.
+
+### `docs/DECISIONS.md`
+
+وقتی تصمیم فنی یا محصولی مهم جدید گرفته شد.
+
+### `docs/API.md`
+
+وقتی:
+
+- endpoint اضافه/حذف شد؛
+- query parameter تغییر کرد؛
+- response contract تغییر کرد.
+
+### `docs/DATABASE.md`
+
+وقتی:
+
+- Prisma model تغییر کرد؛
+- field اضافه/حذف شد؛
+- enum تغییر کرد؛
+- relation تغییر کرد.
+
+### `docs/DATA_POLICY.md`
+
+وقتی قواعد:
+
+- source
+- verification
+- publication
+- data collection
+
+تغییر کردند.
+
+### `docs/CHANGELOG.md`
+
+بعد از هر تغییر مهم و تکمیل‌شده پروژه.
+
+### `docs/TODO.md`
+
+وقتی:
+
+- task جدید اضافه شد؛
+- task انجام شد؛
+- اولویت‌ها تغییر کردند.
+
+---
+
+## 20. Handoff به گفت‌وگوی بعدی
+
+برای ادامه پروژه در چت جدید، حداقل این فایل ارائه شود:
+
+```text
+PROJECT_CONTEXT.md
+```
+
+و در صورت نیاز فایل تخصصی مرتبط نیز ارسال شود.
+
+مثلاً برای کار روی دیتابیس:
+
+```text
+PROJECT_CONTEXT.md
+docs/DATABASE.md
+```
+
+برای API:
+
+```text
+PROJECT_CONTEXT.md
+docs/API.md
+```
+
+برای معماری:
+
+```text
+PROJECT_CONTEXT.md
+docs/ARCHITECTURE.md
+docs/DECISIONS.md
+```
+
+همچنین بهتر است وضعیت Git ارسال شود:
 
 ```bash
 git status --short --branch
