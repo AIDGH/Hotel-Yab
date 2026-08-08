@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PersonCard } from "@/components/person-card";
 import { getNotablePeople } from "@/lib/api";
 import { notableCategories } from "@/lib/labels";
+import { AutoSubmitSelect } from "@/components/auto-submit-select";
 
 export const metadata: Metadata = {
   title: "کشف چهره‌ها",
@@ -68,14 +69,14 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
             </label>
             <label>
               <span>دسته‌بندی</span>
-              <select name="category" defaultValue={category}>
+              <AutoSubmitSelect name="category" defaultValue={category}>
                 <option value="">همه دسته‌ها</option>
                 {notableCategories.map(([value, label]) => (
                   <option value={value} key={value}>
                     {label}
                   </option>
                 ))}
-              </select>
+              </AutoSubmitSelect>
             </label>
             <button className="button" type="submit">
               اعمال فیلتر

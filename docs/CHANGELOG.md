@@ -26,6 +26,8 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Improved RTL/LTR handling for Persian and Latin content
 - Simplified notable-person categories
 - Improved frontend data presentation
+- Updated notable-people category filter to apply automatically after selection.
+- Adjusted listing filter-bar positioning for better visual spacing.
 
 ---
 

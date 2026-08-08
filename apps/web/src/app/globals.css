@@ -1001,6 +1001,7 @@ img {
   gap: 14px;
   max-width: 900px;
   margin: 42px auto -42px;
+  transform: translateY(-20px);
   padding: 17px;
   border: 1px solid rgba(99, 91, 255, 0.12);
   border-radius: 20px;

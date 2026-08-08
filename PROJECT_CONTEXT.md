@@ -520,6 +520,7 @@ Landing Page
 - Empty State
 - API Unavailable State
 - صفحات Detail
+- اعمال خودکار فیلتر دسته‌بندی چهره‌ها بعد از انتخاب category
 
 Pagination فیلترهای فعال را هنگام رفتن به صفحه قبل یا بعد حفظ می‌کند.
 
