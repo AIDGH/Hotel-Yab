@@ -208,7 +208,7 @@ After the documentation set is complete:
 - [x] Create City Card
 - [x] Add city images
 - [x] Show featured cities on homepage
-- [ ] Create `/cities/[slug]` detail page
+- [X] Create `/cities/[slug]` detail page
 - [ ] Model city visits by notable people
 - [ ] Add travel videos for each person/city
 - [ ] Add attraction/place information

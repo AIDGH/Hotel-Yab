@@ -1029,6 +1029,77 @@ img {
   color: var(--muted);
 }
 
+.city-detail-hero {
+  padding: 24px;
+}
+
+.city-detail-hero-image {
+  position: relative;
+  min-height: 420px;
+  max-width: 1180px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 28px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.city-detail-hero-overlay {
+  display: flex;
+  min-height: 420px;
+  align-items: flex-end;
+  padding-block: 56px;
+  background:
+    linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.72),
+      rgba(0, 0, 0, 0.08) 70%
+    );
+}
+
+.city-detail-hero h1 {
+  margin-top: 8px;
+  color: #fff;
+  font-size: clamp(2.4rem, 6vw, 4.5rem);
+}
+
+.city-detail-hero p {
+  max-width: 620px;
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  line-height: 1.9;
+}
+
+.city-detail-hero .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  backdrop-filter: blur(8px);
+}
+
+@media (max-width: 760px) {
+  .city-detail-hero {
+    padding: 14px;
+  }
+
+  .city-detail-hero-image,
+  .city-detail-hero-overlay {
+    min-height: 340px;
+  }
+
+  .city-detail-hero-overlay {
+    padding-block: 34px;
+  }
+}
+
 .filter-bar {
   position: relative;
   z-index: 2;

@@ -8,15 +8,35 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ### Added
 
+- Technical documentation under `docs/`
+- `ARCHITECTURE.md`
+- `DECISIONS.md`
+- `API.md`
+- `DATABASE.md`
+- `DATA_POLICY.md`
+- Pagination for hotel and notable-person listings
+- Improved notable-person profile metadata
+- Instagram handle display
+- Occupation display on person cards
 - Added initial City Discovery experience.
 - Added `/cities` listing page with city search and province filtering.
 - Added reusable `CityCard` component with city images.
 - Added featured cities to the homepage before hotels and notable people.
 - Added Cities navigation item to the main header.
+- Added `/cities/[slug]` detail pages with city metadata and a placeholder for notable-person travel content.
 
 ### Changed
 
+- Improved hotel and notable-person listing UI
+- Unified pagination button styles
+- Improved RTL/LTR handling for Persian and Latin content
+- Simplified notable-person categories
+- Improved frontend data presentation
+- Updated notable-people category filter to apply automatically after selection.
+- Adjusted listing filter-bar positioning for better visual spacing.
 - City province filter now applies automatically after selection.
+- Improved city detail pages with a full-width image hero.
+- Improved province badge readability on city hero images.
 
 ---
 
