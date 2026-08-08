@@ -41,3 +41,7 @@ data/
 # Temporary files
 *.tmp
 *.temp
+
+# Images and Videos
+apps/web/public/travel-videos/
+apps/web/public/Images/
