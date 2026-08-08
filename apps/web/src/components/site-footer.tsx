@@ -14,6 +14,7 @@ export function SiteFooter() {
         </div>
         <div className="footer-links">
           <strong>کشف</strong>
+          <Link href="/cities">شهرها</Link>
           <Link href="/hotels">هتل‌ها</Link>
           <Link href="/notable-people">چهره‌ها</Link>
         </div>

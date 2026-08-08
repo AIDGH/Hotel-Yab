@@ -610,7 +610,8 @@ img {
 }
 
 .hotel-card,
-.person-card {
+.person-card,
+.city-card {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
@@ -623,7 +624,8 @@ img {
 }
 
 .hotel-card:hover,
-.person-card:hover {
+.person-card:hover,
+.city-card:hover {
   border-color: rgba(99, 91, 255, 0.27);
   box-shadow: var(--shadow-sm);
   transform: translateY(-5px);
@@ -744,6 +746,41 @@ img {
   font-size: 0.83rem;
   line-clamp: 2;
   -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.city-card-media {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.city-card-body {
+  padding: 16px 21px 21px;
+}
+
+.city-card-body > span {
+  color: var(--brand);
+  font-size: 0.77rem;
+  font-weight: 800;
+}
+
+.city-card h3 {
+  margin-top: 3px;
+  font-size: 1.12rem;
+}
+
+.city-card-body > p {
+  display: -webkit-box;
+  min-height: 52px;
+  margin-top: 8px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.83rem;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
 }
 

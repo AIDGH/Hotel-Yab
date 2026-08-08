@@ -387,3 +387,13 @@ TODO.md         → what remains to be done
 `PROJECT_CONTEXT.md` remains the high-level context and navigation document.
 
 **Status:** Active
+
+## City-Based Discovery
+
+Hotel-Yab supports discovery not only through hotels and notable people, but also through destinations.
+
+The City Discovery flow is:
+
+City → Notable Person → Travel Content / Videos
+
+Cities are introduced first through lightweight prototype data and UI. Dedicated database models for cities, visits, and travel videos will be added after the real dataset structure is validated.

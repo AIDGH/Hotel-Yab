@@ -100,6 +100,11 @@ Hotel-Yab در حال حاضر سرویس رزرو هتل نیست.
 - Occupation و Biography
 - Unit Test و E2E Test
 - Swagger / OpenAPI
+- City Discovery اولیه
+- صفحه فهرست شهرها با Search و فیلتر استان
+- اعمال خودکار فیلتر استان بعد از انتخاب
+- City Card با تصویر، نام شهر و استان
+- نمایش شهرهای منتخب در صفحه اصلی قبل از هتل‌ها و چهره‌ها
 
 ---
 
@@ -386,6 +391,12 @@ Website
 
 ساخت یک sync process امن با validation، duplicate detection و dry-run از مراحل آینده پروژه است.
 
+### داده شهرها
+
+- داده اولیه شهرها فعلاً به‌صورت frontend prototype در `apps/web/src/data/cities.json` نگهداری می‌شود.
+- تصاویر شهرها در `apps/web/public/images/cities/` قرار دارند و نام فایل تصویر با slug شهر یکسان است.
+- این داده هنوز وارد Prisma/PostgreSQL و API نشده است.
+
 ---
 
 ## 8. تصاویر و رسانه
@@ -500,8 +511,14 @@ Landing Page
 ```text
 /notable-people/:slug
 ```
-
 صفحه جزئیات فرد
+
+```text
+/cities
+```
+
+فهرست و جست‌وجوی شهرها
+
 
 ### قابلیت‌های فعلی UI
 

@@ -197,3 +197,19 @@ After the documentation set is complete:
 - Database changes should be documented in `DATABASE.md`.
 - API changes should be documented in `API.md`.
 - Data-policy changes should be documented in `DATA_POLICY.md`.
+
+## City Discovery
+
+- [x] Add Cities navigation item
+- [x] Create `/cities` listing page
+- [x] Add city search
+- [x] Add province filter
+- [x] Auto-submit province filter
+- [x] Create City Card
+- [x] Add city images
+- [x] Show featured cities on homepage
+- [ ] Create `/cities/[slug]` detail page
+- [ ] Model city visits by notable people
+- [ ] Add travel videos for each person/city
+- [ ] Add attraction/place information
+- [ ] Move city data from prototype JSON into the main data pipeline

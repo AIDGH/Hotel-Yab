@@ -4,6 +4,8 @@ import { HotelCard } from "@/components/hotel-card";
 import { PersonCard } from "@/components/person-card";
 import { SectionHeading } from "@/components/section-heading";
 import { getHotels, getNotablePeople } from "@/lib/api";
+import { CityCard } from "@/components/city-card";
+import cities from "@/data/cities.json";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +14,7 @@ export default async function Home() {
     getHotels({ pageSize: 4 }),
     getNotablePeople({ pageSize: 4 }),
   ]);
+  const featuredCities = cities.slice(0, 3);
 
   return (
     <main>
@@ -23,7 +26,7 @@ export default async function Home() {
               کشف هتل با مدرک، نه با ادعا
             </span>
             <h1>
-اردپای آدم‌های معروف را بگیر،
+ردپای آدم‌های معروف را بگیر،
               <span> هتل بعدی‌ات را پیدا کن.</span>
             </h1>
             <p>
@@ -101,6 +104,28 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="section container">
+        <SectionHeading
+          eyebrow="شهرها"
+          title="مقصد بعدی‌تان را کشف کنید"
+          description="شهرها را از مسیر سفرها، تجربه‌ها و ویدیوهای چهره‌ها کشف کنید."
+          actionHref="/cities"
+          actionLabel="مشاهده همه شهرها"
+        />
+
+        <div className="card-grid">
+          {featuredCities.map((city) => (
+            <CityCard
+              key={city.slug}
+              name={city.name}
+              slug={city.slug}
+              province={city.province}
+              imageUrl={city.imageUrl}
+              description={city.description}
+            />
+          ))}
+        </div>
+      </section>
       <section className="section container">
         <SectionHeading
           eyebrow="هتل‌ها"
