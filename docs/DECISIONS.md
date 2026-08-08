@@ -388,12 +388,26 @@ TODO.md         → what remains to be done
 
 **Status:** Active
 
-## City-Based Discovery
+## 17. Destination-Based Discovery
 
-Hotel-Yab supports discovery not only through hotels and notable people, but also through destinations.
+Hotel-Yab uses a unified destination concept for geographic discovery.
 
-The City Discovery flow is:
+The MVP currently supports two destination types:
 
-City → Notable Person → Travel Content / Videos
+- City
+- Province
 
-Cities are introduced first through lightweight prototype data and UI. Dedicated database models for cities, visits, and travel videos will be added after the real dataset structure is validated.
+Destination data is temporarily stored in `apps/web/src/data/destinations.json`,
+separated into `cities` and `provinces`.
+
+Public destination routes use:
+
+- `/destinations`
+- `/destinations/[type]/[slug]`
+
+The type segment prevents ambiguity when a city and province share the same slug,
+such as Tehran.
+
+Travel videos may later be associated with one or more cities or provinces.
+Destination persistence and video relationships will be modeled in Prisma only
+after the real dataset structure is validated.

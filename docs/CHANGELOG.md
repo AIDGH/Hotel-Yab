@@ -24,6 +24,10 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Added featured cities to the homepage before hotels and notable people.
 - Added Cities navigation item to the main header.
 - Added `/cities/[slug]` detail pages with city metadata and a placeholder for notable-person travel content.
+- Added unified Destination Discovery for cities and provinces.
+- Added `/destinations` with city/province switching, search, and province filtering.
+- Added shared destination detail route at `/destinations/[type]/[slug]`.
+- Added reusable `DestinationCard` for city and province cards.
 
 ### Changed
 
@@ -37,6 +41,15 @@ All notable changes to Hotel-Yab are recorded in this file.
 - City province filter now applies automatically after selection.
 - Improved city detail pages with a full-width image hero.
 - Improved province badge readability on city hero images.
+- Replaced Cities navigation with Destinations across the header and footer.
+- Updated the homepage discovery section from cities to destinations.
+- Consolidated prototype city and province data into `destinations.json`.
+- Limited destination card descriptions to two lines to keep card layouts consistent.
+
+### Removed
+
+- Removed legacy `/cities` routes.
+- Removed the legacy `CityCard` component and separate city/province prototype JSON files.
 
 ---
 

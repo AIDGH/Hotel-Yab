@@ -104,7 +104,8 @@ Hotel-Yab در حال حاضر سرویس رزرو هتل نیست.
 - صفحه فهرست شهرها با Search و فیلتر استان
 - اعمال خودکار فیلتر استان بعد از انتخاب
 - City Card با تصویر، نام شهر و استان
-- نمایش شهرهای منتخب در صفحه اصلی قبل از هتل‌ها و چهره‌ها
+- نمایش مقصدهای منتخب در صفحه اصلی قبل از هتل‌ها و چهره‌ها
+- City Discovery → Destination Discovery و پشتیبانی از شهر + استان.
 
 ---
 
@@ -391,11 +392,12 @@ Website
 
 ساخت یک sync process امن با validation، duplicate detection و dry-run از مراحل آینده پروژه است.
 
-### داده شهرها
+### داده مقصدها
 
 - داده اولیه شهرها فعلاً به‌صورت frontend prototype در `apps/web/src/data/cities.json` نگهداری می‌شود.
 - تصاویر شهرها در `apps/web/public/images/cities/` قرار دارند و نام فایل تصویر با slug شهر یکسان است.
 - این داده هنوز وارد Prisma/PostgreSQL و API نشده است.
+- منبع prototype الان apps/web/src/data/destinations.json است و دو گروه cities و provinces دارد.
 
 ---
 
@@ -518,10 +520,17 @@ Landing Page
 /cities
 ```
 
-فهرست و جست‌وجوی شهرها
+ فهرست و جست‌وجوی مقصدها با 
+ امکان جابه‌جایی بین شهرها و استان‌ها 
 
 ```text
-/cities/[slug]
+/destinations
+```
+
+صفحه جزئیات مقصد؛ `type` فعلاً `cities` یا `provinces` است
+
+```text
+/destinations/[type]/[slug]
 ```
 
 صفحه جزئیات هر شهر با اطلاعات پایه شهر و بخش سفرهای چهره‌ها
@@ -546,6 +555,7 @@ Landing Page
 - اعمال خودکار فیلتر دسته‌بندی چهره‌ها بعد از انتخاب category
 - صفحه جزئیات شهر دارای image hero با تصویر خود شهر، نام استان، نام شهر و توضیح کوتاه است.
 - نام استان روی hero به‌صورت badge با کنتراست بالا نمایش داده می‌شود تا روی تصاویر مختلف خوانا بماند.
+- بخش Navbar/Footer/Homepage از «شهرها» به «مقصدها» تغییر کرده؛ کارت مشترک DestinationCard داریم؛ توضیح کارت‌ها دوخطی clamp می‌شود.
 
 Pagination فیلترهای فعال را هنگام رفتن به صفحه قبل یا بعد حفظ می‌کند.
 
@@ -873,6 +883,7 @@ docs/TODO.md
 - media upload UI وجود ندارد.
 - storage production هنوز انتخاب نشده است.
 - برخی تصاویر هنوز missing یا placeholder هستند.
+- بخش Destination هنوز frontend prototype است و وارد Prisma/API نشده.
 
 ### Product
 

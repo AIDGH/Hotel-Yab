@@ -7,7 +7,7 @@ export function SiteHeader() {
       <div className="container header-inner">
         <BrandMark />
         <nav className="main-nav" aria-label="ناوبری اصلی">
-          <Link href="/cities">شهرها</Link>
+          <Link href="/destinations">مقصدها</Link>
           <Link href="/hotels">هتل‌ها</Link>
           <Link href="/notable-people">چهره‌ها</Link>
           <Link href="/#how-it-works">روش راستی‌آزمایی</Link>

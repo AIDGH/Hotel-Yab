@@ -611,7 +611,7 @@ img {
 
 .hotel-card,
 .person-card,
-.city-card {
+.destination-card {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
@@ -625,7 +625,7 @@ img {
 
 .hotel-card:hover,
 .person-card:hover,
-.city-card:hover {
+.destination-card:hover {
   border-color: rgba(99, 91, 255, 0.27);
   box-shadow: var(--shadow-sm);
   transform: translateY(-5px);
@@ -749,7 +749,7 @@ img {
   -webkit-line-clamp: 2;
 }
 
-.city-card-media {
+.destination-card-media {
   width: 100%;
   aspect-ratio: 16 / 9;
   background-position: center;
@@ -757,22 +757,22 @@ img {
   background-size: cover;
 }
 
-.city-card-body {
+.destination-card-body {
   padding: 16px 21px 21px;
 }
 
-.city-card-body > span {
+.destination-card-body > span {
   color: var(--brand);
   font-size: 0.77rem;
   font-weight: 800;
 }
 
-.city-card h3 {
+.destination-card h3 {
   margin-top: 3px;
   font-size: 1.12rem;
 }
 
-.city-card-body > p {
+.destination-card-body > p {
   display: -webkit-box;
   min-height: 52px;
   margin-top: 8px;
@@ -1029,11 +1029,11 @@ img {
   color: var(--muted);
 }
 
-.city-detail-hero {
+.destination-detail-hero {
   padding: 24px;
 }
 
-.city-detail-hero-image {
+.destination-detail-hero-image {
   position: relative;
   min-height: 420px;
   max-width: 1180px;
@@ -1045,7 +1045,7 @@ img {
   background-size: cover;
 }
 
-.city-detail-hero-overlay {
+.destination-detail-hero-overlay {
   display: flex;
   min-height: 420px;
   align-items: flex-end;
@@ -1058,13 +1058,13 @@ img {
     );
 }
 
-.city-detail-hero h1 {
+.destination-detail-hero h1 {
   margin-top: 8px;
   color: #fff;
   font-size: clamp(2.4rem, 6vw, 4.5rem);
 }
 
-.city-detail-hero p {
+.destination-detail-hero p {
   max-width: 620px;
   margin-top: 10px;
   color: rgba(255, 255, 255, 0.9);
@@ -1072,7 +1072,7 @@ img {
   line-height: 1.9;
 }
 
-.city-detail-hero .eyebrow {
+.destination-detail-hero .eyebrow {
   display: inline-flex;
   align-items: center;
   padding: 6px 12px;
@@ -1086,16 +1086,16 @@ img {
 }
 
 @media (max-width: 760px) {
-  .city-detail-hero {
+  .destination-detail-hero {
     padding: 14px;
   }
 
-  .city-detail-hero-image,
-  .city-detail-hero-overlay {
+  .destination-detail-hero-image,
+  .destination-detail-hero-overlay {
     min-height: 340px;
   }
 
-  .city-detail-hero-overlay {
+  .destination-detail-hero-overlay {
     padding-block: 34px;
   }
 }

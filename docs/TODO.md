@@ -198,18 +198,19 @@ After the documentation set is complete:
 - API changes should be documented in `API.md`.
 - Data-policy changes should be documented in `DATA_POLICY.md`.
 
-## City Discovery
+## Destination Discovery
 
-- [x] Add Cities navigation item
-- [x] Create `/cities` listing page
-- [x] Add city search
-- [x] Add province filter
-- [x] Auto-submit province filter
-- [x] Create City Card
-- [x] Add city images
-- [x] Show featured cities on homepage
-- [X] Create `/cities/[slug]` detail page
-- [ ] Model city visits by notable people
-- [ ] Add travel videos for each person/city
-- [ ] Add attraction/place information
-- [ ] Move city data from prototype JSON into the main data pipeline
+- [x] Add Destinations navigation item
+- [x] Create `/destinations` listing page
+- [x] Support cities and provinces
+- [x] Add destination search
+- [x] Add province filter for cities
+- [x] Auto-submit destination filters
+- [x] Create reusable Destination Card
+- [x] Add destination detail route
+- [x] Show featured destinations on homepage
+- [ ] Add real province dataset and images
+- [ ] Model destinations in Prisma/PostgreSQL
+- [ ] Add travel videos
+- [ ] Connect videos to cities/provinces
+- [ ] Move destination data into the main data pipeline

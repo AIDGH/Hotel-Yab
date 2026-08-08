@@ -4,8 +4,8 @@ import { HotelCard } from "@/components/hotel-card";
 import { PersonCard } from "@/components/person-card";
 import { SectionHeading } from "@/components/section-heading";
 import { getHotels, getNotablePeople } from "@/lib/api";
-import { CityCard } from "@/components/city-card";
-import cities from "@/data/cities.json";
+import { DestinationCard } from "@/components/destination-card";
+import destinations from "@/data/destinations.json";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,32 @@ export default async function Home() {
     getHotels({ pageSize: 4 }),
     getNotablePeople({ pageSize: 4 }),
   ]);
-  const featuredCities = cities.slice(0, 3);
+
+  const provinceMap = new Map(
+    destinations.provinces.map((province) => [
+      province.slug,
+      province.name,
+    ]),
+  );
+
+  const featuredDestinations = [
+    ...destinations.provinces.slice(0, 1).map((province) => ({
+      name: province.name,
+      href: `/destinations/provinces/${province.slug}`,
+      subtitle: "استان",
+      imageUrl: province.imageUrl,
+      description: province.description,
+    })),
+
+    ...destinations.cities.slice(0, 2).map((city) => ({
+      name: city.name,
+      href: `/destinations/cities/${city.slug}`,
+      subtitle:
+        provinceMap.get(city.parentProvinceSlug) ?? "شهر",
+      imageUrl: city.imageUrl,
+      description: city.description,
+    })),
+  ];
 
   return (
     <main>
@@ -106,22 +131,22 @@ export default async function Home() {
 
       <section className="section container">
         <SectionHeading
-          eyebrow="شهرها"
+          eyebrow="مقصدها"
           title="مقصد بعدی‌تان را کشف کنید"
-          description="شهرها را از مسیر سفرها، تجربه‌ها و ویدیوهای چهره‌ها کشف کنید."
-          actionHref="/cities"
-          actionLabel="مشاهده همه شهرها"
+          description="شهرها و استان‌ها را از مسیر سفرها، تجربه‌ها و محتوای چهره‌ها کشف کنید."
+          actionHref="/destinations"
+          actionLabel="مشاهده همه مقصدها"
         />
 
         <div className="card-grid">
-          {featuredCities.map((city) => (
-            <CityCard
-              key={city.slug}
-              name={city.name}
-              slug={city.slug}
-              province={city.province}
-              imageUrl={city.imageUrl}
-              description={city.description}
+          {featuredDestinations.map((destination) => (
+            <DestinationCard
+              key={destination.href}
+              name={destination.name}
+              href={destination.href}
+              subtitle={destination.subtitle}
+              imageUrl={destination.imageUrl}
+              description={destination.description}
             />
           ))}
         </div>
