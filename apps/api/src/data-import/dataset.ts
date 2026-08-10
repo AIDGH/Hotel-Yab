@@ -22,6 +22,7 @@ export type HotelImportRecord = {
   longitude?: number | null;
   websiteUrl?: string | null;
   imageUrl?: string | null;
+  logoUrl?: string | null;
   publicationStatus?: PublicationStatus;
 };
 
@@ -31,6 +32,7 @@ export type NotablePersonImportRecord = {
   instagramHandle?: string | null;
   primaryCategory: NotablePersonCategory;
   occupation?: string | null;
+  followerCount?: number | null;
   biography?: string | null;
   countryCode?: string | null;
   imageUrl?: string | null;
@@ -66,11 +68,16 @@ export type AssociationImportRecord = {
   evidence: AssociationEvidenceImportRecord[];
 };
 
+export type VideoImportRecord = {
+  id: string;
+};
+
 export type ImportDataset = {
   hotels: HotelImportRecord[];
   notablePeople: NotablePersonImportRecord[];
   sources: SourceImportRecord[];
   associations: AssociationImportRecord[];
+  videos: VideoImportRecord[];
 };
 
 const optionalText = Joi.string().trim().allow(null);
@@ -96,6 +103,7 @@ const datasetSchema = Joi.object<ImportDataset>({
         longitude: Joi.number().min(-180).max(180).allow(null),
         websiteUrl: optionalUrl,
         imageUrl: optionalUrl,
+        logoUrl: optionalUrl,
         publicationStatus: Joi.string().valid(
           ...Object.values(PublicationStatus),
         ),
@@ -117,6 +125,7 @@ const datasetSchema = Joi.object<ImportDataset>({
           .valid(...Object.values(NotablePersonCategory))
           .required(),
         occupation: optionalText,
+        followerCount: Joi.number().integer().min(0).allow(null),
         biography: optionalText,
         countryCode: Joi.string()
           .pattern(countryCodePattern)
@@ -190,6 +199,14 @@ const datasetSchema = Joi.object<ImportDataset>({
     )
     .unique('referenceKey')
     .required(),
+  videos: Joi.array()
+    .items(
+      Joi.object<VideoImportRecord>({
+        id: Joi.string().trim().min(1).max(160).required(),
+      }).unknown(false),
+    )
+    .unique('id')
+    .default([]),
 }).unknown(false);
 
 export function validateDataset(input: unknown): ImportDataset {

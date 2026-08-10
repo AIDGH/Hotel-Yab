@@ -35,6 +35,7 @@ type NotablePersonListItem = {
   instagramHandle: string | null;
   primaryCategory: string;
   occupation: string | null;
+  followerCount: number | null;
   countryCode: string | null;
   imageUrl: string | null;
   associationCount: number;
@@ -51,6 +52,21 @@ export class NotablePeopleService {
     const { page, pageSize } = query;
     const search = query.query?.trim();
     const countryCode = query.countryCode?.toUpperCase();
+    const sort = query.sort ?? 'FOLLOWERS_DESC';
+    const orderBy: Prisma.NotablePersonOrderByWithRelationInput[] =
+      sort === 'NAME_ASC'
+        ? [{ displayName: 'asc' }, { id: 'asc' }]
+        : sort === 'HOTEL_COUNT_DESC'
+          ? [
+              { associations: { _count: 'desc' } },
+              { displayName: 'asc' },
+              { id: 'asc' },
+            ]
+          : [
+              { followerCount: { sort: 'desc', nulls: 'last' } },
+              { displayName: 'asc' },
+              { id: 'asc' },
+            ];
 
     const where = {
       publicationStatus: PublicationStatus.PUBLISHED,
@@ -87,7 +103,7 @@ export class NotablePeopleService {
         where,
         skip: (page - 1) * pageSize,
         take: pageSize,
-        orderBy: [{ displayName: 'asc' }, { id: 'asc' }],
+        orderBy,
         select: {
           id: true,
           slug: true,
@@ -95,6 +111,7 @@ export class NotablePeopleService {
           instagramHandle: true,
           primaryCategory: true,
           occupation: true,
+          followerCount: true,
           countryCode: true,
           imageUrl: true,
           associations: {
@@ -134,6 +151,7 @@ export class NotablePeopleService {
         instagramHandle: true,
         primaryCategory: true,
         occupation: true,
+        followerCount: true,
         biography: true,
         countryCode: true,
         imageUrl: true,
@@ -155,6 +173,7 @@ export class NotablePeopleService {
                 countryCode: true,
                 city: true,
                 imageUrl: true,
+                logoUrl: true,
               },
             },
             evidence: {

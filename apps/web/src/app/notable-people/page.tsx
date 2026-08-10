@@ -29,16 +29,19 @@ function readPage(value: string | string[] | undefined): number {
 function createPeoplePageHref({
   query,
   category,
+  sort,
   page,
 }: {
   query: string;
   category: string;
+  sort: string;
   page: number;
 }): string {
   const params = new URLSearchParams();
 
   if (query) params.set("query", query);
   if (category) params.set("category", category);
+  if (sort && sort !== "FOLLOWERS_DESC") params.set("sort", sort);
   if (page > 1) params.set("page", String(page));
 
   const search = params.toString();
@@ -49,8 +52,15 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
   const params = await searchParams;
   const query = readParam(params.query);
   const category = readParam(params.category);
+  const sort = readParam(params.sort) || "FOLLOWERS_DESC";
   const page = readPage(params.page);
-  const result = await getNotablePeople({ query, category, page, pageSize: 24 });
+  const result = await getNotablePeople({
+    query,
+    category,
+    sort,
+    page,
+    pageSize: 24,
+  });
 
   return (
     <main className="listing-page">
@@ -62,7 +72,7 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
             پروفایل‌های در حال تکمیل هم نمایش داده می‌شوند؛ وضعیت تأیید و
             منابع هر رابطه به‌صورت شفاف مشخص است.
           </p>
-          <form className="filter-bar" method="get">
+          <form className="filter-bar filter-bar-four" method="get">
             <label>
               <span>نام یا حرفه</span>
               <input name="query" defaultValue={query} placeholder="نام چهره را بنویسید" />
@@ -76,6 +86,14 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
                     {label}
                   </option>
                 ))}
+              </AutoSubmitSelect>
+            </label>
+            <label>
+              <span>مرتب‌سازی</span>
+              <AutoSubmitSelect name="sort" defaultValue={sort}>
+                <option value="FOLLOWERS_DESC">بیشترین دنبال‌کننده</option>
+                <option value="NAME_ASC">الفبا</option>
+                <option value="HOTEL_COUNT_DESC">بیشترین هتل مرتبط</option>
               </AutoSubmitSelect>
             </label>
             <button className="button" type="submit">
@@ -108,7 +126,12 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
                 {page > 1 ? (
                   <Link
                     className="button pagination-secondary"
-                    href={createPeoplePageHref({ query, category, page: page - 1 })}
+                    href={createPeoplePageHref({
+                      query,
+                      category,
+                      sort,
+                      page: page - 1,
+                    })}
                   >
                     صفحه قبل
                   </Link>
@@ -122,7 +145,12 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
                 {page < result.value.meta.totalPages ? (
                   <Link
                     className="button pagination-secondary"
-                    href={createPeoplePageHref({ query, category, page: page + 1 })}
+                    href={createPeoplePageHref({
+                      query,
+                      category,
+                      sort,
+                      page: page + 1,
+                    })}
                   >
                     {/*نمایش ۲۴ چهره بعدی */}
                     صفحه بعد

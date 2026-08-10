@@ -1,4 +1,11 @@
-import { IsEnum, IsOptional, IsString, Length, Matches } from 'class-validator';
+import {
+  IsEnum,
+  IsIn,
+  IsOptional,
+  IsString,
+  Length,
+  Matches,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { NotablePersonCategory } from '../../generated/prisma/enums';
@@ -21,4 +28,12 @@ export class NotablePersonQueryDto extends PaginationQueryDto {
   @Length(2, 2)
   @Matches(/^[A-Za-z]{2}$/)
   countryCode?: string;
+
+  @ApiPropertyOptional({
+    enum: ['FOLLOWERS_DESC', 'NAME_ASC', 'HOTEL_COUNT_DESC'],
+    default: 'FOLLOWERS_DESC',
+  })
+  @IsOptional()
+  @IsIn(['FOLLOWERS_DESC', 'NAME_ASC', 'HOTEL_COUNT_DESC'])
+  sort?: 'FOLLOWERS_DESC' | 'NAME_ASC' | 'HOTEL_COUNT_DESC';
 }

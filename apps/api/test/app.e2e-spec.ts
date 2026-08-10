@@ -16,6 +16,7 @@ import {
   NotablePersonCategory,
   PublicationStatus,
   SourceType,
+  UserRole,
   VerificationStatus,
 } from './../src/generated/prisma/enums';
 
@@ -30,7 +31,10 @@ const fixtureSlugs = [
   'e2e-import-person',
 ];
 const fixtureSourceUrlPrefix = 'https://example.com/hotel-yab-e2e/';
+const fixtureMobile = '+989120000001';
+const fixtureVideoId = 'e2e-travel-video';
 const importFixture: ImportDataset = {
+  videos: [],
   hotels: [
     {
       slug: 'e2e-import-hotel',
@@ -108,6 +112,9 @@ describe('Hotel-Yab API (e2e)', () => {
   });
 
   async function removeFixtures(): Promise<void> {
+    await prisma.user.deleteMany({ where: { mobile: fixtureMobile } });
+    await prisma.otpChallenge.deleteMany({ where: { mobile: fixtureMobile } });
+    await prisma.video.deleteMany({ where: { id: fixtureVideoId } });
     await prisma.hotel.deleteMany({
       where: { slug: { in: fixtureSlugs } },
     });
@@ -120,6 +127,7 @@ describe('Hotel-Yab API (e2e)', () => {
   }
 
   async function createFixtures(): Promise<void> {
+    await prisma.video.create({ data: { id: fixtureVideoId } });
     const visibleHotel = await prisma.hotel.create({
       data: {
         slug: 'e2e-visible-hotel',
@@ -127,6 +135,7 @@ describe('Hotel-Yab API (e2e)', () => {
         description: 'A test-only published hotel.',
         countryCode: 'US',
         city: 'Test City',
+        logoUrl: 'https://example.com/hotel-yab-e2e/logo.webp',
         publicationStatus: PublicationStatus.PUBLISHED,
       },
     });
@@ -137,6 +146,7 @@ describe('Hotel-Yab API (e2e)', () => {
         instagramHandle: 'e2e_visible_athlete',
         primaryCategory: NotablePersonCategory.ATHLETE,
         occupation: 'Test athlete',
+        followerCount: 12345,
         countryCode: 'US',
         publicationStatus: PublicationStatus.PUBLISHED,
       },
@@ -280,6 +290,7 @@ describe('Hotel-Yab API (e2e)', () => {
       notablePeople: 1,
       sources: 1,
       associations: 1,
+      videos: 0,
     });
 
     const [hotels, people, sources, associations, evidence] =
@@ -324,6 +335,7 @@ describe('Hotel-Yab API (e2e)', () => {
             countryCode: 'US',
             city: 'Test City',
             imageUrl: null,
+            logoUrl: 'https://example.com/hotel-yab-e2e/logo.webp',
             associationCount: 1,
             verifiedAssociationCount: 1,
           },
@@ -347,6 +359,7 @@ describe('Hotel-Yab API (e2e)', () => {
               countryCode: 'US',
               city: 'Test City',
               imageUrl: null,
+              logoUrl: null,
               associationCount: 1,
               verifiedAssociationCount: 0,
             },
@@ -358,6 +371,7 @@ describe('Hotel-Yab API (e2e)', () => {
               countryCode: 'US',
               city: 'Test City',
               imageUrl: null,
+              logoUrl: null,
               associationCount: 0,
               verifiedAssociationCount: 0,
             },
@@ -384,6 +398,11 @@ describe('Hotel-Yab API (e2e)', () => {
           longitude: null,
           websiteUrl: null,
           imageUrl: null,
+          logoUrl: 'https://example.com/hotel-yab-e2e/logo.webp',
+          ratingSummary: {
+            averageRating: null,
+            reviewCount: 0,
+          },
           associations: [
             {
               id: visibleAssociationId,
@@ -399,6 +418,7 @@ describe('Hotel-Yab API (e2e)', () => {
                 instagramHandle: 'e2e_visible_athlete',
                 primaryCategory: 'ATHLETE',
                 occupation: 'Test athlete',
+                followerCount: 12345,
                 imageUrl: null,
               },
               sources: [
@@ -434,6 +454,7 @@ describe('Hotel-Yab API (e2e)', () => {
             instagramHandle: 'e2e_visible_athlete',
             primaryCategory: 'ATHLETE',
             occupation: 'Test athlete',
+            followerCount: 12345,
             countryCode: 'US',
             imageUrl: null,
             associationCount: 1,
@@ -473,6 +494,7 @@ describe('Hotel-Yab API (e2e)', () => {
           instagramHandle: 'e2e_visible_athlete',
           primaryCategory: 'ATHLETE',
           occupation: 'Test athlete',
+          followerCount: 12345,
           biography: null,
           countryCode: 'US',
           imageUrl: null,
@@ -491,6 +513,7 @@ describe('Hotel-Yab API (e2e)', () => {
                 countryCode: 'US',
                 city: 'Test City',
                 imageUrl: null,
+                logoUrl: 'https://example.com/hotel-yab-e2e/logo.webp',
               },
               sources: [
                 {
@@ -538,6 +561,11 @@ describe('Hotel-Yab API (e2e)', () => {
           longitude: null,
           websiteUrl: null,
           imageUrl: null,
+          logoUrl: null,
+          ratingSummary: {
+            averageRating: null,
+            reviewCount: 0,
+          },
           associations: [
             {
               id: hiddenPendingAssociationId,
@@ -553,6 +581,7 @@ describe('Hotel-Yab API (e2e)', () => {
                 instagramHandle: null,
                 primaryCategory: 'ACTOR',
                 occupation: null,
+                followerCount: null,
                 imageUrl: null,
               },
               sources: [],
@@ -588,6 +617,190 @@ describe('Hotel-Yab API (e2e)', () => {
     return request(app.getHttpServer())
       .get('/api/v1/hotels/e2e-import-hotel')
       .expect(404);
+  });
+
+  it('supports verified registration, password/OTP login, moderation, reviews, and comments', async () => {
+    const otpResponse = await request(app.getHttpServer())
+      .post('/api/v1/auth/register/otp/request')
+      .send({ mobile: '09120000001' })
+      .expect(201);
+
+    const otpBody = otpResponse.body as {
+      data: { developmentCode: string };
+    };
+    const code = otpBody.data.developmentCode;
+    expect(code).toMatch(/^\d{6}$/);
+
+    const verifyResponse = await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send({
+        mobile: '09120000001',
+        code,
+        username: 'e2e.user',
+        password: 'e2e-password-123',
+        firstName: 'E2E',
+        lastName: 'User',
+        email: 'e2e-user@example.com',
+        instagramHandle: '@e2e.user',
+      })
+      .expect(201);
+    const headers = verifyResponse.headers as unknown as {
+      'set-cookie'?: string | string[];
+    };
+    const setCookieHeader = headers['set-cookie'];
+    const cookieValue = Array.isArray(setCookieHeader)
+      ? setCookieHeader[0]
+      : setCookieHeader;
+    if (!cookieValue) throw new Error('Session cookie was not returned');
+    const sessionCookie: string = cookieValue.split(';')[0];
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/login/password')
+      .send({ identifier: 'e2e.user', password: 'e2e-password-123' })
+      .expect(201)
+      .expect((response) => {
+        const body = response.body as { data: unknown };
+        expect(body.data).toMatchObject({
+          mobile: fixtureMobile,
+          username: 'e2e.user',
+          displayName: 'E2E User',
+          email: 'e2e-user@example.com',
+          instagramHandle: 'e2e.user',
+          hasPassword: true,
+          profileComplete: true,
+        });
+      });
+
+    const loginOtpResponse = await request(app.getHttpServer())
+      .post('/api/v1/auth/login/otp/request')
+      .send({ identifier: 'e2e.user' })
+      .expect(201);
+    const loginOtpCode = (
+      loginOtpResponse.body as { data: { developmentCode: string } }
+    ).data.developmentCode;
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/login/otp/verify')
+      .send({ identifier: fixtureMobile, code: loginOtpCode })
+      .expect(201);
+
+    const reviewResponse = await request(app.getHttpServer())
+      .put('/api/v1/hotels/e2e-visible-hotel/reviews/me')
+      .set('Cookie', sessionCookie)
+      .send({ rating: 5 })
+      .expect(200)
+      .expect((response) => {
+        const body = response.body as { data: unknown };
+        expect(body.data).toMatchObject({
+          rating: 5,
+          body: '',
+          status: 'PENDING',
+        });
+      });
+    const reviewId = (reviewResponse.body as { data: { id: string } }).data.id;
+
+    const commentResponse = await request(app.getHttpServer())
+      .post(`/api/v1/videos/${fixtureVideoId}/comments`)
+      .set('Cookie', sessionCookie)
+      .send({ body: 'A useful test comment.' })
+      .expect(201)
+      .expect((response) => {
+        const body = response.body as { data: unknown };
+        expect(body.data).toMatchObject({
+          body: 'A useful test comment.',
+          status: 'PENDING',
+          authorName: 'E2E User',
+        });
+      });
+    const commentId = (commentResponse.body as { data: { id: string } }).data
+      .id;
+
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/moderation/queue')
+      .set('Cookie', sessionCookie)
+      .expect(403);
+
+    await prisma.user.update({
+      where: { mobile: fixtureMobile },
+      data: { role: UserRole.ADMIN },
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/moderation/queue?status=PENDING')
+      .set('Cookie', sessionCookie)
+      .expect(200)
+      .expect((response) => {
+        const body = response.body as {
+          data: {
+            hotelReviews: Array<{ id: string }>;
+            videoComments: Array<{ id: string }>;
+          };
+        };
+        expect(body.data.hotelReviews).toEqual(
+          expect.arrayContaining([expect.objectContaining({ id: reviewId })]),
+        );
+        expect(body.data.videoComments).toEqual(
+          expect.arrayContaining([expect.objectContaining({ id: commentId })]),
+        );
+      });
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/admin/moderation/hotel-reviews/${reviewId}`)
+      .set('Cookie', sessionCookie)
+      .send({ status: 'PUBLISHED', moderationNote: 'E2E approved' })
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          data: {
+            id: reviewId,
+            status: 'PUBLISHED',
+            moderationNote: 'E2E approved',
+          },
+        });
+      });
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/admin/moderation/video-comments/${commentId}`)
+      .set('Cookie', sessionCookie)
+      .send({ status: 'PUBLISHED' })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/hotels/e2e-visible-hotel/reviews')
+      .expect(200)
+      .expect((response) => {
+        const body = response.body as { summary: unknown };
+        expect(body.summary).toEqual({
+          averageRating: 5,
+          reviewCount: 1,
+        });
+      });
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/videos/${fixtureVideoId}/comments/count`)
+      .expect(200)
+      .expect({ data: { count: 1 } });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/hotels/e2e-visible-hotel')
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          data: { ratingSummary: { averageRating: 5, reviewCount: 1 } },
+        });
+      });
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/auth/me/profile')
+      .set('Cookie', sessionCookie)
+      .send({ email: '', instagramHandle: '' })
+      .expect(200)
+      .expect((response) => {
+        const body = response.body as { data: unknown };
+        expect(body.data).toMatchObject({
+          email: null,
+          instagramHandle: null,
+        });
+      });
   });
 
   afterAll(async () => {

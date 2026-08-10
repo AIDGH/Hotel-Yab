@@ -1,0 +1,592 @@
+{
+  "country": {
+    "name": "ایران",
+    "aliases": [
+      "ایران",
+      "ایرانگردی",
+      "ایران گردی",
+      "ایران‌گردی"
+    ]
+  },
+  "provinces": [
+    {
+      "name": "آذربایجان شرقی",
+      "slug": "east-azerbaijan",
+      "aliases": [
+        "آذربایجان شرقی",
+        "استان آذربایجان شرقی"
+      ],
+      "cities": [
+        { "name": "تبریز", "slug": "tabriz", "aliases": ["تبریز"] },
+        { "name": "مراغه", "slug": "maragheh", "aliases": ["مراغه"] },
+        { "name": "مرند", "slug": "marand", "aliases": ["مرند"] },
+        { "name": "جلفا", "slug": "jolfa", "aliases": ["جلفا"] },
+        { "name": "اهر", "slug": "ahar", "aliases": ["اهر"] },
+        { "name": "بناب", "slug": "bonab", "aliases": ["بناب"] },
+        { "name": "سراب", "slug": "sarab", "aliases": ["سراب"] },
+        { "name": "میانه", "slug": "mianeh", "aliases": ["میانه"] }
+      ]
+    },
+    {
+      "name": "آذربایجان غربی",
+      "slug": "west-azerbaijan",
+      "aliases": [
+        "آذربایجان غربی",
+        "استان آذربایجان غربی"
+      ],
+      "cities": [
+        { "name": "ارومیه", "slug": "urmia", "aliases": ["ارومیه", "اورمیه"] },
+        { "name": "خوی", "slug": "khoy", "aliases": ["خوی"] },
+        { "name": "مهاباد", "slug": "mahabad", "aliases": ["مهاباد"] },
+        { "name": "میاندوآب", "slug": "miandoab", "aliases": ["میاندوآب"] },
+        { "name": "ماکو", "slug": "maku", "aliases": ["ماکو"] },
+        { "name": "سلماس", "slug": "salmas", "aliases": ["سلماس"] },
+        { "name": "پیرانشهر", "slug": "piranshahr", "aliases": ["پیرانشهر"] },
+        { "name": "تکاب", "slug": "takab", "aliases": ["تکاب"] }
+      ]
+    },
+    {
+      "name": "اردبیل",
+      "slug": "ardabil",
+      "aliases": [
+        "اردبیل",
+        "استان اردبیل"
+      ],
+      "cities": [
+        { "name": "اردبیل", "slug": "ardabil", "aliases": ["اردبیل"] },
+        { "name": "سرعین", "slug": "sareyn", "aliases": ["سرعین"] },
+        { "name": "مشگین‌شهر", "slug": "meshgin-shahr", "aliases": ["مشگین شهر", "مشگین‌شهر", "مشکین شهر"] },
+        { "name": "خلخال", "slug": "khalkhal", "aliases": ["خلخال"] },
+        { "name": "پارس‌آباد", "slug": "parsabad", "aliases": ["پارس آباد", "پارس‌آباد"] },
+        { "name": "نمین", "slug": "namin", "aliases": ["نمین"] }
+      ]
+    },
+    {
+      "name": "اصفهان",
+      "slug": "isfahan",
+      "aliases": [
+        "اصفهان",
+        "استان اصفهان"
+      ],
+      "cities": [
+        { "name": "اصفهان", "slug": "isfahan", "aliases": ["اصفهان"] },
+        { "name": "کاشان", "slug": "kashan", "aliases": ["کاشان"] },
+        { "name": "نجف‌آباد", "slug": "najafabad", "aliases": ["نجف آباد", "نجف‌آباد"] },
+        { "name": "نطنز", "slug": "natanz", "aliases": ["نطنز"] },
+        { "name": "آران و بیدگل", "slug": "aran-bidgol", "aliases": ["آران و بیدگل", "آران بیدگل"] },
+        { "name": "گلپایگان", "slug": "golpayegan", "aliases": ["گلپایگان"] },
+        { "name": "خوانسار", "slug": "khansar", "aliases": ["خوانسار"] },
+        { "name": "شاهین‌شهر", "slug": "shahin-shahr", "aliases": ["شاهین شهر", "شاهین‌شهر"] },
+        { "name": "خمینی‌شهر", "slug": "khomeyni-shahr", "aliases": ["خمینی شهر", "خمینی‌شهر"] }
+      ]
+    },
+    {
+      "name": "البرز",
+      "slug": "alborz",
+      "aliases": [
+        "البرز",
+        "استان البرز"
+      ],
+      "cities": [
+        { "name": "کرج", "slug": "karaj", "aliases": ["کرج"] },
+        { "name": "طالقان", "slug": "taleqan", "aliases": ["طالقان"] },
+        { "name": "فردیس", "slug": "fardis", "aliases": ["فردیس"] },
+        { "name": "هشتگرد", "slug": "hashtgerd", "aliases": ["هشتگرد"] },
+        { "name": "نظرآباد", "slug": "nazarabad", "aliases": ["نظرآباد"] },
+        { "name": "ماهدشت", "slug": "mahdasht", "aliases": ["ماهدشت"] }
+      ]
+    },
+    {
+      "name": "ایلام",
+      "slug": "ilam",
+      "aliases": [
+        "ایلام",
+        "استان ایلام"
+      ],
+      "cities": [
+        { "name": "ایلام", "slug": "ilam", "aliases": ["ایلام"] },
+        { "name": "دهلران", "slug": "dehloran", "aliases": ["دهلران"] },
+        { "name": "مهران", "slug": "mehran", "aliases": ["مهران"] },
+        { "name": "آبدانان", "slug": "abdanan", "aliases": ["آبدانان"] },
+        { "name": "دره‌شهر", "slug": "darreh-shahr", "aliases": ["دره شهر", "دره‌شهر"] },
+        { "name": "ایوان", "slug": "eyvan", "aliases": ["ایوان"] }
+      ]
+    },
+    {
+      "name": "بوشهر",
+      "slug": "bushehr",
+      "aliases": [
+        "بوشهر",
+        "استان بوشهر"
+      ],
+      "cities": [
+        { "name": "بوشهر", "slug": "bushehr", "aliases": ["بوشهر"] },
+        { "name": "برازجان", "slug": "borazjan", "aliases": ["برازجان"] },
+        { "name": "گناوه", "slug": "ganaveh", "aliases": ["گناوه", "بندر گناوه"] },
+        { "name": "دیلم", "slug": "deylam", "aliases": ["دیلم", "بندر دیلم"] },
+        { "name": "کنگان", "slug": "kangan", "aliases": ["کنگان"] },
+        { "name": "جم", "slug": "jam", "aliases": ["جم"] },
+        { "name": "خورموج", "slug": "khormoj", "aliases": ["خورموج"] },
+        { "name": "اهرم", "slug": "ahram", "aliases": ["اهرم"] }
+      ]
+    },
+    {
+      "name": "تهران",
+      "slug": "tehran",
+      "aliases": [
+        "تهران",
+        "استان تهران"
+      ],
+      "cities": [
+        { "name": "تهران", "slug": "tehran", "aliases": ["تهران"] },
+        { "name": "ری", "slug": "rey", "aliases": ["شهر ری", "ری"] },
+        { "name": "تجریش", "slug": "tajrish", "aliases": ["تجریش"] },
+        { "name": "دماوند", "slug": "damavand", "aliases": ["دماوند"] },
+        { "name": "فیروزکوه", "slug": "firuzkuh", "aliases": ["فیروزکوه"] },
+        { "name": "ورامین", "slug": "varamin", "aliases": ["ورامین"] },
+        { "name": "شهریار", "slug": "shahriar", "aliases": ["شهریار"] },
+        { "name": "اسلامشهر", "slug": "eslamshahr", "aliases": ["اسلامشهر"] },
+        { "name": "رباط‌کریم", "slug": "robat-karim", "aliases": ["رباط کریم", "رباط‌کریم"] },
+        { "name": "پاکدشت", "slug": "pakdasht", "aliases": ["پاکدشت"] }
+      ]
+    },
+    {
+      "name": "چهارمحال و بختیاری",
+      "slug": "chaharmahal-bakhtiari",
+      "aliases": [
+        "چهارمحال و بختیاری",
+        "چهارمحال بختیاری",
+        "استان چهارمحال و بختیاری"
+      ],
+      "cities": [
+        { "name": "شهرکرد", "slug": "shahrekord", "aliases": ["شهرکرد"] },
+        { "name": "بروجن", "slug": "borujen", "aliases": ["بروجن"] },
+        { "name": "فارسان", "slug": "farsan", "aliases": ["فارسان"] },
+        { "name": "لردگان", "slug": "lordegan", "aliases": ["لردگان"] },
+        { "name": "چلگرد", "slug": "chelgerd", "aliases": ["چلگرد"] },
+        { "name": "سامان", "slug": "saman", "aliases": ["سامان"] },
+        { "name": "بن", "slug": "ben", "aliases": ["شهر بن"] }
+      ]
+    },
+    {
+      "name": "خراسان جنوبی",
+      "slug": "south-khorasan",
+      "aliases": [
+        "خراسان جنوبی",
+        "استان خراسان جنوبی",
+        "خراسان بزرگ"
+      ],
+      "cities": [
+        { "name": "بیرجند", "slug": "birjand", "aliases": ["بیرجند"] },
+        { "name": "طبس", "slug": "tabas", "aliases": ["طبس"] },
+        { "name": "فردوس", "slug": "ferdows", "aliases": ["فردوس"] },
+        { "name": "قائن", "slug": "qaen", "aliases": ["قائن", "قاین"] },
+        { "name": "نهبندان", "slug": "nehbandan", "aliases": ["نهبندان"] },
+        { "name": "بشرویه", "slug": "boshruyeh", "aliases": ["بشرویه"] },
+        { "name": "سرایان", "slug": "sarayan", "aliases": ["سرایان"] }
+      ]
+    },
+    {
+      "name": "خراسان رضوی",
+      "slug": "razavi-khorasan",
+      "aliases": [
+        "خراسان رضوی",
+        "استان خراسان رضوی",
+        "خراسان بزرگ"
+      ],
+      "cities": [
+        { "name": "مشهد", "slug": "mashhad", "aliases": ["مشهد"] },
+        { "name": "نیشابور", "slug": "neyshabur", "aliases": ["نیشابور", "نیشاپور"] },
+        { "name": "سبزوار", "slug": "sabzevar", "aliases": ["سبزوار"] },
+        { "name": "تربت حیدریه", "slug": "torbat-heydarieh", "aliases": ["تربت حیدریه", "تربت‌حیدریه"] },
+        { "name": "تربت جام", "slug": "torbat-jam", "aliases": ["تربت جام", "تربت‌جام"] },
+        { "name": "کاشمر", "slug": "kashmar", "aliases": ["کاشمر"] },
+        { "name": "گناباد", "slug": "gonabad", "aliases": ["گناباد"] },
+        { "name": "قوچان", "slug": "quchan", "aliases": ["قوچان"] },
+        { "name": "چناران", "slug": "chenaran", "aliases": ["چناران"] },
+        { "name": "درگز", "slug": "dargaz", "aliases": ["درگز"] },
+        { "name": "خواف", "slug": "khaf", "aliases": ["خواف"] }
+      ]
+    },
+    {
+      "name": "خراسان شمالی",
+      "slug": "north-khorasan",
+      "aliases": [
+        "خراسان شمالی",
+        "استان خراسان شمالی",
+        "خراسان بزرگ"
+      ],
+      "cities": [
+        { "name": "بجنورد", "slug": "bojnurd", "aliases": ["بجنورد"] },
+        { "name": "شیروان", "slug": "shirvan", "aliases": ["شیروان"] },
+        { "name": "اسفراین", "slug": "esfarayen", "aliases": ["اسفراین"] },
+        { "name": "جاجرم", "slug": "jajarm", "aliases": ["جاجرم"] },
+        { "name": "گرمه", "slug": "garmeh", "aliases": ["گرمه"] },
+        { "name": "فاروج", "slug": "faruj", "aliases": ["فاروج"] },
+        { "name": "آشخانه", "slug": "ashkhaneh", "aliases": ["آشخانه"] }
+      ]
+    },
+    {
+      "name": "خوزستان",
+      "slug": "khuzestan",
+      "aliases": [
+        "خوزستان",
+        "استان خوزستان"
+      ],
+      "cities": [
+        { "name": "اهواز", "slug": "ahvaz", "aliases": ["اهواز"] },
+        { "name": "آبادان", "slug": "abadan", "aliases": ["آبادان"] },
+        { "name": "خرمشهر", "slug": "khorramshahr", "aliases": ["خرمشهر"] },
+        { "name": "دزفول", "slug": "dezful", "aliases": ["دزفول"] },
+        { "name": "شوشتر", "slug": "shushtar", "aliases": ["شوشتر"] },
+        { "name": "شوش", "slug": "shush", "aliases": ["شوش"] },
+        { "name": "مسجدسلیمان", "slug": "masjed-soleyman", "aliases": ["مسجدسلیمان", "مسجد سلیمان"] },
+        { "name": "اندیمشک", "slug": "andimeshk", "aliases": ["اندیمشک"] },
+        { "name": "بهبهان", "slug": "behbahan", "aliases": ["بهبهان"] },
+        { "name": "ایذه", "slug": "izeh", "aliases": ["ایذه"] },
+        { "name": "شادگان", "slug": "shadegan", "aliases": ["شادگان"] },
+        { "name": "سوسنگرد", "slug": "susangerd", "aliases": ["سوسنگرد"] }
+      ]
+    },
+    {
+      "name": "زنجان",
+      "slug": "zanjan",
+      "aliases": [
+        "زنجان",
+        "استان زنجان"
+      ],
+      "cities": [
+        { "name": "زنجان", "slug": "zanjan", "aliases": ["زنجان"] },
+        { "name": "ابهر", "slug": "abhar", "aliases": ["ابهر"] },
+        { "name": "خرمدره", "slug": "khorramdarreh", "aliases": ["خرمدره", "خرم‌دره"] },
+        { "name": "سلطانیه", "slug": "soltaniyeh", "aliases": ["سلطانیه"] },
+        { "name": "قیدار", "slug": "qeydar", "aliases": ["قیدار"] },
+        { "name": "ماه‌نشان", "slug": "mahneshan", "aliases": ["ماه نشان", "ماه‌نشان", "ماهنشان"] }
+      ]
+    },
+    {
+      "name": "سمنان",
+      "slug": "semnan",
+      "aliases": [
+        "سمنان",
+        "استان سمنان"
+      ],
+      "cities": [
+        { "name": "سمنان", "slug": "semnan", "aliases": ["سمنان"] },
+        { "name": "شاهرود", "slug": "shahroud", "aliases": ["شاهرود"] },
+        { "name": "دامغان", "slug": "damghan", "aliases": ["دامغان"] },
+        { "name": "گرمسار", "slug": "garmsar", "aliases": ["گرمسار"] },
+        { "name": "مهدی‌شهر", "slug": "mehdishahr", "aliases": ["مهدی شهر", "مهدی‌شهر"] },
+        { "name": "بسطام", "slug": "bastam", "aliases": ["بسطام"] }
+      ]
+    },
+    {
+      "name": "سیستان و بلوچستان",
+      "slug": "sistan-baluchestan",
+      "aliases": [
+        "سیستان و بلوچستان",
+        "سیستان بلوچستان",
+        "استان سیستان و بلوچستان"
+      ],
+      "cities": [
+        { "name": "زاهدان", "slug": "zahedan", "aliases": ["زاهدان"] },
+        { "name": "چابهار", "slug": "chabahar", "aliases": ["چابهار"] },
+        { "name": "ایرانشهر", "slug": "iranshahr", "aliases": ["ایرانشهر"] },
+        { "name": "زابل", "slug": "zabol", "aliases": ["زابل"] },
+        { "name": "خاش", "slug": "khash", "aliases": ["خاش"] },
+        { "name": "سراوان", "slug": "saravan", "aliases": ["سراوان"] },
+        { "name": "کنارک", "slug": "konarak", "aliases": ["کنارک"] },
+        { "name": "نیک‌شهر", "slug": "nikshahr", "aliases": ["نیک شهر", "نیک‌شهر", "نیکشهر"] },
+        { "name": "راسک", "slug": "rask", "aliases": ["راسک"] }
+      ]
+    },
+    {
+      "name": "فارس",
+      "slug": "fars",
+      "aliases": [
+        "فارس",
+        "استان فارس"
+      ],
+      "cities": [
+        { "name": "شیراز", "slug": "shiraz", "aliases": ["شیراز"] },
+        { "name": "مرودشت", "slug": "marvdasht", "aliases": ["مرودشت"] },
+        { "name": "جهرم", "slug": "jahrom", "aliases": ["جهرم"] },
+        { "name": "فسا", "slug": "fasa", "aliases": ["فسا"] },
+        { "name": "لار", "slug": "lar", "aliases": ["لار"] },
+        { "name": "کازرون", "slug": "kazeroon", "aliases": ["کازرون"] },
+        { "name": "فیروزآباد", "slug": "firuzabad", "aliases": ["فیروزآباد", "فیروز آباد"] },
+        { "name": "سپیدان", "slug": "sepidan", "aliases": ["سپیدان"] },
+        { "name": "اقلید", "slug": "eqlid", "aliases": ["اقلید"] },
+        { "name": "آباده", "slug": "abadeh", "aliases": ["آباده"] },
+        { "name": "داراب", "slug": "darab", "aliases": ["داراب"] },
+        { "name": "نی‌ریز", "slug": "ney-riz", "aliases": ["نی ریز", "نی‌ریز", "نیریز"] }
+      ]
+    },
+    {
+      "name": "قزوین",
+      "slug": "qazvin",
+      "aliases": [
+        "قزوین",
+        "استان قزوین"
+      ],
+      "cities": [
+        { "name": "قزوین", "slug": "qazvin", "aliases": ["قزوین"] },
+        { "name": "تاکستان", "slug": "takestan", "aliases": ["تاکستان"] },
+        { "name": "آبیک", "slug": "abyek", "aliases": ["آبیک"] },
+        { "name": "بوئین‌زهرا", "slug": "buin-zahra", "aliases": ["بوئین زهرا", "بوئین‌زهرا", "بویین زهرا"] },
+        { "name": "الوند", "slug": "alvand", "aliases": ["الوند"] },
+        { "name": "آوج", "slug": "avaj", "aliases": ["آوج"] },
+        { "name": "معلم‌کلایه", "slug": "moallem-kalayeh", "aliases": ["معلم کلایه", "معلم‌کلایه"] }
+      ]
+    },
+    {
+      "name": "قم",
+      "slug": "qom",
+      "aliases": [
+        "قم",
+        "استان قم"
+      ],
+      "cities": [
+        { "name": "قم", "slug": "qom", "aliases": ["قم"] },
+        { "name": "کهک", "slug": "kahak", "aliases": ["کهک"] },
+        { "name": "جعفریه", "slug": "jafarieh", "aliases": ["جعفریه"] },
+        { "name": "سلفچگان", "slug": "salafchegan", "aliases": ["سلفچگان"] }
+      ]
+    },
+    {
+      "name": "کردستان",
+      "slug": "kurdistan",
+      "aliases": [
+        "کردستان",
+        "استان کردستان"
+      ],
+      "cities": [
+        { "name": "سنندج", "slug": "sanandaj", "aliases": ["سنندج"] },
+        { "name": "مریوان", "slug": "marivan", "aliases": ["مریوان"] },
+        { "name": "بانه", "slug": "baneh", "aliases": ["بانه"] },
+        { "name": "سقز", "slug": "saqqez", "aliases": ["سقز"] },
+        { "name": "بیجار", "slug": "bijar", "aliases": ["بیجار"] },
+        { "name": "قروه", "slug": "qorveh", "aliases": ["قروه"] },
+        { "name": "کامیاران", "slug": "kamyaran", "aliases": ["کامیاران"] },
+        { "name": "دیواندره", "slug": "divandarreh", "aliases": ["دیواندره"] }
+      ]
+    },
+    {
+      "name": "کرمان",
+      "slug": "kerman",
+      "aliases": [
+        "کرمان",
+        "استان کرمان"
+      ],
+      "cities": [
+        { "name": "کرمان", "slug": "kerman", "aliases": ["کرمان"] },
+        { "name": "رفسنجان", "slug": "rafsanjan", "aliases": ["رفسنجان"] },
+        { "name": "سیرجان", "slug": "sirjan", "aliases": ["سیرجان"] },
+        { "name": "بم", "slug": "bam", "aliases": ["شهر بم", "بم"] },
+        { "name": "جیرفت", "slug": "jiroft", "aliases": ["جیرفت"] },
+        { "name": "شهربابک", "slug": "shahrbabak", "aliases": ["شهربابک", "شهر بابک"] },
+        { "name": "زرند", "slug": "zarand", "aliases": ["زرند"] },
+        { "name": "ماهان", "slug": "mahan", "aliases": ["ماهان"] },
+        { "name": "کهنوج", "slug": "kahnuj", "aliases": ["کهنوج"] },
+        { "name": "بافت", "slug": "baft", "aliases": ["بافت"] }
+      ]
+    },
+    {
+      "name": "کرمانشاه",
+      "slug": "kermanshah",
+      "aliases": [
+        "کرمانشاه",
+        "استان کرمانشاه"
+      ],
+      "cities": [
+        { "name": "کرمانشاه", "slug": "kermanshah", "aliases": ["کرمانشاه"] },
+        { "name": "پاوه", "slug": "paveh", "aliases": ["پاوه"] },
+        { "name": "جوانرود", "slug": "javanrud", "aliases": ["جوانرود"] },
+        { "name": "قصر شیرین", "slug": "qasr-shirin", "aliases": ["قصر شیرین", "قصرشیرین"] },
+        { "name": "سرپل ذهاب", "slug": "sarpol-zahab", "aliases": ["سرپل ذهاب", "سرپل‌ذهاب"] },
+        { "name": "هرسین", "slug": "harsin", "aliases": ["هرسین"] },
+        { "name": "کنگاور", "slug": "kangavar", "aliases": ["کنگاور"] },
+        { "name": "صحنه", "slug": "sahneh", "aliases": ["صحنه"] },
+        { "name": "گیلانغرب", "slug": "gilan-e-gharb", "aliases": ["گیلانغرب", "گیلان غرب"] }
+      ]
+    },
+    {
+      "name": "کهگیلویه و بویراحمد",
+      "slug": "kohgiluyeh-boyer-ahmad",
+      "aliases": [
+        "کهگیلویه و بویراحمد",
+        "کهگیلویه بویراحمد",
+        "استان کهگیلویه و بویراحمد"
+      ],
+      "cities": [
+        { "name": "یاسوج", "slug": "yasuj", "aliases": ["یاسوج"] },
+        { "name": "دوگنبدان", "slug": "dogonbadan", "aliases": ["دوگنبدان", "گچساران"] },
+        { "name": "دهدشت", "slug": "dehdasht", "aliases": ["دهدشت"] },
+        { "name": "سی‌سخت", "slug": "sisakht", "aliases": ["سی سخت", "سی‌سخت", "سیسخت"] },
+        { "name": "لیکک", "slug": "likak", "aliases": ["لیکک"] },
+        { "name": "باشت", "slug": "basht", "aliases": ["باشت"] }
+      ]
+    },
+    {
+      "name": "گلستان",
+      "slug": "golestan",
+      "aliases": [
+        "گلستان",
+        "استان گلستان"
+      ],
+      "cities": [
+        { "name": "گرگان", "slug": "gorgan", "aliases": ["گرگان"] },
+        { "name": "گنبد کاووس", "slug": "gonbad-kavus", "aliases": ["گنبد کاووس", "گنبدکاووس"] },
+        { "name": "بندر ترکمن", "slug": "bandar-torkaman", "aliases": ["بندر ترکمن", "بندرترکمن"] },
+        { "name": "بندر گز", "slug": "bandar-gaz", "aliases": ["بندر گز", "بندرگز"] },
+        { "name": "علی‌آباد کتول", "slug": "aliabad-katul", "aliases": ["علی آباد کتول", "علی‌آباد کتول"] },
+        { "name": "کردکوی", "slug": "kordkuy", "aliases": ["کردکوی"] },
+        { "name": "آزادشهر", "slug": "azadshahr", "aliases": ["آزادشهر"] },
+        { "name": "مینودشت", "slug": "minudasht", "aliases": ["مینودشت"] },
+        { "name": "کلاله", "slug": "kalaleh", "aliases": ["کلاله"] },
+        { "name": "رامیان", "slug": "ramian", "aliases": ["رامیان"] }
+      ]
+    },
+    {
+      "name": "گیلان",
+      "slug": "gilan",
+      "aliases": [
+        "گیلان",
+        "استان گیلان"
+      ],
+      "cities": [
+        { "name": "رشت", "slug": "rasht", "aliases": ["رشت"] },
+        { "name": "بندر انزلی", "slug": "bandar-anzali", "aliases": ["بندر انزلی", "انزلی", "بندرانزلی"] },
+        { "name": "لاهیجان", "slug": "lahijan", "aliases": ["لاهیجان"] },
+        { "name": "لنگرود", "slug": "langarud", "aliases": ["لنگرود"] },
+        { "name": "آستارا", "slug": "astara", "aliases": ["آستارا"] },
+        { "name": "فومن", "slug": "fuman", "aliases": ["فومن"] },
+        { "name": "ماسال", "slug": "masal", "aliases": ["ماسال"] },
+        { "name": "تالش", "slug": "talesh", "aliases": ["تالش"] },
+        { "name": "رودبار", "slug": "rudbar", "aliases": ["رودبار"] },
+        { "name": "رودسر", "slug": "rudsar", "aliases": ["رودسر"] },
+        { "name": "سیاهکل", "slug": "siahkal", "aliases": ["سیاهکل"] },
+        { "name": "شفت", "slug": "shaft", "aliases": ["شفت"] }
+      ]
+    },
+    {
+      "name": "لرستان",
+      "slug": "lorestan",
+      "aliases": [
+        "لرستان",
+        "استان لرستان"
+      ],
+      "cities": [
+        { "name": "خرم‌آباد", "slug": "khorramabad", "aliases": ["خرم آباد", "خرم‌آباد", "خرماباد"] },
+        { "name": "بروجرد", "slug": "borujerd", "aliases": ["بروجرد"] },
+        { "name": "دورود", "slug": "dorud", "aliases": ["دورود"] },
+        { "name": "الیگودرز", "slug": "aligudarz", "aliases": ["الیگودرز"] },
+        { "name": "کوهدشت", "slug": "kuhdasht", "aliases": ["کوهدشت"] },
+        { "name": "نورآباد", "slug": "nurabad-lorestan", "aliases": ["نورآباد لرستان"] },
+        { "name": "پلدختر", "slug": "pol-dokhtar", "aliases": ["پلدختر", "پل دختر"] },
+        { "name": "ازنا", "slug": "azna", "aliases": ["ازنا"] },
+        { "name": "الشتر", "slug": "alashtar", "aliases": ["الشتر"] }
+      ]
+    },
+    {
+      "name": "مازندران",
+      "slug": "mazandaran",
+      "aliases": [
+        "مازندران",
+        "استان مازندران"
+      ],
+      "cities": [
+        { "name": "ساری", "slug": "sari", "aliases": ["ساری"] },
+        { "name": "بابل", "slug": "babol", "aliases": ["بابل"] },
+        { "name": "آمل", "slug": "amol", "aliases": ["آمل"] },
+        { "name": "رامسر", "slug": "ramsar", "aliases": ["رامسر"] },
+        { "name": "چالوس", "slug": "chalous", "aliases": ["چالوس"] },
+        { "name": "نوشهر", "slug": "nowshahr", "aliases": ["نوشهر"] },
+        { "name": "تنکابن", "slug": "tonekabon", "aliases": ["تنکابن", "شهسوار"] },
+        { "name": "بابلسر", "slug": "babolsar", "aliases": ["بابلسر"] },
+        { "name": "محمودآباد", "slug": "mahmoudabad", "aliases": ["محمودآباد", "محمود آباد"] },
+        { "name": "فریدونکنار", "slug": "fereydunkenar", "aliases": ["فریدونکنار"] },
+        { "name": "بهشهر", "slug": "behshahr", "aliases": ["بهشهر"] },
+        { "name": "نکا", "slug": "neka", "aliases": ["نکا"] },
+        { "name": "قائم‌شهر", "slug": "qaemshahr", "aliases": ["قائم شهر", "قائم‌شهر", "قائمشهر"] },
+        { "name": "نور", "slug": "nur", "aliases": ["شهر نور", "نور مازندران"] },
+        { "name": "کلاردشت", "slug": "kelardasht", "aliases": ["کلاردشت"] }
+      ]
+    },
+    {
+      "name": "مرکزی",
+      "slug": "markazi",
+      "aliases": [
+        "مرکزی",
+        "استان مرکزی"
+      ],
+      "cities": [
+        { "name": "اراک", "slug": "arak", "aliases": ["اراک"] },
+        { "name": "ساوه", "slug": "saveh", "aliases": ["ساوه"] },
+        { "name": "خمین", "slug": "khomein", "aliases": ["خمین"] },
+        { "name": "محلات", "slug": "mahallat", "aliases": ["محلات"] },
+        { "name": "دلیجان", "slug": "delijan", "aliases": ["دلیجان"] },
+        { "name": "تفرش", "slug": "tafresh", "aliases": ["تفرش"] },
+        { "name": "شازند", "slug": "shazand", "aliases": ["شازند"] },
+        { "name": "آشتیان", "slug": "ashtian", "aliases": ["آشتیان"] },
+        { "name": "فرمهین", "slug": "farmahin", "aliases": ["فرمهین"] }
+      ]
+    },
+    {
+      "name": "هرمزگان",
+      "slug": "hormozgan",
+      "aliases": [
+        "هرمزگان",
+        "استان هرمزگان"
+      ],
+      "cities": [
+        { "name": "بندرعباس", "slug": "bandar-abbas", "aliases": ["بندرعباس", "بندر عباس"] },
+        { "name": "قشم", "slug": "qeshm", "aliases": ["قشم", "جزیره قشم"] },
+        { "name": "کیش", "slug": "kish", "aliases": ["کیش", "جزیره کیش"] },
+        { "name": "بندر لنگه", "slug": "bandar-lengeh", "aliases": ["بندر لنگه", "بندرلنگه"] },
+        { "name": "میناب", "slug": "minab", "aliases": ["میناب"] },
+        { "name": "جاسک", "slug": "jask", "aliases": ["جاسک", "بندر جاسک"] },
+        { "name": "بندر خمیر", "slug": "bandar-khamir", "aliases": ["بندر خمیر", "بندر خمیر"] },
+        { "name": "حاجی‌آباد", "slug": "hajiabad-hormozgan", "aliases": ["حاجی آباد هرمزگان", "حاجی‌آباد هرمزگان"] },
+        { "name": "بستک", "slug": "bastak", "aliases": ["بستک"] },
+        { "name": "پارسیان", "slug": "parsian", "aliases": ["پارسیان"] }
+      ]
+    },
+    {
+      "name": "همدان",
+      "slug": "hamadan",
+      "aliases": [
+        "همدان",
+        "استان همدان"
+      ],
+      "cities": [
+        { "name": "همدان", "slug": "hamadan", "aliases": ["همدان"] },
+        { "name": "ملایر", "slug": "malayer", "aliases": ["ملایر"] },
+        { "name": "نهاوند", "slug": "nahavand", "aliases": ["نهاوند"] },
+        { "name": "تویسرکان", "slug": "tuyserkan", "aliases": ["تویسرکان"] },
+        { "name": "لالجین", "slug": "lalejin", "aliases": ["لالجین"] },
+        { "name": "کبودرآهنگ", "slug": "kabudarahang", "aliases": ["کبودرآهنگ", "کبودر آهنگ"] },
+        { "name": "رزن", "slug": "razan", "aliases": ["رزن"] },
+        { "name": "اسدآباد", "slug": "asadabad", "aliases": ["اسدآباد", "اسد آباد"] }
+      ]
+    },
+    {
+      "name": "یزد",
+      "slug": "yazd",
+      "aliases": [
+        "یزد",
+        "استان یزد"
+      ],
+      "cities": [
+        { "name": "یزد", "slug": "yazd", "aliases": ["یزد"] },
+        { "name": "میبد", "slug": "meybod", "aliases": ["میبد"] },
+        { "name": "اردکان", "slug": "ardakan-yazd", "aliases": ["اردکان یزد"] },
+        { "name": "تفت", "slug": "taft", "aliases": ["تفت"] },
+        { "name": "مهریز", "slug": "mehriz", "aliases": ["مهریز"] },
+        { "name": "بافق", "slug": "bafq", "aliases": ["بافق"] },
+        { "name": "ابرکوه", "slug": "abarkuh", "aliases": ["ابرکوه"] },
+        { "name": "اشکذر", "slug": "ashkezar", "aliases": ["اشکذر"] }
+      ]
+    }
+  ]
+}

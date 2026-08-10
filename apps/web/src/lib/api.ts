@@ -69,6 +69,29 @@ export function getNotablePeople(
   return request(`/notable-people${toQueryString(query)}`);
 }
 
+export async function getNotablePersonByInstagramUsername(
+  instagramUsername: string,
+): Promise<NotablePersonListItem | null> {
+  const normalizedUsername = instagramUsername
+    .trim()
+    .replace(/^@/, "")
+    .toLocaleLowerCase("en-US");
+  const result = await getNotablePeople({
+    query: normalizedUsername,
+    pageSize: 100,
+  });
+
+  if (!result.ok) return null;
+
+  return (
+    result.value.data.find(
+      (person) =>
+        person.instagramHandle?.toLocaleLowerCase("en-US") ===
+        normalizedUsername,
+    ) ?? null
+  );
+}
+
 export function getNotablePerson(
   slug: string,
 ): Promise<ApiResult<ApiEnvelope<NotablePersonDetail>>> {

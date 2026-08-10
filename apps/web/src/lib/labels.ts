@@ -51,4 +51,14 @@ export function formatDate(value: string | null): string | null {
   }).format(new Date(value));
 }
 
+export function formatFollowerCount(value: number | null): string | null {
+  if (value === null) return null;
+
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    compactDisplay: "short",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
 export const notableCategories = Object.entries(categoryLabels);

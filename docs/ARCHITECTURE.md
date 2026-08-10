@@ -61,6 +61,8 @@ Main responsibilities:
 - hotel and person cards;
 - RTL Persian interface;
 - displaying images and public metadata;
+- maintaining client authentication state and the account modal;
+- rendering hotel reviews and collapsed-on-demand video comments;
 - communicating with the backend API.
 
 Main routes currently include:
@@ -68,7 +70,12 @@ Main routes currently include:
 ```text
 /
 /hotels
+/hotels/[slug]
 /notable-people
+/notable-people/[slug]
+/destinations
+/destinations/[type]/[slug]
+/account
 ```
 
 Frontend data access is handled through functions such as:
@@ -101,6 +108,8 @@ Main responsibilities:
 - exposing HTTP APIs;
 - validating request parameters;
 - applying filtering and publication rules;
+- issuing and verifying OTP challenges and session cookies;
+- accepting moderated hotel reviews and video comments;
 - pagination;
 - querying application data;
 - communicating with PostgreSQL through Prisma.
@@ -144,6 +153,10 @@ Core domain concepts currently include:
 - Hotel
 - Notable Person
 - Hotel–Person Association
+- User, User Session, and OTP Challenge
+- Hotel Review
+- Video and Video Comment
+- Moderation decisions linked back to a moderator account
 
 Conceptually:
 
@@ -194,6 +207,8 @@ Hotels may use parameters such as:
 ```text
 query
 city
+countryCode
+sort = NAME_ASC | CITY_ASC
 page
 ```
 
@@ -202,6 +217,8 @@ Notable people may use:
 ```text
 query
 category
+countryCode
+sort = FOLLOWERS_DESC | NAME_ASC | HOTEL_COUNT_DESC
 page
 ```
 
@@ -221,16 +238,35 @@ The frontend uses this information to render previous/next page navigation while
 Hotel-Yab currently supports images for:
 
 - hotels;
+- optional hotel logos;
 - notable people.
 
-The frontend handles media rendering and fallback states.
+The frontend handles media rendering and fallback states. Hotel logos are
+stored separately from the main image through `logoUrl`, so the same logo can
+be shown consistently on cards and detail pages.
 
 Future content enrichment may include:
 
 - Instagram links;
-- videos;
 - external source links;
 - additional media related to hotel-person associations.
+
+Travel discovery currently uses normalized frontend prototype data:
+
+```text
+NotablePerson API (exact instagramHandle)
+        ↑
+TravelVideo.instagramUsername
+        ↓
+VideoDestinations
+        ↓
+destinations.json (city/province records)
+```
+
+`travel-videos.json` stores video identity, media URLs, `sourceUrl`, and
+relationship keys only. Person metadata comes from the existing notable-person
+API, while destination labels and links come from `destinations.json`. One
+video may resolve to multiple destinations.
 
 ---
 
@@ -256,6 +292,11 @@ Current capabilities include:
 - pagination;
 - reusable hotel/person cards;
 - displaying hotel-person relationship data.
+- optional verified registration plus password/OTP login;
+- editable user profiles;
+- moderated hotel ratings/reviews;
+- moderated, collapsed video comments.
+- protected review/comment moderation queues.
 
 ---
 
@@ -281,22 +322,43 @@ Website
 
 ### User System
 
-Future capabilities may include:
+Implemented authentication flows:
 
-- user accounts;
+```text
+Register: Mobile → OTP Challenge → Verify + unique username/password → User → Session
+Login:    Mobile/Username + Password → scrypt verification → Session
+Fallback: Mobile/Username → OTP Challenge → Verify existing User → Session
+```
+
+The public site remains usable without authentication. Authenticated writes use
+the session guard, and public reads expose only published user-generated
+content. Passwords are stored only as salted hashes, while the raw opaque
+session token exists only in the HttpOnly cookie. Current capabilities include
+user profiles, hotel reviews, and video comments. Future extensions include:
+
 - saved hotels;
 - favorites;
 - personalized discovery;
-- user contributions.
+- an aggregated account activity view.
 
 ### Admin and Moderation
 
-A future administration layer may support:
+The current protected moderation layer supports:
+
+- an `ADMIN`/`MODERATOR` guard;
+- queues for hotel reviews and video comments by status;
+- publish, reject, hide, and return-to-pending actions;
+- private notes plus moderator identity and decision timestamps.
+
+The administration layer may later expand to:
 
 - reviewing records;
 - verifying associations;
 - managing publication status;
 - reviewing submitted sources.
+
+The first admin role is bootstrapped with the local `user:set-role` command;
+role-management UI is not implemented yet.
 
 ---
 
@@ -325,6 +387,8 @@ Responsible for:
 - business rules;
 - validation;
 - publication filtering;
+- authentication and authorization;
+- moderation-state enforcement for user-generated content;
 - database queries.
 
 ### Database Layer
@@ -376,4 +440,5 @@ Detailed documentation is separated into:
 4. Reusable UI patterns should be implemented as shared components.
 5. Search, filters, and pagination should use URL parameters where appropriate.
 6. Stored data is not automatically considered publishable data.
-7. New subsystems such as authentication and automated sync should be added incrementally as the product requires them.
+7. Authentication remains optional for reading; only account-specific writes require a valid session.
+8. New subsystems such as automated sync should be added incrementally as the product requires them.

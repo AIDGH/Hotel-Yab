@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
+import { HotelLogo } from "@/components/hotel-logo";
+import { HotelReviews } from "@/components/hotel-reviews";
 import { MediaTile } from "@/components/media-tile";
 import { PersonDisplayName } from "@/components/person-display-name";
 import { PersonInstagramHandle } from "@/components/person-instagram-handle";
@@ -15,7 +17,9 @@ type HotelPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export async function generateMetadata({ params }: HotelPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: HotelPageProps): Promise<Metadata> {
   const { slug } = await params;
   const result = await getHotel(slug);
 
@@ -52,7 +56,18 @@ export default async function HotelPage({ params }: HotelPageProps) {
     <main className="detail-page">
       <section className="container detail-hero">
         <div className="detail-media">
-          <MediaTile imageUrl={hotel.imageUrl} label={hotel.name} variant="hotel" />
+          <MediaTile
+            imageUrl={hotel.imageUrl}
+            label={hotel.name}
+            variant="hotel"
+          />
+          {hotel.logoUrl ? (
+            <HotelLogo
+              logoUrl={hotel.logoUrl}
+              hotelName={hotel.name}
+              placement="detail"
+            />
+          ) : null}
         </div>
         <div className="detail-heading">
           <Link className="back-link" href="/hotels">
@@ -70,6 +85,24 @@ export default async function HotelPage({ params }: HotelPageProps) {
           </span>
           <h1>{hotel.name}</h1>
           <p className="detail-location">⌖ {hotel.city}</p>
+          {hotel.ratingSummary.reviewCount > 0 &&
+          hotel.ratingSummary.averageRating !== null ? (
+            <div
+              className="hotel-hero-rating"
+              aria-label={`امتیاز ${hotel.ratingSummary.averageRating.toFixed(1)} از ۵ بر اساس ${hotel.ratingSummary.reviewCount} نظر`}
+            >
+              <strong>
+                {hotel.ratingSummary.averageRating.toLocaleString("fa-IR", {
+                  maximumFractionDigits: 1,
+                })}
+              </strong>
+              <span aria-hidden="true">★</span>
+              <small>
+                از ۵ · بر پایهٔ{" "}
+                {hotel.ratingSummary.reviewCount.toLocaleString("fa-IR")} نظر
+              </small>
+            </div>
+          ) : null}
           <p>
             {hotel.description ??
               (hasAssociations
@@ -78,11 +111,18 @@ export default async function HotelPage({ params }: HotelPageProps) {
           </p>
           <div className="detail-actions">
             {hotel.websiteUrl ? (
-              <a className="button" href={hotel.websiteUrl} target="_blank" rel="noreferrer">
+              <a
+                className="button"
+                href={hotel.websiteUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
                 صفحه رسمی هتل
               </a>
             ) : null}
-            <span>{hotel.associations.length.toLocaleString("fa-IR")} چهره مرتبط</span>
+            <span>
+              {hotel.associations.length.toLocaleString("fa-IR")} چهره مرتبط
+            </span>
           </div>
         </div>
       </section>
@@ -105,7 +145,9 @@ export default async function HotelPage({ params }: HotelPageProps) {
                       <div>
                         <span>{associationLabel(association.type)}</span>
                         <h3>
-                          <Link href={`/notable-people/${association.notablePerson.slug}`}>
+                          <Link
+                            href={`/notable-people/${association.notablePerson.slug}`}
+                          >
                             <PersonDisplayName
                               name={association.notablePerson.displayName}
                             />
@@ -152,8 +194,8 @@ export default async function HotelPage({ params }: HotelPageProps) {
           <aside className="detail-aside">
             <h3>وضعیت هر ارتباط شفاف است</h3>
             <p>
-              رابطه‌های اولیه با نشان «در حال تکمیل» منتشر می‌شوند و تا قبل
-              از بررسی نهایی، تأییدشده محسوب نمی‌شوند.
+              رابطه‌های اولیه با نشان «در حال تکمیل» منتشر می‌شوند و تا قبل از
+              بررسی نهایی، تأییدشده محسوب نمی‌شوند.
             </p>
             <ul>
               <li>جای مشخص برای عکس، ویدئو یا لینک</li>
@@ -163,6 +205,8 @@ export default async function HotelPage({ params }: HotelPageProps) {
           </aside>
         </div>
       </section>
+
+      <HotelReviews hotelSlug={hotel.slug} hotelName={hotel.name} />
     </main>
   );
 }

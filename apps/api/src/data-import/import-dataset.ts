@@ -10,6 +10,7 @@ export type ImportSummary = {
   notablePeople: number;
   sources: number;
   associations: number;
+  videos: number;
 };
 
 export async function importDataset(
@@ -28,6 +29,7 @@ export async function importDataset(
         longitude: hotel.longitude ?? null,
         websiteUrl: hotel.websiteUrl ?? null,
         imageUrl: hotel.imageUrl ?? null,
+        logoUrl: hotel.logoUrl ?? null,
         publicationStatus: hotel.publicationStatus ?? PublicationStatus.DRAFT,
       };
 
@@ -44,6 +46,7 @@ export async function importDataset(
         instagramHandle: person.instagramHandle ?? null,
         primaryCategory: person.primaryCategory,
         occupation: person.occupation ?? null,
+        followerCount: person.followerCount ?? null,
         biography: person.biography ?? null,
         countryCode: person.countryCode ?? null,
         imageUrl: person.imageUrl ?? null,
@@ -114,6 +117,14 @@ export async function importDataset(
         },
       });
     }
+
+    for (const video of dataset.videos) {
+      await transaction.video.upsert({
+        where: { id: video.id },
+        update: {},
+        create: { id: video.id },
+      });
+    }
   });
 
   return {
@@ -121,6 +132,7 @@ export async function importDataset(
     notablePeople: dataset.notablePeople.length,
     sources: dataset.sources.length,
     associations: dataset.associations.length,
+    videos: dataset.videos.length,
   };
 }
 

@@ -19,6 +19,13 @@ export function configureSwagger(app: INestApplication): void {
     .addTag('Health', 'API and database readiness')
     .addTag('Hotels', 'Public hotel discovery')
     .addTag('Notable People', 'Public notable-person discovery')
+    .addTag(
+      'Authentication',
+      'Password/OTP sessions, registration, and private profiles',
+    )
+    .addTag('Moderation', 'Protected review and comment moderation')
+    .addTag('Hotel Reviews', 'User ratings and moderated hotel reviews')
+    .addTag('Video Comments', 'Collapsed-by-default travel-video discussions')
     .build();
 
   const documentFactory = () =>

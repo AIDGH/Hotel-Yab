@@ -15,6 +15,9 @@ used by an association.
 Use `imageUrl` for a stable, absolute `http` or `https` image URL. Do not use a
 temporary Instagram CDN URL.
 
+Use `logoUrl` only for an optional hotel logo, separate from the main hotel
+image. Local logo filenames follow `<hotel-slug>-logo.webp`.
+
 ### People
 
 One row represents one notable person. `slug`, `displayName`,
@@ -24,6 +27,10 @@ before a hotel relationship is known.
 Keep `displayName` for the real public name and `instagramHandle` for the
 optional Instagram username without the `@` prefix. Do not derive the handle
 from `slug`; the slug is only Hotel-Yab's stable URL identifier.
+
+Keep `occupation` limited to the person's professional role. Store the
+follower snapshot in `followerCount` as a non-negative integer, or leave it
+empty when unknown.
 
 ### Associations
 
@@ -50,8 +57,8 @@ stronger claim than the content supports.
 3. Do not change an existing slug or reference key casually.
 4. Use the dropdowns for enum fields instead of typing new values.
 5. Leave unknown optional cells empty; do not add placeholder URLs.
-6. Keep follower counts in descriptive text only; they are not verification
-   evidence.
+6. Normalize display counts such as `294K` or `6.5M` into numeric
+   `followerCount`; follower counts are not verification evidence.
 
 The workbook does not yet sync to PostgreSQL automatically. A reusable
 workbook-to-import converter is the next data-pipeline step. Until that exists,

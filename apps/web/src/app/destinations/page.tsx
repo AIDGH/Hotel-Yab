@@ -72,7 +72,10 @@ export default async function DestinationsPage({
             کشف کنید.
           </p>
 
-          <form className="filter-bar" method="get">
+          <form
+            className={`filter-bar filter-bar-destinations filter-bar-destinations-${type}`}
+            method="get"
+          >
             <label>
               <span>جست‌وجوی مقصد</span>
 

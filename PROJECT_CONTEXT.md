@@ -3,7 +3,7 @@
 > این فایل مرجع اصلی وضعیت فعلی پروژه و handoff بین چت‌ها و توسعه‌دهنده‌هاست.
 > جزئیات تخصصی در فایل‌های `docs/` نگهداری می‌شوند و این فایل باید خلاصه، به‌روز و قابل اتکا باقی بماند.
 
-آخرین به‌روزرسانی محتوایی: ۲۰۲۶-۰۸-۰۸
+آخرین به‌روزرسانی محتوایی: ۲۰۲۶-۰۸-۱۰
 
 ---
 
@@ -86,7 +86,7 @@ Hotel-Yab در حال حاضر سرویس رزرو هتل نیست.
 - صفحه جزئیات هتل
 - فهرست چهره‌ها
 - صفحه جزئیات چهره
-- Search و Filter
+- Search، Filter و Sort
 - Pagination برای هتل‌ها و چهره‌ها
 - مدل Hotel
 - مدل NotablePerson
@@ -96,16 +96,26 @@ Hotel-Yab در حال حاضر سرویس رزرو هتل نیست.
 - importer تراکنشی و idempotent
 - داده اولیه هتل‌ها و افراد
 - تصاویر محلی هتل و شخص
-- Instagram Handle چهره‌ها
+- لوگوی اختیاری هتل در کارت و صفحه جزئیات
+- Instagram Handle و Follower Count چهره‌ها
 - Occupation و Biography
 - Unit Test و E2E Test
 - Swagger / OpenAPI
-- City Discovery اولیه
-- صفحه فهرست شهرها با Search و فیلتر استان
-- اعمال خودکار فیلتر استان بعد از انتخاب
-- City Card با تصویر، نام شهر و استان
+- Destination Discovery برای شهرها و استان‌ها
+- صفحه فهرست مقصدها با Search، تغییر نوع و فیلتر استان
+- Destination Card و صفحه جزئیات مشترک برای شهر و استان
+- ویدیوهای سفر چندمقصدی در صفحه مقصد و پروفایل چهره
+- اتصال سازنده ویدیو به پروفایل واقعی با `instagramUsername`
 - نمایش مقصدهای منتخب در صفحه اصلی قبل از هتل‌ها و چهره‌ها
-- City Discovery → Destination Discovery و پشتیبانی از شهر + استان.
+- فونت Vazirmatn با فرمت WOFF2
+- ورود اختیاری با شماره/نام‌کاربری و رمز عبور یا OTP
+- ثبت‌نام جداگانه با تأیید شماره، نام‌کاربری یکتا و رمز hash‌شده
+- پروفایل کاربر با نام، نام خانوادگی، نام‌کاربری، ایمیل و Instagram اختیاری و یکتا
+- Session امن مبتنی بر Cookie از نوع HttpOnly
+- امتیاز و نظر هتل با صف بررسی محتوا
+- کامنت ویدیو با نمایش بسته به‌صورت پیش‌فرض و صف بررسی محتوا
+- پنل محافظت‌شده مدیر/ناظر برای انتشار، رد، پنهان‌کردن و بازگرداندن Review و Comment
+- نمایش خلاصه امتیاز منتشرشده و تعداد نظر در hero صفحه هتل
 
 ---
 
@@ -202,6 +212,11 @@ Hotel ──< HotelAssociation >── NotablePerson
                     │
                     ↓
                   Source
+
+User ──< UserSession
+  ├──< HotelReview >── Hotel
+  ├──< VideoComment >── Video
+  └── NotablePerson (اتصال اختیاری و تأییدشده توسط ادمین)
 ```
 
 ### Hotel
@@ -216,6 +231,7 @@ Hotel ──< HotelAssociation >── NotablePerson
 - coordinates
 - website
 - imageUrl
+- logoUrl
 - publicationStatus
 
 ### NotablePerson
@@ -227,6 +243,7 @@ Hotel ──< HotelAssociation >── NotablePerson
 - instagramHandle
 - primaryCategory
 - occupation
+- followerCount
 - biography
 - country
 - imageUrl
@@ -241,15 +258,6 @@ ACTOR
 ATHLETE
 INFLUENCER
 MUSICIAN
-OTHER
-```
-
-دسته‌بندی‌های قبلی زیر حذف شده‌اند:
-
-```text
-CREATOR
-ENTREPRENEUR
-POLITICIAN
 PUBLIC_FIGURE
 ```
 
@@ -281,6 +289,18 @@ REJECTED
 `Source` اطلاعات منبع را نگهداری می‌کند.
 
 `AssociationEvidence` یک association را به یک یا چند source متصل می‌کند.
+
+### User، Review و Video Comment
+
+- ثبت‌نام جدید `User` به شماره موبایل تأییدشده، نام‌کاربری یکتا و رمز عبور نیاز دارد؛ ایمیل اختیاری و Instagram اختیاری و یکتاست.
+- حساب‌های OTP قدیمی تا زمان تکمیل نام‌کاربری و رمز می‌توانند با OTP وارد شوند.
+- رمز عبور خام ذخیره نمی‌شود؛ فقط hash مبتنی بر `scrypt` همراه salt نگهداری می‌شود.
+- `UserSession` فقط hash توکن opaque را نگه می‌دارد و توکن خام در Cookie امن مرورگر است.
+- `OtpChallenge` کد OTP را به‌صورت HMAC hash و با زمان انقضا/محدودیت تلاش نگه می‌دارد.
+- هر کاربر برای هر هتل یک `HotelReview` فعال با امتیاز ۱ تا ۵ دارد.
+- `Video` شناسه canonical ویدیو را نگه می‌دارد و `VideoComment` به آن وصل می‌شود.
+- Review و Comment جدید با وضعیت `PENDING` ثبت می‌شوند و قبل از انتشار عمومی نیاز به moderation دارند.
+- تصمیم moderation همراه شناسه مدیر/ناظر، زمان و یادداشت داخلی ثبت می‌شود.
 
 جزئیات کامل مدل داده:
 
@@ -394,10 +414,12 @@ Website
 
 ### داده مقصدها
 
-- داده اولیه شهرها فعلاً به‌صورت frontend prototype در `apps/web/src/data/cities.json` نگهداری می‌شود.
+- منبع prototype در `apps/web/src/data/destinations.json` است و دو گروه `cities` و `provinces` دارد.
+- ویدیوها و اتصال چندبه‌چند آن‌ها به مقصدها در `apps/web/src/data/travel-videos.json` نگهداری می‌شوند.
+- `instagramUsername` ویدیو به رکورد منتشرشده شخص در API وصل می‌شود؛ اطلاعات شخص داخل فایل ویدیو تکرار نمی‌شود.
+- شناسه canonical ویدیوها در مدل `Video` دیتابیس import می‌شود تا کامنت‌ها به خود ویدیو متصل باشند.
 - تصاویر شهرها در `apps/web/public/images/cities/` قرار دارند و نام فایل تصویر با slug شهر یکسان است.
-- این داده هنوز وارد Prisma/PostgreSQL و API نشده است.
-- منبع prototype الان apps/web/src/data/destinations.json است و دو گروه cities و provinces دارد.
+- رکورد کامل مقصد، فایل رسانه و رابطه چندمقصدی هنوز frontend/file-based است؛ فقط شناسه ویدیو برای قابلیت‌های کاربری وارد Prisma شده است.
 
 ---
 
@@ -412,11 +434,22 @@ apps/web/public/images/people/
 
 `imageUrl` در داده فعلی به URL رسانه اشاره می‌کند.
 
+`logoUrl` لوگوی اختیاری هتل را نگهداری می‌کند. فایل محلی لوگو با الگوی
+`<hotel-slug>-logo.webp` در پوشه هتل‌ها قرار می‌گیرد.
+لوگو داخل قاب سفید با فاصله داخلی و `contain` نمایش داده می‌شود تا گوشه‌ها یا
+بخش‌های تصویر بریده نشوند.
+
 در development ممکن است URL به localhost اشاره کند، اما در production باید storage یا URL پایدار استفاده شود.
 
 رسانه مرتبط با Association باید به عنوان `Source` و `Evidence` مدل شود.
 
 تصویر پروفایل Hotel یا Person جای evidence رابطه را نمی‌گیرد.
+
+منبع و مجوز رسانه‌های محلی در `docs/MEDIA_ATTRIBUTIONS.md` ثبت می‌شود.
+
+هر Travel Video مسیر رسانه محلی و `sourceUrl` پست اصلی Instagram را نگه
+می‌دارد. یک ویدیو می‌تواند از طریق `videoDestinations` به چند شهر یا استان
+متصل باشد.
 
 ### کارهای محتوایی آینده
 
@@ -441,13 +474,26 @@ Base path:
 
 Endpointهای فعلی:
 
-| Method | Path | توضیح |
-| --- | --- | --- |
-| GET | `/api/v1/health` | سلامت API و دیتابیس |
-| GET | `/api/v1/hotels` | فهرست هتل‌ها |
-| GET | `/api/v1/hotels/:slug` | جزئیات هتل |
-| GET | `/api/v1/notable-people` | فهرست چهره‌ها |
-| GET | `/api/v1/notable-people/:slug` | جزئیات چهره |
+| Method         | Path                                                           | توضیح                               |
+| -------------- | -------------------------------------------------------------- | ----------------------------------- |
+| GET            | `/api/v1/health`                                               | سلامت API و دیتابیس                 |
+| GET            | `/api/v1/hotels`                                               | فهرست هتل‌ها                        |
+| GET            | `/api/v1/hotels/:slug`                                         | جزئیات هتل                          |
+| GET            | `/api/v1/notable-people`                                       | فهرست چهره‌ها                       |
+| GET            | `/api/v1/notable-people/:slug`                                 | جزئیات چهره                         |
+| POST           | `/api/v1/auth/login/password`                                  | ورود با شماره/نام‌کاربری و رمز      |
+| POST           | `/api/v1/auth/login/otp/request`                               | درخواست OTP برای حساب موجود         |
+| POST           | `/api/v1/auth/login/otp/verify`                                | ورود حساب موجود با OTP              |
+| POST           | `/api/v1/auth/register/otp/request`                            | درخواست کد تأیید شماره برای ثبت‌نام |
+| POST           | `/api/v1/auth/register`                                        | ساخت حساب پس از تأیید شماره         |
+| GET/PATCH      | `/api/v1/auth/me[/profile]`                                    | دریافت یا ویرایش پروفایل            |
+| POST           | `/api/v1/auth/logout`                                          | خروج و ابطال session                |
+| GET            | `/api/v1/hotels/:slug/reviews`                                 | امتیاز و نظرهای منتشرشده هتل        |
+| GET/PUT/DELETE | `/api/v1/hotels/:slug/reviews/me`                              | مدیریت نظر کاربر جاری               |
+| GET            | `/api/v1/videos/:videoId/comments[/count]`                     | کامنت‌های منتشرشده یا شمارش آن‌ها   |
+| POST           | `/api/v1/videos/:videoId/comments`                             | ثبت کامنت یا پاسخ کاربر             |
+| GET            | `/api/v1/admin/moderation/queue`                               | صف Review و Comment برای مدیر/ناظر  |
+| PATCH          | `/api/v1/admin/moderation/{hotel-reviews\|video-comments}/:id` | ثبت تصمیم moderation                |
 
 Swagger در development:
 
@@ -464,6 +510,7 @@ pageSize
 query
 city
 countryCode
+sort = NAME_ASC | CITY_ASC
 ```
 
 ### فیلتر چهره‌ها
@@ -474,6 +521,7 @@ pageSize
 query
 category
 countryCode
+sort = FOLLOWERS_DESC | NAME_ASC | HOTEL_COUNT_DESC
 ```
 
 جزئیات قرارداد API:
@@ -517,34 +565,43 @@ Landing Page
 صفحه جزئیات فرد
 
 ```text
-/cities
-```
-
- فهرست و جست‌وجوی مقصدها با 
- امکان جابه‌جایی بین شهرها و استان‌ها 
-
-```text
 /destinations
 ```
 
-صفحه جزئیات مقصد؛ `type` فعلاً `cities` یا `provinces` است
+فهرست و جست‌وجوی مقصدها با امکان جابه‌جایی بین شهرها و استان‌ها
 
 ```text
 /destinations/[type]/[slug]
 ```
 
-صفحه جزئیات هر شهر با اطلاعات پایه شهر و بخش سفرهای چهره‌ها
+صفحه جزئیات مقصد؛ `type` فعلاً `cities` یا `provinces` است
+
+```text
+/account
+```
+
+ویرایش پروفایل و ورودی آینده برای مدیریت فعالیت‌های کاربر
+
+```text
+/admin/moderation
+```
+
+صف محافظت‌شده بررسی نظر هتل و کامنت ویدیو برای نقش‌های `ADMIN` و `MODERATOR`
 
 ### قابلیت‌های فعلی UI
 
 - RTL
 - Search
 - Filter
+- Sort هتل‌ها بر اساس الفبا یا شهر، با اعمال خودکار بعد از انتخاب
+- Sort چهره‌ها بر اساس follower، الفبا یا تعداد هتل، با اعمال خودکار بعد از انتخاب
 - Pagination
 - Hotel Card
+- Hotel Logo روی کارت و صفحه جزئیات در صورت وجود
 - Person Card
 - Instagram Handle
 - Occupation
+- Follower Count کوتاه و لاتین (`2M`/`234K`) در همان خط Occupation و با جداکننده `·`
 - Biography
 - Association Count
 - Verified Association Count
@@ -552,10 +609,21 @@ Landing Page
 - Empty State
 - API Unavailable State
 - صفحات Detail
+- نمایش هدر فشرده پروفایل سازنده بالای هر ویدیوی صفحه مقصد، آماده برای چیدمان گریدی آینده
+- نمایش ویدیوها و مقصدهای مرتبط به‌صورت فوتر فشرده زیر هر ویدیو، پایین associationهای صفحه شخص
+- کنترل سرعت پخش `1×/2×` و نوار قابل‌کشیدن زمان روی Travel Video
+- ورود پیش‌فرض با شماره/نام‌کاربری و رمز، مسیر جایگزین OTP و ثبت‌نام جداگانه از Header
+- جداسازی جهت LTR شماره موبایل داخل متن فارسی برای نمایش صحیح `+98`
+- Header واکنش‌گرا با منوی حساب و خروج
+- فرم امتیاز و نظر هتل پایین ارتباط‌های چهره‌ها
+- خلاصه امتیاز و تعداد نظر منتشرشده در بالای صفحه هتل، در صورت وجود حداقل یک نظر
+- کامنت‌های ویدیو به‌صورت بسته و فقط پس از درخواست کاربر نمایش داده می‌شوند
 - اعمال خودکار فیلتر دسته‌بندی چهره‌ها بعد از انتخاب category
 - صفحه جزئیات شهر دارای image hero با تصویر خود شهر، نام استان، نام شهر و توضیح کوتاه است.
 - نام استان روی hero به‌صورت badge با کنتراست بالا نمایش داده می‌شود تا روی تصاویر مختلف خوانا بماند.
 - بخش Navbar/Footer/Homepage از «شهرها» به «مقصدها» تغییر کرده؛ کارت مشترک DestinationCard داریم؛ توضیح کارت‌ها دوخطی clamp می‌شود.
+- انتخاب‌های Sort، دسته‌بندی، نوع مقصد و استان با navigation کامل بلافاصله نتایج را refresh می‌کنند.
+- در filter bar مقصدها، جست‌وجو همواره `۳/۷` فضای فیلدها را دارد. در حالت استان، نوع مقصد `۴/۷` است و در حالت شهر همان فضا میان نوع مقصد و استان به دو بخش `۲/۷` تقسیم می‌شود.
 
 Pagination فیلترهای فعال را هنگام رفتن به صفحه قبل یا بعد حفظ می‌کند.
 
@@ -595,7 +663,13 @@ DATABASE_URL="postgresql://YOUR_MACOS_USERNAME@localhost:5432/hotel_yab"
 CORS_ORIGIN="http://localhost:3000"
 PORT=4000
 SWAGGER_ENABLED=true
+AUTH_OTP_SECRET="حداقل-۳۲-کاراکتر-تصادفی"
+AUTH_OTP_TTL_MINUTES=5
+AUTH_OTP_RESEND_SECONDS=60
+AUTH_SESSION_DAYS=30
 ```
+
+Frontend نیز به `NEXT_PUBLIC_API_BASE_URL` نیاز دارد. در development کد OTP داخل پاسخ و UI نمایش داده می‌شود؛ production به اتصال سرویس‌دهنده واقعی SMS نیاز دارد.
 
 ### Migration
 
@@ -799,9 +873,9 @@ docs/data-workbook-guide.md
       ↓
 6. Data Sync Pipeline
       ↓
-7. User Accounts
+7. User Accounts (هسته پیاده‌سازی شده)
       ↓
-8. Admin & Scale
+8. Admin, Moderation & Scale
 ```
 
 ### Phase 1 — Core Website
@@ -839,19 +913,25 @@ docs/data-workbook-guide.md
 
 ### Phase 4 — User System
 
-بعد از پایدار شدن Core Product و Data Pipeline:
+هسته فعلی:
 
-- Account
-- Login
+- Account و Login با Password/OTP
+- ثبت‌نام با تأیید شماره و نام‌کاربری یکتا
+- User Profile
+- Hotel Review و Rating
+- Video Comment
+
+ادامه این فاز:
+
 - Favorites
 - Saved Hotels
 - Personalization
-- User Contribution
+- مدیریت یکپارچه فعالیت‌های کاربر
 
 ### Phase 5 — Scale
 
-- Admin Panel
-- Moderation
+- گسترش Admin Panel به مدیریت هتل، چهره، association و source
+- گسترش Moderation و گزارش‌های مدیریتی
 - Production Hosting
 - Media Storage
 - Analytics
@@ -884,12 +964,14 @@ docs/TODO.md
 - storage production هنوز انتخاب نشده است.
 - برخی تصاویر هنوز missing یا placeholder هستند.
 - بخش Destination هنوز frontend prototype است و وارد Prisma/API نشده.
+- داده ویدیو/مقصد هنوز فایل‌محور است؛ فقط اطلاعات شخص از API اصلی resolve می‌شود.
 
 ### Product
 
-- User Account وجود ندارد.
-- Admin Panel وجود ندارد.
-- Moderation UI وجود ندارد.
+- پنل فعلی فقط Review و Comment را پوشش می‌دهد؛ مدیریت هتل/چهره/association/source هنوز وجود ندارد.
+- مدیریت نقش‌ها UI ندارد؛ برای bootstrap می‌توان از `pnpm --filter @hotel-yab/api user:set-role -- <mobile-or-username> ADMIN` استفاده کرد.
+- سرویس ارسال SMS واقعی متصل نشده و نمایش development OTP فقط برای محیط غیر-production است.
+- بازیابی/مدیریت همه فعالیت‌های کاربر در صفحه حساب هنوز تکمیل نشده است.
 - Data Sync اتوماتیک هنوز ساخته نشده است.
 - Production infrastructure هنوز نهایی نشده است.
 

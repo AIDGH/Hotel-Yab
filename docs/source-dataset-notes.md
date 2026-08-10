@@ -42,7 +42,8 @@ handle:
 - mixed casing in Instagram IDs;
 - leading or trailing whitespace;
 - Persian display names where an Instagram ID is unavailable;
-- follower counts stored as display text such as `294K` and `6.5M`;
+- follower counts stored as display text such as `294K` and `6.5M`, which are
+  normalized into integer `followerCount` values during conversion;
 - formulas that depend on cached Excel values;
 - duplicate people across hotel/color groups;
 - missing evidence URLs for most relationships.
@@ -58,6 +59,10 @@ The current local preview imports 15 hotels, 157 people, 152 relationships, and
 in the product. Every spreadsheet-derived relationship remains `PENDING` and is
 visibly labeled as incomplete. Missing media is represented by an empty UI
 placeholder, never by a fabricated URL.
+
+Follower text has been removed from `occupation`. People without a known count
+remain in the dataset with `followerCount = null`; the conversion must never
+drop those records.
 
 A relationship can only become `VERIFIED` after it has at least one reviewed
 evidence source and a verification timestamp. `REJECTED` relationships and

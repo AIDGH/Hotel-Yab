@@ -51,6 +51,24 @@ enum SourceType {
   OTHER
 }
 
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum ContentModerationStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+  HIDDEN
+}
+
 model Hotel {
   id                String             @id @default(uuid()) @db.Uuid
   slug              String             @unique @db.VarChar(160)
@@ -63,8 +81,10 @@ model Hotel {
   longitude         Decimal?           @db.Decimal(9, 6)
   websiteUrl        String?            @db.Text
   imageUrl          String?            @db.Text
+  logoUrl           String?            @db.Text
   publicationStatus PublicationStatus  @default(DRAFT)
   associations      HotelAssociation[]
+  reviews           HotelReview[]
   createdAt         DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime           @updatedAt @db.Timestamptz(3)
 
@@ -79,11 +99,13 @@ model NotablePerson {
   instagramHandle   String?               @db.VarChar(30)
   primaryCategory   NotablePersonCategory
   occupation        String?               @db.VarChar(200)
+  followerCount     Int?
   biography         String?               @db.Text
   countryCode       String?               @db.Char(2)
   imageUrl          String?               @db.Text
   publicationStatus PublicationStatus     @default(DRAFT)
   associations      HotelAssociation[]
+  linkedUser        User?                 @relation("UserNotablePerson")
   createdAt         DateTime              @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime              @updatedAt @db.Timestamptz(3)
 
@@ -138,4 +160,111 @@ model AssociationEvidence {
 
   @@id([associationId, sourceId])
   @@index([sourceId])
+}
+
+model User {
+  id                     String         @id @default(uuid()) @db.Uuid
+  mobile                 String         @unique @db.VarChar(16)
+  username               String?        @unique @db.VarChar(30)
+  passwordHash           String?        @db.VarChar(255)
+  firstName              String?        @db.VarChar(80)
+  lastName               String?        @db.VarChar(100)
+  email                  String?        @unique @db.VarChar(254)
+  instagramHandle        String?        @unique @db.VarChar(30)
+  role                   UserRole       @default(USER)
+  status                 UserStatus     @default(ACTIVE)
+  notablePersonId        String?        @unique @db.Uuid
+  notablePerson          NotablePerson? @relation("UserNotablePerson", fields: [notablePersonId], references: [id], onDelete: SetNull)
+  sessions               UserSession[]
+  hotelReviews           HotelReview[]
+  videoComments          VideoComment[]
+  moderatedHotelReviews  HotelReview[]  @relation("HotelReviewModerator")
+  moderatedVideoComments VideoComment[] @relation("VideoCommentModerator")
+  lastLoginAt            DateTime?      @db.Timestamptz(3)
+  createdAt              DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime       @updatedAt @db.Timestamptz(3)
+
+  @@index([status])
+}
+
+model UserSession {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tokenHash String   @unique @db.Char(64)
+  expiresAt DateTime @db.Timestamptz(3)
+  userAgent String?  @db.VarChar(500)
+  ipAddress String?  @db.VarChar(64)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model OtpChallenge {
+  id         String    @id @default(uuid()) @db.Uuid
+  mobile     String    @db.VarChar(16)
+  codeHash   String    @db.Char(64)
+  attempts   Int       @default(0)
+  expiresAt  DateTime  @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([mobile, createdAt])
+  @@index([expiresAt])
+}
+
+model HotelReview {
+  id             String                  @id @default(uuid()) @db.Uuid
+  hotelId        String                  @db.Uuid
+  userId         String                  @db.Uuid
+  rating         Int
+  body           String                  @db.Text
+  status         ContentModerationStatus @default(PENDING)
+  moderationNote String?                 @db.Text
+  moderatedAt    DateTime?               @db.Timestamptz(3)
+  moderatedById  String?                 @db.Uuid
+  publishedAt    DateTime?               @db.Timestamptz(3)
+  hotel          Hotel                   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moderator      User?                   @relation("HotelReviewModerator", fields: [moderatedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime                @updatedAt @db.Timestamptz(3)
+
+  @@unique([hotelId, userId])
+  @@index([hotelId, status, createdAt])
+  @@index([userId, createdAt])
+  @@index([moderatedById, moderatedAt])
+}
+
+model Video {
+  id        String         @id @db.VarChar(160)
+  comments  VideoComment[]
+  createdAt DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime       @updatedAt @db.Timestamptz(3)
+}
+
+model VideoComment {
+  id             String                  @id @default(uuid()) @db.Uuid
+  videoId        String                  @db.VarChar(160)
+  userId         String                  @db.Uuid
+  parentId       String?                 @db.Uuid
+  body           String                  @db.Text
+  status         ContentModerationStatus @default(PENDING)
+  moderationNote String?                 @db.Text
+  moderatedAt    DateTime?               @db.Timestamptz(3)
+  moderatedById  String?                 @db.Uuid
+  publishedAt    DateTime?               @db.Timestamptz(3)
+  video          Video                   @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moderator      User?                   @relation("VideoCommentModerator", fields: [moderatedById], references: [id], onDelete: SetNull)
+  parent         VideoComment?           @relation("VideoCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies        VideoComment[]          @relation("VideoCommentReplies")
+  createdAt      DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime                @updatedAt @db.Timestamptz(3)
+
+  @@index([videoId, status, createdAt])
+  @@index([userId, createdAt])
+  @@index([parentId])
+  @@index([moderatedById, moderatedAt])
 }

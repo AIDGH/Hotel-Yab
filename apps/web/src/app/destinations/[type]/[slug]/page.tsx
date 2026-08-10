@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 
 import { EmptyState } from "@/components/empty-state";
+import { TravelVideoCard } from "@/components/travel-video-card";
+import { TravelVideoPersonCard } from "@/components/travel-video-person-card";
 import destinations from "@/data/destinations.json";
+import { getNotablePersonByInstagramUsername } from "@/lib/api";
+import { getTravelVideosForDestination } from "@/lib/travel-videos";
 
 type DestinationPageProps = {
   params: Promise<{
@@ -38,6 +42,23 @@ export default async function DestinationPage({
           )?.parentProvinceSlug,
       )
     : null;
+
+  const destinationType = isCity ? "CITY" : "PROVINCE";
+
+  const destinationVideos = getTravelVideosForDestination(
+    destinationType,
+    slug,
+  );
+  const uniqueInstagramUsernames = [
+    ...new Set(destinationVideos.map((video) => video.instagramUsername)),
+  ];
+  const people = await Promise.all(
+    uniqueInstagramUsernames.map(async (instagramUsername) => [
+      instagramUsername,
+      await getNotablePersonByInstagramUsername(instagramUsername),
+    ] as const),
+  );
+  const peopleByInstagramUsername = new Map(people);
 
   return (
     <main>
@@ -79,11 +100,35 @@ export default async function DestinationPage({
           </div>
         </div>
 
-        <EmptyState
-          kind="empty"
-          title="ویدیوهای سفر در حال تکمیل است"
-          description={`به‌زودی ویدیوهای مربوط به ${destination.name} در این صفحه نمایش داده می‌شوند.`}
-        />
+        {destinationVideos.length > 0 ? (
+          <div className="destination-video-list">
+            {destinationVideos.map((video) => (
+              <div className="destination-video-item" key={video.videoId}>
+                <TravelVideoPersonCard
+                  instagramUsername={video.instagramUsername}
+                  person={
+                    peopleByInstagramUsername.get(video.instagramUsername) ??
+                    null
+                  }
+                />
+                <TravelVideoCard
+                  videoId={video.videoId}
+                  title={video.title}
+                  mediaUrl={video.mediaUrl}
+                  thumbnailUrl={video.thumbnailUrl}
+                  sourceUrl={video.sourceUrl}
+                  instagramUsername={video.instagramUsername}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            kind="empty"
+            title="ویدیوهای سفر در حال تکمیل است"
+            description={`به‌زودی ویدیوهای مربوط به ${destination.name} در این صفحه نمایش داده می‌شوند.`}
+          />
+        )}
       </section>
     </main>
   );

@@ -1,0 +1,519 @@
+import {
+  ConflictException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  randomInt,
+  randomUUID,
+  scrypt,
+  timingSafeEqual,
+} from 'node:crypto';
+import { Request, Response } from 'express';
+import { EnvironmentVariables } from '../config/environment';
+import { PrismaService } from '../database/prisma.service';
+import { UserStatus } from '../generated/prisma/enums';
+import { LoginWithPasswordDto } from './dto/login-with-password.dto';
+import { RegisterDto } from './dto/register.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+
+const SESSION_COOKIE = 'hotel_yab_session';
+const MAX_OTP_ATTEMPTS = 5;
+const SCRYPT_KEY_LENGTH = 64;
+const SCRYPT_COST = 16_384;
+
+type RequestMetadata = { userAgent?: string; ipAddress?: string };
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService<EnvironmentVariables, true>,
+  ) {}
+
+  async requestLoginOtp(identifier: string) {
+    const user = await this.findUserByIdentifier(identifier);
+    if (!user) throw new UnauthorizedException('The account was not found');
+    this.assertActive(user.status);
+    return this.createOtpChallenge(user.mobile);
+  }
+
+  async requestRegistrationOtp(inputMobile: string) {
+    const mobile = normalizeIranianMobile(inputMobile);
+    const existing = await this.prisma.user.findUnique({
+      where: { mobile },
+      select: { id: true },
+    });
+    if (existing) throw new ConflictException('This mobile is already in use');
+    return this.createOtpChallenge(mobile);
+  }
+
+  async loginWithPassword(
+    dto: LoginWithPasswordDto,
+    metadata: RequestMetadata,
+  ) {
+    const user = await this.findUserByIdentifier(dto.identifier);
+    if (!user?.passwordHash) {
+      throw new UnauthorizedException('The login credentials are invalid');
+    }
+    this.assertActive(user.status);
+    if (!(await verifyPassword(dto.password, user.passwordHash))) {
+      throw new UnauthorizedException('The login credentials are invalid');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+    return this.createSession(user, metadata);
+  }
+
+  async verifyLoginOtp(
+    identifier: string,
+    code: string,
+    metadata: RequestMetadata,
+  ) {
+    const user = await this.findUserByIdentifier(identifier);
+    if (!user) throw new UnauthorizedException('The account was not found');
+    this.assertActive(user.status);
+    await this.consumeOtpChallenge(user.mobile, code);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+    return this.createSession(user, metadata);
+  }
+
+  async register(dto: RegisterDto, metadata: RequestMetadata) {
+    const mobile = normalizeIranianMobile(dto.mobile);
+    const username = normalizeUsername(dto.username);
+    const email = dto.email?.trim().toLowerCase() ?? null;
+    const instagramHandle = normalizeInstagramHandle(dto.instagramHandle);
+
+    await this.assertRegistrationValuesAvailable({
+      mobile,
+      username,
+      email,
+      instagramHandle,
+    });
+    const challenge = await this.getValidOtpChallenge(mobile, dto.code);
+    const passwordHash = await hashPassword(dto.password);
+
+    const user = await this.prisma.$transaction(async (transaction) => {
+      await transaction.otpChallenge.update({
+        where: { id: challenge.id },
+        data: { consumedAt: new Date() },
+      });
+      return transaction.user.create({
+        data: {
+          mobile,
+          username,
+          passwordHash,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          email,
+          instagramHandle,
+          lastLoginAt: new Date(),
+        },
+        include: { notablePerson: true },
+      });
+    });
+
+    return this.createSession(user, metadata);
+  }
+
+  async authenticateSession(token: string) {
+    const session = await this.prisma.userSession.findFirst({
+      where: {
+        tokenHash: hashSessionToken(token),
+        expiresAt: { gt: new Date() },
+        user: { status: UserStatus.ACTIVE },
+      },
+      select: { user: { select: { id: true, role: true } } },
+    });
+
+    if (!session) {
+      throw new UnauthorizedException('The session is invalid or expired');
+    }
+
+    return session.user;
+  }
+
+  async getCurrentUser(userId: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      include: { notablePerson: true },
+    });
+    return { data: toPublicUser(user) };
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const username =
+      dto.username === undefined ? undefined : normalizeUsername(dto.username);
+    const email =
+      dto.email === undefined
+        ? undefined
+        : dto.email?.trim().toLowerCase() || null;
+    const instagramHandle =
+      dto.instagramHandle === undefined
+        ? undefined
+        : normalizeInstagramHandle(dto.instagramHandle);
+
+    await this.assertProfileValuesAvailable(userId, {
+      username,
+      email,
+      instagramHandle,
+    });
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.firstName !== undefined ? { firstName: dto.firstName } : {}),
+        ...(dto.lastName !== undefined ? { lastName: dto.lastName } : {}),
+        ...(username !== undefined ? { username } : {}),
+        ...(email !== undefined ? { email } : {}),
+        ...(instagramHandle !== undefined ? { instagramHandle } : {}),
+        ...(dto.password !== undefined
+          ? { passwordHash: await hashPassword(dto.password) }
+          : {}),
+      },
+      include: { notablePerson: true },
+    });
+    return { data: toPublicUser(user) };
+  }
+
+  async logout(token: string | undefined): Promise<void> {
+    if (!token) return;
+    await this.prisma.userSession.deleteMany({
+      where: { tokenHash: hashSessionToken(token) },
+    });
+  }
+
+  readSessionToken(request: Request): string | undefined {
+    const cookieHeader = request.headers.cookie;
+    if (!cookieHeader) return undefined;
+
+    return cookieHeader
+      .split(';')
+      .map((part) => part.trim().split('='))
+      .find(([name]) => name === SESSION_COOKIE)?.[1];
+  }
+
+  setSessionCookie(response: Response, token: string, expiresAt: Date): void {
+    response.cookie(SESSION_COOKIE, token, {
+      httpOnly: true,
+      secure: this.config.get('NODE_ENV', { infer: true }) === 'production',
+      sameSite: 'lax',
+      path: '/',
+      expires: expiresAt,
+    });
+  }
+
+  clearSessionCookie(response: Response): void {
+    response.clearCookie(SESSION_COOKIE, {
+      httpOnly: true,
+      secure: this.config.get('NODE_ENV', { infer: true }) === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
+  }
+
+  private async createOtpChallenge(mobile: string) {
+    const resendSeconds = this.config.get('AUTH_OTP_RESEND_SECONDS', {
+      infer: true,
+    });
+    const latestChallenge = await this.prisma.otpChallenge.findFirst({
+      where: { mobile, consumedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+
+    if (
+      latestChallenge &&
+      Date.now() - latestChallenge.createdAt.getTime() < resendSeconds * 1000
+    ) {
+      throw new HttpException(
+        'Please wait before requesting another code',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const challengeId = randomUUID();
+    const code = randomInt(100000, 1000000).toString();
+    const ttlMinutes = this.config.get('AUTH_OTP_TTL_MINUTES', { infer: true });
+    await this.prisma.otpChallenge.create({
+      data: {
+        id: challengeId,
+        mobile,
+        codeHash: this.hashOtp(challengeId, code),
+        expiresAt: new Date(Date.now() + ttlMinutes * 60_000),
+      },
+    });
+
+    return {
+      data: {
+        mobile,
+        expiresInSeconds: ttlMinutes * 60,
+        resendAfterSeconds: resendSeconds,
+        delivery: 'SMS' as const,
+        ...(this.config.get('NODE_ENV', { infer: true }) !== 'production'
+          ? { developmentCode: code }
+          : {}),
+      },
+    };
+  }
+
+  private async getValidOtpChallenge(mobile: string, code: string) {
+    const challenge = await this.prisma.otpChallenge.findFirst({
+      where: { mobile, consumedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!challenge || challenge.attempts >= MAX_OTP_ATTEMPTS) {
+      throw new UnauthorizedException('The verification code is invalid');
+    }
+
+    const expectedHash = Buffer.from(challenge.codeHash, 'hex');
+    const suppliedHash = Buffer.from(this.hashOtp(challenge.id, code), 'hex');
+    if (!timingSafeEqual(expectedHash, suppliedHash)) {
+      await this.prisma.otpChallenge.update({
+        where: { id: challenge.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new UnauthorizedException('The verification code is invalid');
+    }
+    return challenge;
+  }
+
+  private async consumeOtpChallenge(mobile: string, code: string) {
+    const challenge = await this.getValidOtpChallenge(mobile, code);
+    await this.prisma.otpChallenge.update({
+      where: { id: challenge.id },
+      data: { consumedAt: new Date() },
+    });
+  }
+
+  private async findUserByIdentifier(identifier: string) {
+    const trimmed = identifier.trim();
+    const mobilePattern = /^(?:(?:\+|00)?98|0)?9\d{9}$/;
+    return this.prisma.user.findFirst({
+      where: mobilePattern.test(trimmed)
+        ? { mobile: normalizeIranianMobile(trimmed) }
+        : { username: normalizeUsername(trimmed) },
+      include: { notablePerson: true },
+    });
+  }
+
+  private async createSession(
+    user: Parameters<typeof toPublicUser>[0],
+    metadata: RequestMetadata,
+  ) {
+    const sessionToken = randomBytes(32).toString('base64url');
+    const sessionDays = this.config.get('AUTH_SESSION_DAYS', { infer: true });
+    const expiresAt = new Date(Date.now() + sessionDays * 86_400_000);
+    await this.prisma.$transaction([
+      this.prisma.userSession.deleteMany({
+        where: { userId: user.id, expiresAt: { lte: new Date() } },
+      }),
+      this.prisma.userSession.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashSessionToken(sessionToken),
+          expiresAt,
+          userAgent: metadata.userAgent?.slice(0, 500),
+          ipAddress: metadata.ipAddress?.slice(0, 64),
+        },
+      }),
+    ]);
+    return { token: sessionToken, expiresAt, data: toPublicUser(user) };
+  }
+
+  private assertActive(status: UserStatus): void {
+    if (status === UserStatus.BLOCKED) {
+      throw new UnauthorizedException('This account is blocked');
+    }
+  }
+
+  private async assertRegistrationValuesAvailable(values: {
+    mobile: string;
+    username: string;
+    email: string | null;
+    instagramHandle: string | null;
+  }) {
+    const conflicts = await this.prisma.user.findMany({
+      where: {
+        OR: [
+          { mobile: values.mobile },
+          { username: values.username },
+          ...(values.email ? [{ email: values.email }] : []),
+          ...(values.instagramHandle
+            ? [{ instagramHandle: values.instagramHandle }]
+            : []),
+        ],
+      },
+      select: {
+        mobile: true,
+        username: true,
+        email: true,
+        instagramHandle: true,
+      },
+    });
+    for (const conflict of conflicts) {
+      if (conflict.mobile === values.mobile)
+        throw new ConflictException('This mobile is already in use');
+      if (conflict.username === values.username)
+        throw new ConflictException('This username is already in use');
+      if (values.email && conflict.email === values.email)
+        throw new ConflictException('This email is already in use');
+      if (
+        values.instagramHandle &&
+        conflict.instagramHandle === values.instagramHandle
+      )
+        throw new ConflictException(
+          'This Instagram username is already in use',
+        );
+    }
+  }
+
+  private async assertProfileValuesAvailable(
+    userId: string,
+    values: {
+      username?: string;
+      email?: string | null;
+      instagramHandle?: string | null;
+    },
+  ) {
+    const candidates = [
+      ...(values.username ? [{ username: values.username }] : []),
+      ...(values.email ? [{ email: values.email }] : []),
+      ...(values.instagramHandle
+        ? [{ instagramHandle: values.instagramHandle }]
+        : []),
+    ];
+    if (candidates.length === 0) return;
+    const existing = await this.prisma.user.findFirst({
+      where: { id: { not: userId }, OR: candidates },
+      select: { username: true, email: true, instagramHandle: true },
+    });
+    if (!existing) return;
+    if (values.username && existing.username === values.username)
+      throw new ConflictException('This username is already in use');
+    if (values.email && existing.email === values.email)
+      throw new ConflictException('This email is already in use');
+    throw new ConflictException('This Instagram username is already in use');
+  }
+
+  private hashOtp(challengeId: string, code: string): string {
+    return createHmac(
+      'sha256',
+      this.config.get('AUTH_OTP_SECRET', { infer: true }),
+    )
+      .update(`${challengeId}:${code}`)
+      .digest('hex');
+  }
+}
+
+export function normalizeIranianMobile(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  const local = digits.startsWith('0098')
+    ? digits.slice(4)
+    : digits.startsWith('98')
+      ? digits.slice(2)
+      : digits.startsWith('0')
+        ? digits.slice(1)
+        : digits;
+  if (!/^9\d{9}$/.test(local)) {
+    throw new UnauthorizedException('The mobile number is invalid');
+  }
+  return `+98${local}`;
+}
+
+function normalizeUsername(value: string): string {
+  return value.trim().replace(/^@/, '').toLowerCase();
+}
+
+function normalizeInstagramHandle(value: string | null | undefined) {
+  return value ? value.trim().replace(/^@/, '').toLowerCase() : null;
+}
+
+function hashSessionToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString('base64url');
+  const derived = await scryptPassword(password, salt);
+  return `scrypt$${SCRYPT_COST}$${salt}$${derived.toString('base64url')}`;
+}
+
+async function verifyPassword(password: string, stored: string) {
+  const [algorithm, cost, salt, encodedHash] = stored.split('$');
+  if (
+    algorithm !== 'scrypt' ||
+    Number(cost) !== SCRYPT_COST ||
+    !salt ||
+    !encodedHash
+  )
+    return false;
+  const expected = Buffer.from(encodedHash, 'base64url');
+  const supplied = await scryptPassword(password, salt);
+  return (
+    expected.length === supplied.length && timingSafeEqual(expected, supplied)
+  );
+}
+
+function scryptPassword(password: string, salt: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scrypt(
+      password,
+      salt,
+      SCRYPT_KEY_LENGTH,
+      { N: SCRYPT_COST, r: 8, p: 1, maxmem: 64 * 1024 * 1024 },
+      (error, derivedKey) => {
+        if (error) reject(error);
+        else resolve(derivedKey);
+      },
+    );
+  });
+}
+
+function toPublicUser(user: {
+  id: string;
+  mobile: string;
+  username: string | null;
+  passwordHash: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  instagramHandle: string | null;
+  role: string;
+  notablePerson: { slug: string; displayName: string } | null;
+}) {
+  return {
+    id: user.id,
+    mobile: user.mobile,
+    username: user.username,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    displayName:
+      [user.firstName, user.lastName].filter(Boolean).join(' ') || null,
+    email: user.email,
+    instagramHandle: user.instagramHandle,
+    role: user.role,
+    hasPassword: Boolean(user.passwordHash),
+    profileComplete: Boolean(
+      user.firstName && user.lastName && user.username && user.passwordHash,
+    ),
+    notablePerson: user.notablePerson
+      ? {
+          slug: user.notablePerson.slug,
+          displayName: user.notablePerson.displayName,
+        }
+      : null,
+  };
+}

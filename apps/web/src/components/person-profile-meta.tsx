@@ -1,4 +1,4 @@
-import { categoryLabel } from "@/lib/labels";
+import { categoryLabel, formatFollowerCount } from "@/lib/labels";
 import { PersonInstagramHandle } from "./person-instagram-handle";
 import {
   compactPersonOccupation,
@@ -8,6 +8,7 @@ import {
 type PersonProfileMetaProps = {
   instagramHandle: string | null;
   occupation: string | null;
+  followerCount: number | null;
   primaryCategory: string;
   className?: string;
 };
@@ -15,6 +16,7 @@ type PersonProfileMetaProps = {
 export function PersonProfileMeta({
   instagramHandle,
   occupation,
+  followerCount,
   primaryCategory,
   className = "",
 }: PersonProfileMetaProps) {
@@ -25,15 +27,24 @@ export function PersonProfileMeta({
 
   const displayedOccupation =
     compactOccupation ?? (!instagramHandle ? occupation : null);
+  const displayedFollowerCount = formatFollowerCount(followerCount);
+  const occupationLine = [
+    displayedOccupation,
+    displayedFollowerCount
+      ? `${displayedFollowerCount} دنبال‌کننده`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
-  if (!instagramHandle && !displayedOccupation) {
+  if (!instagramHandle && !occupationLine) {
     return null;
   }
 
   return (
     <div className={`person-profile-meta ${className}`.trim()}>
-      {displayedOccupation ? ( 
-        <PersonOccupation value={displayedOccupation} />
+      {occupationLine ? (
+        <PersonOccupation value={occupationLine} />
       ) : null}
 
       {instagramHandle ? (

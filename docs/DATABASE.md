@@ -26,7 +26,7 @@ The Prisma schema is the source of truth for the exact database models, fields, 
 
 # Core Domain
 
-The current database is centered around three main concepts:
+The discovery domain is centered around three main concepts:
 
 ```text
 Hotel
@@ -49,6 +49,7 @@ Typical hotel information includes:
 - slug;
 - city;
 - image;
+- optional logo (`logoUrl`);
 - publication information;
 - relationships with notable people.
 
@@ -67,6 +68,7 @@ Typical information includes:
 - display name;
 - primary category;
 - occupation;
+- follower count snapshot (`followerCount`);
 - biography;
 - image;
 - Instagram information;
@@ -79,7 +81,7 @@ ACTOR
 ATHLETE
 INFLUENCER
 MUSICIAN
-OTHER
+PUBLIC_FIGURE
 ```
 
 `primaryCategory` is used for broad classification and filtering.
@@ -123,6 +125,81 @@ A hotel can be associated with many people.
 A notable person can be associated with many hotels.
 
 Therefore, Hotel and Notable Person have a many-to-many relationship through the Association model.
+
+---
+
+# User and Authentication
+
+## User
+
+New users are created only after successful registration-mobile OTP
+verification. Important fields include:
+
+- unique normalized `mobile`;
+- unique normalized `username` (nullable only for legacy OTP-created users);
+- nullable `passwordHash` containing a salted `scrypt` hash for legacy compatibility;
+- optional unique `email`;
+- optional unique normalized `instagramHandle`;
+- `firstName` and `lastName`;
+- `role` (`USER`, `MODERATOR`, `ADMIN`);
+- `status` (`ACTIVE`, `BLOCKED`);
+- optional unique `notablePersonId`, set only after administrative verification.
+
+Follower count is not collected from regular users. Public notable-person data
+continues to live in `NotablePerson`.
+
+No public or private API response exposes `passwordHash`. New registrations
+require username and password; legacy accounts are prompted to complete both
+after OTP login.
+
+## UserSession
+
+Each session belongs to a user. The database stores `tokenHash`, expiry, and
+optional device metadata; it never stores the raw browser token. Expired
+sessions are ignored and may be deleted during later login.
+
+## OtpChallenge
+
+OTP challenges store a HMAC hash of the six-digit code, attempt count, expiry,
+and consumption time. Codes are scoped to a normalized mobile number and are
+never stored in plaintext.
+
+---
+
+# User-Generated Content
+
+## HotelReview
+
+`HotelReview` belongs to one `User` and one `Hotel`. The composite unique key
+`(hotelId, userId)` permits one active review per user/hotel. `rating` is
+validated as 1–5 in both the API and database constraint. Review text is
+optional.
+
+`moderatedById` and `moderatedAt` preserve who made the latest moderation
+decision and when. `moderationNote` is internal and is never returned publicly.
+
+## Video
+
+`Video` is the canonical database identity used by interactive features. It
+does not duplicate person, destination, source, or media metadata from the
+current travel-video prototype. Video IDs are imported from the same dataset so
+comments cannot attach to an arbitrary unknown video.
+
+## VideoComment
+
+`VideoComment` belongs to a user and video. Optional `parentId` supports a
+single reply level enforced by the service. Public reads return only comments
+with status `PUBLISHED`. The latest moderation decision uses the same
+moderator/time/note fields as hotel reviews.
+
+`HotelReview` and `VideoComment` share `ContentModerationStatus`:
+
+```text
+PENDING
+PUBLISHED
+REJECTED
+HIDDEN
+```
 
 ---
 
@@ -178,6 +255,7 @@ Hotel and notable-person records may contain image references such as:
 
 ```text
 imageUrl
+logoUrl (Hotel only)
 ```
 
 The database stores references to media rather than the binary image itself.
@@ -195,6 +273,7 @@ The database currently supports common application queries such as:
 - list published hotels;
 - search hotels;
 - filter hotels by city;
+- sort hotels by name or city;
 - paginate hotel results;
 - count hotel-person associations;
 - count verified associations.
@@ -204,6 +283,7 @@ The database currently supports common application queries such as:
 - list published people;
 - search by name;
 - filter by category;
+- sort by follower count, name, or association count;
 - paginate results;
 - retrieve associated hotels.
 
@@ -212,6 +292,17 @@ The database currently supports common application queries such as:
 - retrieve people connected to a hotel;
 - retrieve hotels connected to a person;
 - distinguish verified relationships from incomplete relationships.
+
+### Accounts and Contributions
+
+- resolve a user from a non-expired session-token hash;
+- resolve login by normalized mobile or username;
+- verify salted password hashes or expiring OTP challenges;
+- enforce unique mobile/username/email/Instagram constraints;
+- upsert one hotel review per user/hotel;
+- aggregate published hotel ratings;
+- list published video comments and one-level replies.
+- list contribution moderation queues by status and persist the moderator audit fields.
 
 ---
 
@@ -259,21 +350,18 @@ The database may later expand to support:
 
 Structured information about sources used to verify hotel-person relationships.
 
-## User Accounts
+## Account Extensions
 
 Possible future entities:
 
-- User
 - Favorite
 - Saved Hotel
 
-## Moderation
+## Moderation History
 
-Possible future support for:
-
-- review status;
-- moderation history;
-- publication workflow.
+The latest moderator identity, timestamp, and note are implemented on each
+review/comment. A separate append-only history table remains a possible future
+extension if every transition must be audited rather than only the latest one.
 
 ## Data Sync
 
@@ -298,3 +386,5 @@ These models should only be introduced when their workflow is implemented.
 6. The database should support verification and publication workflows.
 7. Future models should be introduced only when their product workflow is defined.
 8. `schema.prisma` remains the source of truth for the exact schema.
+9. Raw OTP/session secrets are never persisted; only hashes are stored.
+10. User-generated content is private while its moderation status is `PENDING`.

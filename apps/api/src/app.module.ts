@@ -7,6 +7,10 @@ import {
 import { HealthModule } from './health/health.module';
 import { HotelsModule } from './hotels/hotels.module';
 import { NotablePeopleModule } from './notable-people/notable-people.module';
+import { AuthModule } from './auth/auth.module';
+import { HotelReviewsModule } from './reviews/hotel-reviews.module';
+import { VideoCommentsModule } from './video-comments/video-comments.module';
+import { ModerationModule } from './moderation/moderation.module';
 
 @Module({
   imports: [
@@ -23,6 +27,10 @@ import { NotablePeopleModule } from './notable-people/notable-people.module';
     HealthModule,
     HotelsModule,
     NotablePeopleModule,
+    AuthModule,
+    HotelReviewsModule,
+    VideoCommentsModule,
+    ModerationModule,
   ],
 })
 export class AppModule {}

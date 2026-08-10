@@ -23,5 +23,6 @@ export function configureApp(app: INestApplication): void {
   );
   app.enableCors({
     origin: configService.get('CORS_ORIGIN', { infer: true }),
+    credentials: true,
   });
 }

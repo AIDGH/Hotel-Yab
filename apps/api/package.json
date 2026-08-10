@@ -8,6 +8,7 @@
   "scripts": {
     "build": "nest build",
     "data:import": "tsx prisma/import-data.ts prisma/data/import.json",
+    "user:set-role": "tsx prisma/set-user-role.ts",
     "format": "prettier --write \"src/**/*.ts\" \"!src/generated/**\" \"test/**/*.ts\" \"prisma/**/*.ts\" \"prisma.config.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"!src/generated/**\" \"test/**/*.ts\" \"prisma/**/*.ts\" \"prisma.config.ts\"",
     "start": "nest start",

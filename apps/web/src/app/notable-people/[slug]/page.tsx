@@ -6,8 +6,15 @@ import { MediaTile } from "@/components/media-tile";
 import { PersonDisplayName } from "@/components/person-display-name";
 import { PersonProfileMeta } from "@/components/person-profile-meta";
 import { SourceList } from "@/components/source-list";
+import { TravelVideoCard } from "@/components/travel-video-card";
+import { VideoDestinationLinks } from "@/components/video-destination-links";
 import { getNotablePerson } from "@/lib/api";
-import { associationLabel, categoryLabel, formatDate } from "@/lib/labels";
+import {
+  associationLabel,
+  categoryLabel,
+  formatDate,
+} from "@/lib/labels";
+import { getTravelVideosForInstagramUsername } from "@/lib/travel-videos";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +53,9 @@ export default async function PersonPage({ params }: PersonPageProps) {
   const hasVerifiedAssociations = person.associations.some(
     ({ verificationStatus }) => verificationStatus === "VERIFIED",
   );
-
+  const personTravelVideos = getTravelVideosForInstagramUsername(
+    person.instagramHandle,
+  );
   return (
     <main className="detail-page">
       <section className="container detail-hero detail-hero-person">
@@ -65,6 +74,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
             className="detail-location"
             instagramHandle={person.instagramHandle}
             occupation={person.occupation}
+            followerCount={person.followerCount}
             primaryCategory={person.primaryCategory}
           />
           <p>
@@ -137,6 +147,44 @@ export default async function PersonPage({ params }: PersonPageProps) {
             </p>
           </aside>
         </div>
+      </section>
+
+      <section className="section container person-video-section">
+        <div className="results-header">
+          <div>
+            <span className="section-eyebrow">ویدیوهای سفر</span>
+            <h2>سفرهای ثبت‌شده این چهره</h2>
+          </div>
+          {personTravelVideos.length > 0 ? (
+            <span>
+              {personTravelVideos.length.toLocaleString("fa-IR")} ویدیو
+            </span>
+          ) : null}
+        </div>
+
+        {personTravelVideos.length > 0 ? (
+          <div className="person-video-list">
+            {personTravelVideos.map(({ video, destinations: videoDestinations }) => (
+              <div className="person-video-item" key={video.videoId}>
+                <TravelVideoCard
+                  videoId={video.videoId}
+                  title={video.title}
+                  mediaUrl={video.mediaUrl}
+                  thumbnailUrl={video.thumbnailUrl}
+                  sourceUrl={video.sourceUrl}
+                  instagramUsername={video.instagramUsername}
+                />
+                <VideoDestinationLinks destinations={videoDestinations} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            kind="empty"
+            title="ویدیوی سفری برای این چهره ثبت نشده"
+            description="پس از اتصال ویدیو به نام کاربری اینستاگرام، مقصدهای مرتبط آن در این بخش نمایش داده می‌شوند."
+          />
+        )}
       </section>
     </main>
   );

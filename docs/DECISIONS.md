@@ -183,7 +183,7 @@ Current high-level categories include:
 - Athlete
 - Influencer
 - Musician
-- Other
+- Public Figure
 
 More specific information belongs in fields such as `occupation`.
 
@@ -319,40 +319,38 @@ The planned pipeline will be documented separately when implementation begins.
 
 ---
 
-## 14. User Accounts Are Not an MVP Requirement
+## 14. Accounts Must Not Block Public Discovery
 
-**Decision:** Authentication and user accounts should not be prioritized before the core discovery experience is mature.
+**Decision:** Hotel-Yab now supports optional accounts, but no public discovery
+page requires login. Authentication is introduced only where identity is needed
+for reviews, comments, and personal account data.
 
-Core priorities currently include:
-
-- hotel discovery;
-- notable-person discovery;
-- relationship data;
-- content quality;
-- search;
-- detail pages;
-- data pipeline.
-
-Potential future user features include:
+Current account capabilities include verified registration, password/OTP login,
+profile data, hotel reviews, video comments, and contribution moderation.
+Potential later features include:
 
 - favorites;
 - saved hotels;
 - personalization;
-- user contributions.
+- consolidated contribution management.
 
 **Reason:**
 
-Authentication adds significant product and technical complexity but does not yet improve the core value proposition enough to justify being an early dependency.
+Keeping read access open preserves the discovery-first product while an account
+adds value only when a user chooses to contribute.
 
-**Status:** Planned for a later phase
+**Status:** Active
 
 ---
 
-## 15. Admin and Moderation Will Be Added When Required
+## 15. Admin and Moderation Grow by Concrete Workflow
 
-**Decision:** Do not build a large admin system prematurely.
+**Decision:** Build only the administration surface needed by a real workflow.
+The first implemented slice is a protected queue for hotel reviews and video
+comments, with publish/reject/hide/pending actions and latest-decision audit
+fields.
 
-A future admin/moderation layer may support:
+Future slices may support:
 
 - editing hotels;
 - editing notable people;
@@ -364,7 +362,7 @@ A future admin/moderation layer may support:
 
 The exact moderation workflow should be based on the real data-management process rather than assumptions made too early.
 
-**Status:** Planned
+**Status:** Active; contribution moderation is implemented, catalog moderation is planned
 
 ---
 
@@ -408,6 +406,106 @@ Public destination routes use:
 The type segment prevents ambiguity when a city and province share the same slug,
 such as Tehran.
 
-Travel videos may later be associated with one or more cities or provinces.
-Destination persistence and video relationships will be modeled in Prisma only
-after the real dataset structure is validated.
+Travel videos may be associated with one or more cities or provinces through
+`videoDestinations`. Destination persistence and video relationships will be
+modeled in Prisma only after the real dataset structure is validated.
+
+**Status:** Active
+
+## 18. Separate Follower Count from Occupation
+
+**Decision:** Store `followerCount` as an optional non-negative integer instead
+of appending it to `occupation`.
+
+**Reason:** Occupation is stable descriptive metadata, while follower count is
+a time-sensitive number used for display and sorting. Keeping them separate
+avoids string parsing in the API and preserves people whose count is unknown.
+
+**Status:** Active
+
+## 19. Sort Public Listings in the Backend
+
+**Decision:** Apply hotel and notable-person sorting in the API before
+pagination. Hotel sorts are name and city; person sorts are follower count,
+name, and hotel-association count.
+
+**Reason:** Sorting only the current frontend page would produce incorrect and
+unstable results across pagination. URL query parameters keep the selected sort
+shareable and reproducible.
+
+Hotel media keeps the optional logo in `logoUrl`, separate from the main
+`imageUrl`, so both can be displayed without replacing one another.
+
+**Status:** Active
+
+## 20. Resolve Travel Videos by Stable Relationship Keys
+
+**Decision:** Keep the current prototype relationship normalized as:
+
+```text
+Person.instagramHandle ← TravelVideo.instagramUsername
+TravelVideo.videoId ← VideoDestinations.videoId → Destination type + slug
+```
+
+Person metadata is resolved through the existing notable-person API using an
+exact normalized Instagram handle. Destination metadata is resolved from
+`destinations.json`. `travel-videos.json` does not duplicate person or
+destination names, images, follower counts, or descriptions.
+
+**Reason:** A person's profile data can change independently, and one video may
+belong to several destinations. Relationship keys prevent stale copies and
+keep `sourceUrl` attached to the original Instagram post.
+
+**Status:** Active
+
+## 21. Use Password or Mobile OTP with Opaque Server-Side Sessions
+
+**Decision:** Registration is separate from login and requires mobile OTP
+verification, a unique username, and a password. Default login accepts mobile
+or username plus password; OTP remains a passwordless/fallback login for an
+existing account. Successful authentication sets an HttpOnly, SameSite=Lax
+cookie. The raw password, session token, and OTP are never persisted; only
+salted `scrypt`, SHA-256, and HMAC hashes respectively are stored.
+
+**Reason:** Explicit registration makes the account lifecycle understandable,
+password login avoids an SMS dependency on every visit, and OTP preserves
+mobile ownership verification and account access when the password is not used.
+Server-side sessions remain revocable. Email remains optional profile metadata.
+Development may expose its OTP for local testing, but production requires an
+SMS provider.
+
+**Status:** Active
+
+## 22. Do Not Self-Report Notable-Person Status or Follower Count
+
+**Decision:** A user may optionally enter an Instagram handle, but cannot set a
+follower count or link the account to `NotablePerson`. That link is unique and
+must be verified administratively.
+
+**Reason:** Follower count is volatile and untrusted when self-reported, while a
+false public-person identity would damage the product's trust model.
+
+**Status:** Active
+
+## 23. Moderate Reviews and Comments Before Publication
+
+**Decision:** Hotel reviews and video comments start as `PENDING`; public API
+responses include only `PUBLISHED` content. Editing a hotel review returns it to
+`PENDING`. One review is allowed per user/hotel.
+
+**Reason:** User-generated content must not bypass the same trust boundary used
+elsewhere in Hotel-Yab.
+
+**Status:** Active; protected review/comment moderation UI is implemented
+
+## 24. Attach Comments to the Canonical Video and Keep Them Collapsed
+
+**Decision:** Comments belong to a canonical `Video` record rather than a
+destination/person page. The frontend hides the comment panel by default and
+loads it only when the user opens it.
+
+**Reason:** One video can appear under several destinations and a person. A
+single comment thread prevents duplication, while collapsed UI keeps video
+discovery visually focused.
+
+**Status:** Active

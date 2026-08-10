@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
 import {
+  ContentModerationStatus,
   PublicationStatus,
   VerificationStatus,
 } from '../generated/prisma/enums';
@@ -36,6 +37,7 @@ type HotelListItem = {
   countryCode: string;
   city: string;
   imageUrl: string | null;
+  logoUrl: string | null;
   associationCount: number;
   verifiedAssociationCount: number;
 };
@@ -53,6 +55,10 @@ export class HotelsService {
       : [];
     const city = query.city?.trim();
     const countryCode = query.countryCode?.toUpperCase();
+    const orderBy: Prisma.HotelOrderByWithRelationInput[] =
+      query.sort === 'CITY_ASC'
+        ? [{ city: 'asc' }, { name: 'asc' }, { id: 'asc' }]
+        : [{ name: 'asc' }, { id: 'asc' }];
 
     const where = {
       publicationStatus: PublicationStatus.PUBLISHED,
@@ -75,7 +81,7 @@ export class HotelsService {
         where,
         skip: (page - 1) * pageSize,
         take: pageSize,
-        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        orderBy,
         select: {
           id: true,
           slug: true,
@@ -84,6 +90,7 @@ export class HotelsService {
           countryCode: true,
           city: true,
           imageUrl: true,
+          logoUrl: true,
           associations: {
             where: verifiedAssociationWhere,
             select: { id: true },
@@ -126,6 +133,7 @@ export class HotelsService {
         longitude: true,
         websiteUrl: true,
         imageUrl: true,
+        logoUrl: true,
         associations: {
           where: visibleAssociationWhere,
           orderBy: [{ verifiedAt: 'desc' }, { createdAt: 'desc' }],
@@ -144,6 +152,7 @@ export class HotelsService {
                 instagramHandle: true,
                 primaryCategory: true,
                 occupation: true,
+                followerCount: true,
                 imageUrl: true,
               },
             },
@@ -175,11 +184,24 @@ export class HotelsService {
       throw new NotFoundException(`Hotel with slug "${slug}" was not found`);
     }
 
+    const rating = await this.prisma.hotelReview.aggregate({
+      where: {
+        hotelId: hotel.id,
+        status: ContentModerationStatus.PUBLISHED,
+      },
+      _avg: { rating: true },
+      _count: { _all: true },
+    });
+
     return {
       data: {
         ...hotel,
         latitude: hotel.latitude === null ? null : Number(hotel.latitude),
         longitude: hotel.longitude === null ? null : Number(hotel.longitude),
+        ratingSummary: {
+          averageRating: rating._avg.rating,
+          reviewCount: rating._count._all,
+        },
         associations: hotel.associations.map(
           ({ evidence, ...association }) => ({
             ...association,

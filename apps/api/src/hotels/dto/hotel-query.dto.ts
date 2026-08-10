@@ -1,4 +1,4 @@
-import { IsOptional, IsString, Length, Matches } from 'class-validator';
+import { IsIn, IsOptional, IsString, Length, Matches } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
@@ -21,4 +21,12 @@ export class HotelQueryDto extends PaginationQueryDto {
   @Length(2, 2)
   @Matches(/^[A-Za-z]{2}$/)
   countryCode?: string;
+
+  @ApiPropertyOptional({
+    enum: ['NAME_ASC', 'CITY_ASC'],
+    default: 'NAME_ASC',
+  })
+  @IsOptional()
+  @IsIn(['NAME_ASC', 'CITY_ASC'])
+  sort?: 'NAME_ASC' | 'CITY_ASC';
 }

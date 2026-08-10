@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { HotelListItem } from "@/lib/types";
+import { HotelLogo } from "./hotel-logo";
 import { MediaTile } from "./media-tile";
 
 export function HotelCard({ hotel }: { hotel: HotelListItem }) {
@@ -11,6 +12,13 @@ export function HotelCard({ hotel }: { hotel: HotelListItem }) {
       <Link href={`/hotels/${hotel.slug}`} aria-label={`مشاهده ${hotel.name}`}>
         <div className="hotel-card-media">
           <MediaTile imageUrl={hotel.imageUrl} label={hotel.name} variant="hotel" />
+          {hotel.logoUrl ? (
+            <HotelLogo
+              logoUrl={hotel.logoUrl}
+              hotelName={hotel.name}
+              placement="card"
+            />
+          ) : null}
           <span
             className={`status-badge${
               hasVerifiedAssociations ? "" : " status-badge-neutral"

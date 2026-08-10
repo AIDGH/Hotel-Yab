@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { EmptyState } from "@/components/empty-state";
 import { HotelCard } from "@/components/hotel-card";
+import { AutoSubmitSelect } from "@/components/auto-submit-select";
 import { getHotels } from "@/lib/api";
 import Link from "next/link";
 
@@ -53,7 +54,8 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
       
   const query = readParam(params.query);
   const city = readParam(params.city);
-  const result = await getHotels({ query, city, pageSize: 9, page });
+  const sort = readParam(params.sort) || "NAME_ASC";
+  const result = await getHotels({ query, city, sort, pageSize: 9, page });
 
   return (
     <main className="listing-page">
@@ -65,7 +67,7 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
             همه‌ی هتل‌های منتشرشده را ببینید؛ ارتباط با چهره‌ها فقط پس از
             تأیید و ثبت منبع نمایش داده می‌شود.
           </p>
-          <form className="filter-bar" method="get">
+          <form className="filter-bar filter-bar-four" method="get">
             <label>
               <span>نام هتل یا شهر</span>
               <input name="query" defaultValue={query} placeholder="مثلاً هتل یا تهران" />
@@ -73,6 +75,13 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
             <label>
               <span>شهر</span>
               <input name="city" defaultValue={city} placeholder="همه شهرها" />
+            </label>
+            <label>
+              <span>مرتب‌سازی</span>
+              <AutoSubmitSelect name="sort" defaultValue={sort}>
+                <option value="NAME_ASC">الفبا</option>
+                <option value="CITY_ASC">شهر</option>
+              </AutoSubmitSelect>
             </label>
             <button className="button" type="submit">
               اعمال فیلتر

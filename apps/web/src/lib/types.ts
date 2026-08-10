@@ -18,6 +18,7 @@ export type HotelListItem = {
   countryCode: string;
   city: string;
   imageUrl: string | null;
+  logoUrl: string | null;
   associationCount: number;
   verifiedAssociationCount: number;
 };
@@ -29,6 +30,7 @@ export type NotablePersonListItem = {
   instagramHandle: string | null;
   primaryCategory: string;
   occupation: string | null;
+  followerCount: number | null;
   countryCode: string | null;
   imageUrl: string | null;
   associationCount: number;
@@ -66,9 +68,16 @@ export type HotelDetail = Omit<
   latitude: number | null;
   longitude: number | null;
   websiteUrl: string | null;
+  ratingSummary: {
+    averageRating: number | null;
+    reviewCount: number;
+  };
   associations: Array<
     PublicAssociation & {
-      notablePerson: Omit<NotablePersonListItem, "associationCount" | "countryCode">;
+      notablePerson: Omit<
+        NotablePersonListItem,
+        "associationCount" | "verifiedAssociationCount" | "countryCode"
+      >;
     }
   >;
 };
@@ -82,7 +91,7 @@ export type NotablePersonDetail = Omit<
     PublicAssociation & {
       hotel: Pick<
         HotelListItem,
-        "id" | "slug" | "name" | "countryCode" | "city" | "imageUrl"
+        "id" | "slug" | "name" | "countryCode" | "city" | "imageUrl" | "logoUrl"
       >;
     }
   >;
@@ -91,5 +100,4 @@ export type NotablePersonDetail = Omit<
 export type ApiEnvelope<T> = { data: T };
 
 export type ApiResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; status?: number; message: string };
+  { ok: true; value: T } | { ok: false; status?: number; message: string };

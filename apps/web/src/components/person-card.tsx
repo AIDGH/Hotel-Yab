@@ -22,6 +22,7 @@ export function PersonCard({ person }: { person: NotablePersonListItem }) {
           <PersonProfileMeta
             instagramHandle={person.instagramHandle}
             occupation={person.occupation}
+            followerCount={person.followerCount}
             primaryCategory={person.primaryCategory}
           />
           <div className="card-meta">

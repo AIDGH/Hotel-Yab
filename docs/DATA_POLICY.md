@@ -20,6 +20,7 @@ Hotel-Yab currently works with:
 - Images
 - Instagram information
 - Biography and occupation
+- Follower-count snapshots
 - External sources and evidence
 
 ---
@@ -124,6 +125,7 @@ Notable-person records may include:
 - biography;
 - image;
 - Instagram handle.
+- follower count snapshot.
 
 Information should be based on publicly available and reasonably reliable sources.
 
@@ -146,6 +148,10 @@ Images should:
 - avoid misleading or unrelated content;
 - be replaced if a more reliable or higher-quality image becomes available.
 
+For locally stored third-party media, the author, source URL, license, and any
+format conversion must be recorded in `docs/MEDIA_ATTRIBUTIONS.md`. A public
+webpage is not by itself permission to reuse an image.
+
 ---
 
 ## Instagram Data
@@ -159,6 +165,21 @@ Instagram information may include:
 Only publicly available information should be collected.
 
 Instagram handles should be verified when possible to reduce incorrect profile matching.
+
+`followerCount` is stored as a non-negative integer when known and remains
+separate from `occupation`. It is an approximate, time-sensitive snapshot used
+for display and sorting, not evidence for a hotel-person association. Unknown
+counts stay `null` rather than being guessed.
+
+## Travel Videos
+
+Travel videos must retain `sourceUrl` for the original public post. A video is
+connected to a person only when `instagramUsername` exactly matches the
+normalized published `instagramHandle`; similar display names are not enough.
+
+Destination relationships use destination type and slug. One video may belong
+to multiple destinations, and destination/person metadata must be resolved
+from their canonical records rather than copied into the video dataset.
 
 ---
 
@@ -293,19 +314,36 @@ Raw spreadsheet data should not bypass validation and be published directly.
 
 ## User-Submitted Data
 
-If Hotel-Yab later allows users to submit information, submissions should not become public automatically.
+Hotel-Yab accepts hotel reviews and video comments from authenticated users.
+Submissions do not become public automatically.
 
-Future flow:
+Current flow:
 
 ```text
 User Submission
       ↓
-Review
+PENDING moderation
       ↓
-Verification
+PUBLISHED / REJECTED / HIDDEN
       ↓
-Publication
+Public API (published only)
 ```
+
+- Mobile numbers and email addresses are private account data and must never be
+  included in public review/comment responses. Passwords are never retained in
+  plaintext or exposed by any API; only salted hashes are stored.
+- Site usernames and optional Instagram handles are normalized and uniqueness
+  protected. Instagram uniqueness still does not prove notable-person identity.
+- Public contributions use the user's display name only.
+- Instagram handle is optional and does not prove that a user is a notable
+  person. Linking a user to `NotablePerson` requires administrative review.
+- Follower count is not requested from users; notable-person follower data
+  remains a separately maintained snapshot.
+- Editing a review returns it to `PENDING` so previously approved text cannot be
+  replaced without review.
+- The same moderation rule applies to comments and replies.
+- The latest moderation action records the responsible manager/moderator,
+  timestamp, and an internal note; these audit fields are not public content.
 
 ---
 

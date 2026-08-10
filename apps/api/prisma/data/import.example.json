@@ -5,6 +5,7 @@
       "name": "Replace with real hotel",
       "countryCode": "US",
       "city": "Replace with city",
+      "logoUrl": "https://replace.example/with-real-hotel-logo.webp",
       "publicationStatus": "DRAFT"
     }
   ],
@@ -14,6 +15,7 @@
       "displayName": "Replace with real person",
       "instagramHandle": "replace_with_real_handle",
       "primaryCategory": "PUBLIC_FIGURE",
+      "followerCount": 100000,
       "publicationStatus": "DRAFT"
     }
   ],
@@ -38,6 +40,11 @@
           "isPrimary": true
         }
       ]
+    }
+  ],
+  "videos": [
+    {
+      "id": "replace-with-canonical-video-id"
     }
   ]
 }

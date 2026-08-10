@@ -6,6 +6,10 @@ export type EnvironmentVariables = {
   CORS_ORIGIN: string;
   SWAGGER_ENABLED: boolean;
   DATABASE_URL: string;
+  AUTH_OTP_SECRET: string;
+  AUTH_OTP_TTL_MINUTES: number;
+  AUTH_OTP_RESEND_SECONDS: number;
+  AUTH_SESSION_DAYS: number;
 };
 
 const nodeEnvironment = process.env.NODE_ENV ?? 'development';
@@ -25,4 +29,16 @@ export const environmentValidationSchema = Joi.object<EnvironmentVariables>({
   DATABASE_URL: Joi.string()
     .uri({ scheme: ['postgresql', 'postgres'] })
     .required(),
+  AUTH_OTP_SECRET: Joi.string()
+    .min(32)
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.required(),
+      otherwise: Joi.string().default(
+        'hotel-yab-development-otp-secret-change-me',
+      ),
+    }),
+  AUTH_OTP_TTL_MINUTES: Joi.number().integer().min(2).max(15).default(5),
+  AUTH_OTP_RESEND_SECONDS: Joi.number().integer().min(30).max(300).default(60),
+  AUTH_SESSION_DAYS: Joi.number().integer().min(1).max(90).default(30),
 });

@@ -24,7 +24,8 @@ This file tracks open product and technical work for Hotel-Yab.
 
 ## Hotel Images
 
-- [ ] Add images for existing hotels
+- [ ] Add images for the remaining existing hotels (3 of 15 currently have local hotel-view images)
+- [ ] Add or verify logos for the remaining hotels (2 of 15 currently have local logos)
 - [ ] Define a consistent image size and format
 - [ ] Add fallback image behavior
 
@@ -107,12 +108,18 @@ Website
 
 # 6. User Accounts
 
-This phase should start after the core website and data pipeline are stable.
+The account foundation is implemented without making login mandatory for public discovery.
 
-- [ ] Define why users need accounts
-- [ ] Design authentication flow
-- [ ] Implement signup/login
-- [ ] Add user profile
+- [x] Define why users need accounts
+- [x] Design password + mobile OTP authentication flows
+- [x] Separate login and registration while keeping discovery public
+- [x] Implement mobile/username password login and OTP fallback with revocable sessions
+- [x] Add unique username and salted password hashing
+- [x] Add editable user profile with optional unique email and Instagram
+- [x] Add hotel ratings/reviews with pending moderation
+- [x] Add collapsed video comments with pending moderation
+- [ ] Integrate a production SMS provider
+- [ ] Add account activity management for reviews/comments
 - [ ] Add favorite/saved hotels
 - [ ] Consider saved notable people
 - [ ] Consider personalized discovery
@@ -122,15 +129,19 @@ This phase should start after the core website and data pipeline are stable.
 
 # 7. Admin and Moderation
 
-Later phase:
+The contribution-moderation slice is implemented; catalog administration remains open.
 
-- [ ] Define admin roles
+- [x] Define and enforce `USER`, `MODERATOR`, and `ADMIN` roles
+- [x] Create hotel-review and video-comment moderation queues
+- [x] Add publish/reject/hide/pending actions with moderator identity, time, and note
+- [x] Add a safe local command to bootstrap an admin/moderator role
 - [ ] Create hotel management interface
 - [ ] Create notable-person management interface
 - [ ] Create association review interface
 - [ ] Add source verification workflow
 - [ ] Add publication controls
-- [ ] Add moderation history
+- [ ] Add append-only moderation history if latest-decision audit fields are insufficient
+- [ ] Add UI for user role management
 
 ---
 
@@ -200,17 +211,8 @@ After the documentation set is complete:
 
 ## Destination Discovery
 
-- [x] Add Destinations navigation item
-- [x] Create `/destinations` listing page
-- [x] Support cities and provinces
-- [x] Add destination search
-- [x] Add province filter for cities
-- [x] Auto-submit destination filters
-- [x] Create reusable Destination Card
-- [x] Add destination detail route
-- [x] Show featured destinations on homepage
 - [ ] Add real province dataset and images
 - [ ] Model destinations in Prisma/PostgreSQL
-- [ ] Add travel videos
-- [ ] Connect videos to cities/provinces
+- [ ] Expand the reviewed travel-video dataset
+- [ ] Move travel videos and video-destination relationships into Prisma after validating the prototype
 - [ ] Move destination data into the main data pipeline
