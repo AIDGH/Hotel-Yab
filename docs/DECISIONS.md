@@ -612,6 +612,23 @@ while keeping staff notes private preserves the moderation boundary.
 
 **Status:** Active; implemented without a database migration.
 
+## 33. Keep Destination Workbook Input Minimal and Derive Repeated Fields
+
+**Decision:** The private destination/video workbook remains the working input,
+but destination image paths are derived from destination type and slug rather
+than stored in cells. City and province `displayOrder` values use separate
+numbering scopes. Workbook province names used as relationship keys are
+normalized to canonical slugs before JSON generation, and each video ID is also
+registered in the backend canonical `Video` dataset for comments.
+
+**Reason:** Repeating predictable paths and stable enum values makes manual data
+entry slower and creates avoidable drift. Type-scoped ordering permits a city
+and a province to share the same position, while canonical slug normalization
+keeps routes and video relationships resolvable.
+
+**Status:** Active; the next improvement is a reusable workbook-to-JSON
+converter with validation and dry-run output.
+
 ## 30. Keep Avatars Separate and Registration Identity-Minimal
 
 **Decision:** Registration requires only verified mobile, unique username, and

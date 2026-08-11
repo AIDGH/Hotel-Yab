@@ -70,6 +70,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Added reusable like/save controls to hotel/person cards and detail pages, with login prompting for guests and shared client-side library state for signed-in users.
 - Added `/account/library` with separate liked and saved sections for hotels and notable people, linked from the account menu and sidebar.
 - Added administrator-only, inline-confirmed permanent deletion controls for published hotel reviews and video comments/replies.
+- Added three more Morteza Kowsari travel-video records, five new video–destination links, and normalized destination metadata for Isfahan, Hormozgan, Fars, Qeshm, and Firuzabad from the private destination workbook.
 
 ### Changed
 
@@ -140,6 +141,8 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Registered the missing canonical `morteza.kowsari-002` video in the backend import dataset so its comments load and submit normally.
 - Replaced the misleading profile-completion comment error with cause-specific Persian feedback and made a failed comment-list load retryable.
 - Replaced native English password-format validation bubbles with the shared Persian red inline error across login, registration, legacy completion, and account editing.
+- Derived city/province image paths from destination type and slug, kept their display-order sequences independent, and normalized Persian parent-province values to canonical slugs.
+- Scoped the private `data/` ignore rule to the repository root so app-runtime JSON under `apps/web/src/data/` can be committed and deployed.
 
 ### Removed
 

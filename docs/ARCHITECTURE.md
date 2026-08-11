@@ -288,10 +288,12 @@ VideoDestinations
 destinations.json (city/province records)
 ```
 
-`travel-videos.json` stores video identity, media URLs, `sourceUrl`, and
-relationship keys only. Person metadata comes from the existing notable-person
-API, while destination labels and links come from `destinations.json`. One
-video may resolve to multiple destinations.
+`travel-videos.json` stores video identity, normalized content metadata, media
+URLs, `sourceUrl`, and relationship keys. Person metadata comes from the
+existing notable-person API, while destination labels and links come from
+`destinations.json`. One video may resolve to multiple destinations. Destination
+images are derived from type plus slug instead of being repeated in the private
+workbook, and city/province display-order values are scoped independently.
 
 Destination detail pages also resolve hotels through the existing hotel API:
 

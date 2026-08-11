@@ -101,6 +101,8 @@ Website
 
 # 5. Data Sync Script
 
+- [ ] Build a destination-workbook converter that validates and writes `destinations.json`, `travel-videos.json`, and canonical video IDs
+- [ ] Add dry-run checks for missing destination images, MP4 files, thumbnails, slugs, duplicate type-scoped display orders, and unresolved video links
 - [ ] Design spreadsheet-to-database sync process
 - [ ] Normalize hotel names
 - [ ] Normalize person names

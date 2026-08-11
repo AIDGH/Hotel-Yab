@@ -327,6 +327,14 @@ Website
 
 Raw spreadsheet data should not bypass validation and be published directly.
 
+For the private destination/video workbook, `parent_province_slug` and every
+`destination_slug` must be normalized slugs rather than Persian display names.
+City and province `displayOrder` values are validated independently. Destination
+image URLs are derived from the normalized slug and destination type, while
+video media paths follow the stable `<instagram-username>/<sequence>` naming
+convention. A video row is not considered media-complete until both MP4 and
+thumbnail files exist.
+
 ---
 
 ## User-Submitted Data

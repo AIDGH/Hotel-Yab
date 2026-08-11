@@ -25,8 +25,8 @@ coverage/
 apps/api/src/generated/prisma/
 apps/api/prisma/data/import.json
 
-# Private, evolving research datasets
-data/
+# Private, evolving research datasets at the repository root
+/data/
 
 # Local source assets (the app-ready font copy lives under apps/web/public)
 .ttf/

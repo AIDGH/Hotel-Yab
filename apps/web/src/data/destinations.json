@@ -1,0 +1,131 @@
+{
+  "provinces": [
+    {
+      "name": "خراسان رضوی",
+      "slug": "razavi-khorasan",
+      "imageUrl": "/images/provinces/razavi-khorasan.webp",
+      "description": "خراسان یکی از مهم‌ترین خاستگاه‌ها و مراکز تمدن ایرانی است و واژهٔ رضوی به مقبرهٔ علی بن موسی‌الرضا در مرکز این استان، مشهد، اشاره دارد.",
+      "isFeatured": true,
+      "displayOrder": 3,
+      "primarySourceUrl": "https://iraniju.ir/khorasan-razavi/",
+      "sourceType": "OFFICIAL_TOURISM",
+      "notes": "استان مهم، شاید بعداً تصویر آن تغییر کند."
+    },
+    {
+      "name": "خراسان شمالی",
+      "slug": "north-khorasan",
+      "imageUrl": "/images/provinces/north-khorasan.webp",
+      "description": "استان خراسان شمالی که به کردستان شمال معروف است، یکی از استان‌های ایران است.",
+      "isFeatured": false,
+      "displayOrder": 6,
+      "primarySourceUrl": "https://iraniju.ir/north-khorasan/",
+      "sourceType": "OFFICIAL_TOURISM",
+      "notes": "فاقد اهمیت زیاد."
+    },
+    {
+      "name": "خراسان جنوبی",
+      "slug": "south-khorasan",
+      "imageUrl": "/images/provinces/south-khorasan.webp",
+      "description": "استان خراسان جنوبی بعد از استان کرمان و استان سیستان و بلوچستان، سومین استان ایران از نظر وسعت به شمار می‌رود.",
+      "isFeatured": false,
+      "displayOrder": 7,
+      "primarySourceUrl": "https://iraniju.ir/south-khorasan/",
+      "sourceType": "OFFICIAL_TOURISM",
+      "notes": "فاقد اهمیت زیاد."
+    },
+    {
+      "name": "اصفهان",
+      "slug": "isfahan",
+      "imageUrl": "/images/provinces/isfahan.webp",
+      "description": "استان اصفهان با وجود جاذبه‌های بسیار فرهنگی، تاریخی، طبیعی و مذهبی، یکی از مراکز مهم گردشگری ایران است.",
+      "isFeatured": true,
+      "displayOrder": 2,
+      "primarySourceUrl": "https://fa.wikipedia.org/wiki/استان_اصفهان",
+      "sourceType": "WIKIPEDIA",
+      "notes": null
+    },
+    {
+      "name": "هرمزگان",
+      "slug": "hormozgan",
+      "imageUrl": "/images/provinces/hormozgan.webp",
+      "description": "هرمزگان یکی از استان‌های جنوبی ایران است. بندرعباس، به‌عنوان مهم‌ترین بندر ایران، مرکز استان هرمزگان است.",
+      "isFeatured": false,
+      "displayOrder": 5,
+      "primarySourceUrl": "https://fa.wikipedia.org/wiki/استان_هرمزگان",
+      "sourceType": "WIKIPEDIA",
+      "notes": null
+    },
+    {
+      "name": "فارس",
+      "slug": "fars",
+      "imageUrl": "/images/provinces/fars.webp",
+      "description": "استان فارس یکی از استان‌های ایران است که در بخش جنوب این کشور واقع شده است. مرکز استان فارس، کلان‌شهر شیراز است که پنجمین شهر پرجمعیت ایران است.",
+      "isFeatured": true,
+      "displayOrder": 4,
+      "primarySourceUrl": "https://fa.wikipedia.org/wiki/استان_فارس",
+      "sourceType": "WIKIPEDIA",
+      "notes": null
+    }
+  ],
+  "cities": [
+    {
+      "name": "تهران",
+      "slug": "tehran",
+      "parentProvinceSlug": "tehran",
+      "imageUrl": "/images/cities/tehran.webp",
+      "description": "پایتخت ایران و یکی از مهم‌ترین مقصدهای شهری کشور."
+    },
+    {
+      "name": "اصفهان",
+      "slug": "isfahan",
+      "parentProvinceSlug": "isfahan",
+      "imageUrl": "/images/cities/isfahan.webp",
+      "description": "شهری تاریخی با معماری، فرهنگ و جاذبه‌های شناخته‌شده."
+    },
+    {
+      "name": "مشهد",
+      "slug": "mashhad",
+      "parentProvinceSlug": "razavi-khorasan",
+      "imageUrl": "/images/cities/mashhad.webp",
+      "description": "یکی از مهم‌ترین مقصدهای زیارتی و گردشگری ایران."
+    },
+    {
+      "name": "شیراز",
+      "slug": "shiraz",
+      "parentProvinceSlug": "fars",
+      "imageUrl": "/images/cities/shiraz.webp",
+      "description": "شهر شعر، تاریخ و باغ‌های معروف ایران."
+    },
+    {
+      "name": "کیش",
+      "slug": "kish",
+      "parentProvinceSlug": "hormozgan",
+      "imageUrl": "/images/cities/kish.webp",
+      "description": "یکی از محبوب‌ترین مقصدهای تفریحی و ساحلی ایران."
+    },
+    {
+      "name": "قشم",
+      "slug": "qeshm",
+      "parentProvinceSlug": "hormozgan",
+      "imageUrl": "/images/cities/qeshm.webp",
+      "description": "جزیرهٔ قشم یکی از جزایر خلیج فارس است که به‌عنوان بزرگ‌ترین جزیرهٔ ایران و خاورمیانه در استان هرمزگان قرار دارد.",
+      "isFeatured": true,
+      "displayOrder": 1,
+      "primarySourceUrl": "https://fa.wikipedia.org/wiki/جزیره_قشم",
+      "sourceType": "WIKIPEDIA",
+      "notes": "بزرگ‌ترین جزیره"
+    },
+    {
+      "name": "فیروزآباد",
+      "slug": "firuzabad",
+      "parentProvinceSlug": "fars",
+      "imageUrl": "/images/cities/firuzabad.webp",
+      "description": "فیروزآباد از شهرهای مهم دورهٔ ساسانی و اوایل دورهٔ اسلامی بوده است و جاذبه‌های گردشگری و تاریخی فراوانی از آن دوره دارد.",
+      "isFeatured": false,
+      "displayOrder": 2,
+      "primarySourceUrl": "https://fa.wikipedia.org/wiki/فیروزآباد",
+      "sourceType": "WIKIPEDIA",
+      "notes": null
+    }
+  ]
+}

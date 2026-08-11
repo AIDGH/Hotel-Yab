@@ -68,3 +68,45 @@ The workbook does not yet sync to PostgreSQL automatically. A reusable
 workbook-to-import converter is the next data-pipeline step. Until that exists,
 the workbook must be converted and validated before running
 `pnpm api:data:import`.
+
+## Destination and Travel Video Workbook
+
+The private `../Data/HotelYab_Destinations_Data.xlsx` workbook is the working
+source for the frontend destination/video prototype. It has three sheets:
+
+- `Destinations`: one city or province per row;
+- `TravelVideos`: one Instagram travel video per row;
+- `VideoDestinations`: one video-to-city/province link per row, so a video may
+  have multiple destination rows.
+
+Destination images are not workbook fields. Derive them from the normalized
+slug:
+
+```text
+PROVINCE → /images/provinces/<slug>.webp
+CITY     → /images/cities/<slug>.webp
+```
+
+`display_order` is scoped by destination type: city order 1 and province order
+1 are both valid. `parent_province_slug` must contain the province slug, such as
+`hormozgan`, not the Persian label `هرمزگان`.
+
+Until an automatic converter exists, a new record requires these updates:
+
+1. Add or update the destination in the matching `cities` or `provinces` array
+   of `apps/web/src/data/destinations.json`.
+2. Add the video metadata and derived local `mediaUrl`/`thumbnailUrl` to the
+   `videos` array of `apps/web/src/data/travel-videos.json`.
+3. Add one row per related destination to that file's `videoDestinations`
+   array. Do not copy destination metadata into the relationship.
+4. Add only the `videoId` to `apps/api/prisma/data/import.json` and run
+   `pnpm --filter @hotel-yab/api data:import` so comments recognize the video.
+5. Store media as
+   `apps/web/public/travel-videos/<instagram-username>/<sequence>.mp4` and
+   `<sequence>-thumbnail.webp`.
+
+The preferred next workflow is not direct manual JSON editing. Keep a
+pre-populated destination master list in the workbook, reduce the video sheet
+to genuinely variable fields, use dropdowns for destination slugs, and run one
+converter command that validates and generates both frontend JSON files plus
+the canonical backend video-ID list.
