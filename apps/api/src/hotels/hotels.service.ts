@@ -91,6 +91,7 @@ export class HotelsService {
           city: true,
           imageUrl: true,
           logoUrl: true,
+          starRating: true,
           associations: {
             where: verifiedAssociationWhere,
             select: { id: true },
@@ -134,6 +135,7 @@ export class HotelsService {
         websiteUrl: true,
         imageUrl: true,
         logoUrl: true,
+        starRating: true,
         associations: {
           where: visibleAssociationWhere,
           orderBy: [{ verifiedAt: 'desc' }, { createdAt: 'desc' }],

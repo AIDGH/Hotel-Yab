@@ -73,6 +73,22 @@ describe('validateDataset', () => {
     });
   });
 
+  it('accepts an official hotel star rating from 1 to 5', () => {
+    const dataset = structuredClone(validDataset);
+    Object.assign(dataset.hotels[0], { starRating: 5 });
+
+    expect(validateDataset(dataset).hotels[0]).toMatchObject({
+      starRating: 5,
+    });
+  });
+
+  it('rejects a hotel star rating outside the official 1–5 range', () => {
+    const dataset = structuredClone(validDataset);
+    Object.assign(dataset.hotels[0], { starRating: 6 });
+
+    expect(() => validateDataset(dataset)).toThrow('starRating');
+  });
+
   it('rejects an Instagram handle containing the @ prefix', () => {
     const dataset = structuredClone(validDataset);
     Object.assign(dataset.notablePeople[0], {

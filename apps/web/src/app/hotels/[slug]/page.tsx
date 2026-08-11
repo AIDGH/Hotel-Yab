@@ -4,12 +4,17 @@ import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
 import { HotelLogo } from "@/components/hotel-logo";
 import { HotelReviews } from "@/components/hotel-reviews";
+import { HotelStars } from "@/components/hotel-stars";
 import { MediaTile } from "@/components/media-tile";
 import { PersonDisplayName } from "@/components/person-display-name";
 import { PersonInstagramHandle } from "@/components/person-instagram-handle";
 import { SourceList } from "@/components/source-list";
 import { getHotel } from "@/lib/api";
-import { associationLabel, formatDate } from "@/lib/labels";
+import {
+  associationLabel,
+  formatDate,
+  formatPersianRating,
+} from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -85,24 +90,28 @@ export default async function HotelPage({ params }: HotelPageProps) {
           </span>
           <h1>{hotel.name}</h1>
           <p className="detail-location">⌖ {hotel.city}</p>
-          {hotel.ratingSummary.reviewCount > 0 &&
-          hotel.ratingSummary.averageRating !== null ? (
-            <div
-              className="hotel-hero-rating"
-              aria-label={`امتیاز ${hotel.ratingSummary.averageRating.toFixed(1)} از ۵ بر اساس ${hotel.ratingSummary.reviewCount} نظر`}
-            >
-              <strong>
-                {hotel.ratingSummary.averageRating.toLocaleString("fa-IR", {
-                  maximumFractionDigits: 1,
-                })}
-              </strong>
-              <span aria-hidden="true">★</span>
-              <small>
-                از ۵ · بر پایهٔ{" "}
-                {hotel.ratingSummary.reviewCount.toLocaleString("fa-IR")} نظر
-              </small>
-            </div>
-          ) : null}
+          <div className="hotel-quality-summary">
+            <HotelStars value={hotel.starRating} />
+            {hotel.ratingSummary.reviewCount > 0 &&
+            hotel.ratingSummary.averageRating !== null ? (
+              <div
+                className="hotel-review-score"
+                aria-label={`امتیاز کاربران ${formatPersianRating(hotel.ratingSummary.averageRating)} از ۵، ${hotel.ratingSummary.reviewCount} نظر`}
+              >
+                <div>
+                  <strong>
+                    {formatPersianRating(
+                      hotel.ratingSummary.averageRating,
+                    )}
+                  </strong>{" "}
+                  <span>از ۵</span>
+                </div>
+                <small>
+                  {hotel.ratingSummary.reviewCount.toLocaleString("fa-IR")} نظر
+                </small>
+              </div>
+            ) : null}
+          </div>
           <p>
             {hotel.description ??
               (hasAssociations
@@ -206,7 +215,13 @@ export default async function HotelPage({ params }: HotelPageProps) {
         </div>
       </section>
 
-      <HotelReviews hotelSlug={hotel.slug} hotelName={hotel.name} />
+      <div id="hotel-reviews">
+        <HotelReviews
+          key={hotel.slug}
+          hotelSlug={hotel.slug}
+          hotelName={hotel.name}
+        />
+      </div>
     </main>
   );
 }

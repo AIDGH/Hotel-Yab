@@ -4,12 +4,20 @@ import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { browserApi } from "@/lib/browser-api";
+import { formatIranianMobile } from "@/lib/labels";
 
 type ModerationStatus = "PENDING" | "PUBLISHED" | "REJECTED" | "HIDDEN";
 type QueueUser = {
+  id: string;
   username: string | null;
   displayName: string;
   mobile: string;
+  status: "ACTIVE" | "BLOCKED";
+};
+type CommentReport = {
+  reason: "SPAM" | "HARASSMENT" | "HATEFUL" | "MISINFORMATION" | "OTHER";
+  details: string | null;
+  createdAt: string;
 };
 type HotelReviewItem = {
   id: string;
@@ -30,10 +38,13 @@ type VideoCommentItem = {
   moderationNote: string | null;
   createdAt: string;
   user: QueueUser;
+  reportCount: number;
+  reports: CommentReport[];
 };
 type Queue = {
   hotelReviews: HotelReviewItem[];
   videoComments: VideoCommentItem[];
+  reportedComments: VideoCommentItem[];
 };
 
 const statusOptions: Array<{ value: ModerationStatus; label: string }> = [
@@ -49,6 +60,7 @@ export default function ModerationPage() {
   const [queue, setQueue] = useState<Queue>({
     hotelReviews: [],
     videoComments: [],
+    reportedComments: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -87,6 +99,17 @@ export default function ModerationPage() {
     await loadQueue();
   }
 
+  async function updateUserStatus(
+    id: string,
+    nextStatus: "ACTIVE" | "BLOCKED",
+  ) {
+    await browserApi(`/admin/moderation/users/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: nextStatus }),
+    });
+    await loadQueue();
+  }
+
   if (authLoading)
     return (
       <main className="section container admin-page">
@@ -114,7 +137,10 @@ export default function ModerationPage() {
         <div>
           <span className="section-eyebrow">مدیریت محتوای کاربران</span>
           <h1>صف بررسی</h1>
-          <p>نظرهای هتل و کامنت‌های ویدیو پس از تصمیم شما عمومی می‌شوند.</p>
+          <p>
+            نظرهای هتل، کامنت‌های پرریسک و گزارش‌های کاربران از اینجا مدیریت
+            می‌شوند.
+          </p>
         </div>
         <label>
           نمایش وضعیت
@@ -158,7 +184,9 @@ export default function ModerationPage() {
                 user={item.user}
                 body={item.body || "فقط امتیاز ثبت شده است."}
                 initialNote={item.moderationNote}
-                status={status}
+                status={item.status}
+                canManageUsers={user.role === "ADMIN"}
+                onUpdateUserStatus={updateUserStatus}
                 onModerate={(nextStatus, note) =>
                   moderate("hotel-reviews", item.id, nextStatus, note)
                 }
@@ -186,7 +214,45 @@ export default function ModerationPage() {
                 user={item.user}
                 body={item.body}
                 initialNote={item.moderationNote}
-                status={status}
+                status={item.status}
+                canManageUsers={user.role === "ADMIN"}
+                onUpdateUserStatus={updateUserStatus}
+                onModerate={(nextStatus, note) =>
+                  moderate("video-comments", item.id, nextStatus, note)
+                }
+              />
+            ))}
+          </ModerationSection>
+
+          <ModerationSection
+            title="کامنت‌های گزارش‌شده"
+            count={queue.reportedComments.length}
+          >
+            {queue.reportedComments.map((item) => (
+              <ModerationCard
+                key={`reported-${item.id}`}
+                title={
+                  <>
+                    ویدیو <bdi dir="ltr">{item.videoId}</bdi>
+                  </>
+                }
+                meta={`${item.reportCount.toLocaleString("fa-IR")} گزارش · ${item.user.displayName}`}
+                user={item.user}
+                body={item.body}
+                context={
+                  <ul className="moderation-report-list">
+                    {item.reports.map((report, index) => (
+                      <li key={`${report.createdAt}-${index}`}>
+                        <strong>{reportReasonLabel(report.reason)}</strong>
+                        {report.details ? ` — ${report.details}` : null}
+                      </li>
+                    ))}
+                  </ul>
+                }
+                initialNote={item.moderationNote}
+                status={item.status}
+                canManageUsers={user.role === "ADMIN"}
+                onUpdateUserStatus={updateUserStatus}
                 onModerate={(nextStatus, note) =>
                   moderate("video-comments", item.id, nextStatus, note)
                 }
@@ -228,16 +294,25 @@ function ModerationCard({
   meta,
   user,
   body,
+  context,
   initialNote,
   status,
+  canManageUsers,
+  onUpdateUserStatus,
   onModerate,
 }: {
   title: ReactNode;
   meta: string;
   user: QueueUser;
   body: string;
+  context?: ReactNode;
   initialNote: string | null;
   status: ModerationStatus;
+  canManageUsers: boolean;
+  onUpdateUserStatus: (
+    id: string,
+    status: "ACTIVE" | "BLOCKED",
+  ) => Promise<void>;
   onModerate: (status: ModerationStatus, note: string) => Promise<void>;
 }) {
   const [saving, setSaving] = useState(false);
@@ -266,9 +341,11 @@ function ModerationCard({
         <span>{meta}</span>
       </div>
       <p>{body}</p>
+      {context}
       <small>
         @{user.username ?? "بدون‌نام‌کاربری"} ·{" "}
-        <bdi dir="ltr">{user.mobile}</bdi>
+        <bdi dir="ltr">{formatIranianMobile(user.mobile)}</bdi>
+        {user.status === "BLOCKED" ? " · مسدودشده" : null}
       </small>
       <form>
         <label>
@@ -329,8 +406,44 @@ function ModerationCard({
               بازگرداندن به صف
             </button>
           ) : null}
+          {canManageUsers ? (
+            <button
+              type="button"
+              className={
+                user.status === "ACTIVE"
+                  ? "button-link moderation-block-user"
+                  : "button-link"
+              }
+              disabled={saving}
+              onClick={async () => {
+                setSaving(true);
+                setCardError("");
+                try {
+                  await onUpdateUserStatus(
+                    user.id,
+                    user.status === "ACTIVE" ? "BLOCKED" : "ACTIVE",
+                  );
+                } catch {
+                  setCardError("تغییر وضعیت کاربر انجام نشد.");
+                  setSaving(false);
+                }
+              }}
+            >
+              {user.status === "ACTIVE"
+                ? "مسدودکردن کاربر"
+                : "فعال‌کردن کاربر"}
+            </button>
+          ) : null}
         </div>
       </form>
     </article>
   );
+}
+
+function reportReasonLabel(reason: CommentReport["reason"]) {
+  if (reason === "SPAM") return "هرزنامه یا تبلیغ";
+  if (reason === "HARASSMENT") return "توهین یا آزار";
+  if (reason === "HATEFUL") return "محتوای نفرت‌پراکن";
+  if (reason === "MISINFORMATION") return "اطلاعات نادرست";
+  return "دلیل دیگر";
 }

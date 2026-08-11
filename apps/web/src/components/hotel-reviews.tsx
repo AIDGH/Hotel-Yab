@@ -3,6 +3,7 @@
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { browserApi } from "@/lib/browser-api";
+import { formatPersianRating } from "@/lib/labels";
 import { useAuth } from "./auth-provider";
 
 type PublicReview = {
@@ -29,7 +30,10 @@ export function HotelReviews({ hotelSlug, hotelName }: { hotelSlug: string; hote
   const [mine, setMine] = useState<MyReview | null>(null);
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState("");
-  const [message, setMessage] = useState("");
+  const [feedback, setFeedback] = useState<{
+    tone: "error" | "success";
+    text: string;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -47,11 +51,14 @@ export function HotelReviews({ hotelSlug, hotelName }: { hotelSlug: string; hote
 
   useEffect(() => {
     if (!user) return;
-    browserApi<{ data: MyReview | null }>(`/hotels/${encodeURIComponent(hotelSlug)}/reviews/me`)
+
+    browserApi<{ data: MyReview | null }>(
+      `/hotels/${encodeURIComponent(hotelSlug)}/reviews/me`,
+    )
       .then(({ data }) => {
         setMine(data);
-        setRating(data?.rating ?? 0);
-        setBody(data?.body ?? "");
+        setRating(0);
+        setBody("");
       })
       .catch(() => undefined);
   }, [hotelSlug, user]);
@@ -63,11 +70,11 @@ export function HotelReviews({ hotelSlug, hotelName }: { hotelSlug: string; hote
       return;
     }
     if (!rating) {
-      setMessage("لطفاً امتیاز هتل را انتخاب کنید.");
+      setFeedback({ tone: "error", text: "لطفاً امتیاز هتل را انتخاب کنید." });
       return;
     }
     setSaving(true);
-    setMessage("");
+    setFeedback(null);
     try {
       const result = await browserApi<{ data: MyReview }>(
         `/hotels/${encodeURIComponent(hotelSlug)}/reviews/me`,
@@ -80,9 +87,17 @@ export function HotelReviews({ hotelSlug, hotelName }: { hotelSlug: string; hote
         },
       );
       setMine(result.data);
-      setMessage("نظر شما ثبت شد و پس از بررسی منتشر می‌شود.");
+      setRating(0);
+      setBody("");
+      setFeedback({
+        tone: "success",
+        text: "نظر شما ثبت شد و پس از بررسی منتشر می‌شود.",
+      });
     } catch {
-      setMessage("ثبت انجام نشد. اگر نظر می‌نویسید، متن باید حداقل ۱۰ کاراکتر باشد.");
+      setFeedback({
+        tone: "error",
+        text: "ثبت انجام نشد. اگر نظر می‌نویسید، متن باید حداقل ۱۰ کاراکتر باشد.",
+      });
     } finally {
       setSaving(false);
     }
@@ -96,15 +111,17 @@ export function HotelReviews({ hotelSlug, hotelName }: { hotelSlug: string; hote
           <h2>نظرها درباره {hotelName}</h2>
         </div>
         <div className="review-summary">
-          <strong>{average === null ? "—" : average.toFixed(1)}</strong>
-          <span aria-label="امتیاز از پنج">★</span>
-          <small>{count.toLocaleString("fa-IR")} نظر منتشرشده</small>
+          <strong>
+            {average === null ? "—" : formatPersianRating(average)}
+          </strong>
+          <span>از ۵</span>
+          <small>{count.toLocaleString("fa-IR")} نظر</small>
         </div>
       </div>
 
       <div className="hotel-reviews-layout">
         <form className="review-form" onSubmit={submitReview}>
-          <h3>{mine ? "ویرایش امتیاز من" : "امتیاز یا تجربه‌تان را ثبت کنید"}</h3>
+          <h3>امتیاز یا تجربه‌تان را ثبت کنید</h3>
           {!user ? (
             <>
               <p>برای ثبت امتیاز یا نظر، وارد حساب هتل‌یاب شوید.</p>
@@ -132,10 +149,25 @@ export function HotelReviews({ hotelSlug, hotelName }: { hotelSlug: string; hote
                 maxLength={2000}
                 placeholder="نکته‌ای که به انتخاب دیگران کمک می‌کند…"
               />
-              {mine ? <span className="moderation-badge">وضعیت: {moderationLabel(mine.status)}</span> : null}
-              {message ? <p className="review-form-message" role="status">{message}</p> : null}
+              {mine ? (
+                <span className="moderation-badge">
+                  نظر قبلی شما: {moderationLabel(mine.status)}
+                </span>
+              ) : null}
+              {feedback ? (
+                <p
+                  className={`form-feedback form-feedback-${feedback.tone}`}
+                  role={feedback.tone === "error" ? "alert" : "status"}
+                >
+                  {feedback.text}
+                </p>
+              ) : null}
               <button className="button" type="submit" disabled={saving}>
-                {saving ? "در حال ثبت…" : mine ? "ذخیره و ارسال دوباره" : "ثبت نظر"}
+                {saving
+                  ? "در حال ثبت…"
+                  : mine
+                    ? "ثبت و جایگزینی نظر قبلی"
+                    : "ثبت نظر"}
               </button>
             </>
           )}

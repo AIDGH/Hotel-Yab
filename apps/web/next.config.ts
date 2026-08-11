@@ -1,10 +1,19 @@
 import type { NextConfig } from "next";
 
+const internalApiBaseUrl = (
+  process.env.API_BASE_URL ?? "http://localhost:4000/api/v1"
+).replace(/\/$/, "");
+
 const nextConfig: NextConfig = {
-  /* config options here */
-  allowedDevOrigins: [
-    "10.215.216.104",
-  ],
+  allowedDevOrigins: ["10.215.216.104"],
+  async rewrites() {
+    return [
+      {
+        source: "/api/v1/:path*",
+        destination: `${internalApiBaseUrl}/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

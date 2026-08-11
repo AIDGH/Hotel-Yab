@@ -58,6 +58,25 @@ function resolveDestination(
   return null;
 }
 
+function resolveVideoDestinations(
+  videoId: string,
+): ResolvedTravelDestination[] {
+  return travelVideoData.videoDestinations
+    .filter((item) => item.videoId === videoId)
+    .map(resolveDestination)
+    .filter(
+      (destination): destination is ResolvedTravelDestination =>
+        destination !== null,
+    );
+}
+
+export function getAllTravelVideos(): PersonTravelVideo[] {
+  return travelVideoData.videos.map((video) => ({
+    video,
+    destinations: resolveVideoDestinations(video.videoId),
+  }));
+}
+
 export function getTravelVideosForDestination(
   destinationType: "CITY" | "PROVINCE",
   destinationSlug: string,
@@ -84,20 +103,10 @@ export function getTravelVideosForInstagramUsername(
 
   const normalizedUsername = normalizeInstagramUsername(instagramUsername);
 
-  return travelVideoData.videos
+  return getAllTravelVideos()
     .filter(
-      (video) =>
+      ({ video }) =>
         normalizeInstagramUsername(video.instagramUsername) ===
         normalizedUsername,
-    )
-    .map((video) => ({
-      video,
-      destinations: travelVideoData.videoDestinations
-        .filter((item) => item.videoId === video.videoId)
-        .map(resolveDestination)
-        .filter(
-          (destination): destination is ResolvedTravelDestination =>
-            destination !== null,
-        ),
-    }));
+    );
 }

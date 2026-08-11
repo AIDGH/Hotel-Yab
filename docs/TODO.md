@@ -6,12 +6,21 @@ This file tracks open product and technical work for Hotel-Yab.
 
 # Current Priority
 
-## 1. Complete the Core Website
+## 1. User Features
 
-- [ ] Complete Hotel Detail Page
+- [ ] Add favorite/saved hotels
+- [ ] Consider saved notable people
+- [ ] Consider personalized discovery
+
+Hotel data enrichment and a fuller Hotel Detail Page continue after the required hotel dataset is ready. Manual data collection continues in parallel and is not blocked by this execution order.
+
+---
+
+# Deferred Core Website Work
+
 - [ ] Complete Notable Person Detail Page
 - [ ] Improve hotel/person relationship presentation
-- [ ] Improve search experience
+- [ ] Complete Hotel Detail Page after its required dataset is ready
 - [ ] Improve mobile responsiveness
 - [ ] Improve loading states
 - [ ] Improve empty states
@@ -115,14 +124,16 @@ The account foundation is implemented without making login mandatory for public 
 - [x] Separate login and registration while keeping discovery public
 - [x] Implement mobile/username password login and OTP fallback with revocable sessions
 - [x] Add unique username and salted password hashing
+- [x] Add strong new-password rules and show/hide password controls
+- [x] Add six-slot OTP entry with API-backed 60-second resend countdown
+- [x] Auto-submit a complete six-digit OTP without requiring Enter or the confirmation button
+- [x] Keep signup minimal and defer optional email/Instagram to the account page
 - [x] Add editable user profile with optional unique email and Instagram
 - [x] Add hotel ratings/reviews with pending moderation
-- [x] Add collapsed video comments with pending moderation
+- [x] Add collapsed video comments with hybrid trust/risk moderation
+- [x] Add per-user comment rate limiting and user reports with automatic hiding
+- [x] Add account activity management for reviews/comments with moderation states and safe deletion
 - [ ] Integrate a production SMS provider
-- [ ] Add account activity management for reviews/comments
-- [ ] Add favorite/saved hotels
-- [ ] Consider saved notable people
-- [ ] Consider personalized discovery
 - [ ] Consider user-submitted hotel/person information
 
 ---
@@ -134,6 +145,7 @@ The contribution-moderation slice is implemented; catalog administration remains
 - [x] Define and enforce `USER`, `MODERATOR`, and `ADMIN` roles
 - [x] Create hotel-review and video-comment moderation queues
 - [x] Add publish/reject/hide/pending actions with moderator identity, time, and note
+- [x] Add unresolved comment-report queue and administrator user blocking/reactivation
 - [x] Add a safe local command to bootstrap an admin/moderator role
 - [ ] Create hotel management interface
 - [ ] Create notable-person management interface
@@ -181,22 +193,10 @@ After the documentation set is complete:
 # Suggested Execution Order
 
 ```text
-1. Core Website
-      ↓
-2. Images and Content
-      ↓
-3. Videos and Sources
-      ↓
-4. Continue Data Collection
-      ↓
-5. Second Spreadsheet
-      ↓
-6. Sync Script
-      ↓
-7. User Accounts
-      ↓
-8. Admin / Scale
+1. User Features
 ```
+
+Manual data collection, content enrichment, and later data-pipeline work run in parallel with this product sequence.
 
 ---
 

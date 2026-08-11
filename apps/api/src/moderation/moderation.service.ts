@@ -1,6 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { ContentModerationStatus } from '../generated/prisma/enums';
+import {
+  CommentReportReason,
+  ContentModerationStatus,
+  UserStatus,
+} from '../generated/prisma/enums';
 import { ModerateContentDto } from './dto/moderate-content.dto';
 
 @Injectable()
@@ -8,57 +16,104 @@ export class ModerationService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getQueue(status: ContentModerationStatus) {
-    const [hotelReviews, videoComments] = await this.prisma.$transaction([
-      this.prisma.hotelReview.findMany({
-        where: { status },
-        orderBy: { createdAt: 'asc' },
-        take: 100,
-        select: {
-          id: true,
-          rating: true,
-          body: true,
-          status: true,
-          moderationNote: true,
-          createdAt: true,
-          hotel: { select: { slug: true, name: true } },
-          user: {
-            select: {
-              username: true,
-              firstName: true,
-              lastName: true,
-              mobile: true,
+    const [hotelReviews, videoComments, reportedComments] =
+      await this.prisma.$transaction([
+        this.prisma.hotelReview.findMany({
+          where: { status },
+          orderBy: { createdAt: 'asc' },
+          take: 100,
+          select: {
+            id: true,
+            rating: true,
+            body: true,
+            status: true,
+            moderationNote: true,
+            createdAt: true,
+            hotel: { select: { slug: true, name: true } },
+            user: {
+              select: {
+                username: true,
+                firstName: true,
+                lastName: true,
+                mobile: true,
+                id: true,
+                status: true,
+              },
             },
           },
-        },
-      }),
-      this.prisma.videoComment.findMany({
-        where: { status },
-        orderBy: { createdAt: 'asc' },
-        take: 100,
-        select: {
-          id: true,
-          videoId: true,
-          parentId: true,
-          body: true,
-          status: true,
-          moderationNote: true,
-          createdAt: true,
-          user: {
-            select: {
-              username: true,
-              firstName: true,
-              lastName: true,
-              mobile: true,
+        }),
+        this.prisma.videoComment.findMany({
+          where: { status },
+          orderBy: { createdAt: 'asc' },
+          take: 100,
+          select: {
+            id: true,
+            videoId: true,
+            parentId: true,
+            body: true,
+            status: true,
+            moderationNote: true,
+            createdAt: true,
+            user: {
+              select: {
+                username: true,
+                firstName: true,
+                lastName: true,
+                mobile: true,
+                id: true,
+                status: true,
+              },
+            },
+            _count: {
+              select: { reports: { where: { resolvedAt: null } } },
             },
           },
-        },
-      }),
-    ]);
+        }),
+        this.prisma.videoComment.findMany({
+          where: { reports: { some: { resolvedAt: null } } },
+          orderBy: { createdAt: 'asc' },
+          take: 100,
+          select: {
+            id: true,
+            videoId: true,
+            parentId: true,
+            body: true,
+            status: true,
+            moderationNote: true,
+            createdAt: true,
+            user: {
+              select: {
+                id: true,
+                username: true,
+                firstName: true,
+                lastName: true,
+                mobile: true,
+                status: true,
+              },
+            },
+            reports: {
+              where: { resolvedAt: null },
+              orderBy: { createdAt: 'asc' },
+              select: {
+                reason: true,
+                details: true,
+                createdAt: true,
+              },
+            },
+            _count: {
+              select: { reports: { where: { resolvedAt: null } } },
+            },
+          },
+        }),
+      ]);
 
     return {
       data: {
         hotelReviews: hotelReviews.map(serializeHotelReview),
         videoComments: videoComments.map(serializeVideoComment),
+        reportedComments: reportedComments
+          .map(serializeVideoComment)
+          .sort((left, right) => right.reportCount - left.reportCount),
       },
     };
   }
@@ -99,18 +154,51 @@ export class ModerationService {
     });
     if (!existing)
       throw new NotFoundException('The video comment was not found');
-    const comment = await this.prisma.videoComment.update({
-      where: { id },
-      data: moderationData(dto, moderatorId),
-      select: {
-        id: true,
-        status: true,
-        moderationNote: true,
-        moderatedAt: true,
-        publishedAt: true,
-      },
+    const comment = await this.prisma.$transaction(async (transaction) => {
+      const updated = await transaction.videoComment.update({
+        where: { id },
+        data: moderationData(dto, moderatorId),
+        select: {
+          id: true,
+          status: true,
+          moderationNote: true,
+          moderatedAt: true,
+          publishedAt: true,
+        },
+      });
+      if (dto.status !== ContentModerationStatus.PENDING) {
+        await transaction.videoCommentReport.updateMany({
+          where: { commentId: id, resolvedAt: null },
+          data: { resolvedAt: new Date(), resolvedById: moderatorId },
+        });
+      }
+      return updated;
     });
     return { data: serializeModerationResult(comment) };
+  }
+
+  async updateUserStatus(id: string, adminId: string, status: UserStatus) {
+    if (id === adminId && status === UserStatus.BLOCKED) {
+      throw new BadRequestException('You cannot block your own account');
+    }
+    const existing = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException('The user was not found');
+
+    const user = await this.prisma.$transaction(async (transaction) => {
+      const updated = await transaction.user.update({
+        where: { id },
+        data: { status },
+        select: { id: true, status: true },
+      });
+      if (status === UserStatus.BLOCKED) {
+        await transaction.userSession.deleteMany({ where: { userId: id } });
+      }
+      return updated;
+    });
+    return { data: user };
   }
 }
 
@@ -126,18 +214,22 @@ function moderationData(dto: ModerateContentDto, moderatorId: string) {
 }
 
 function userLabel(user: {
+  id: string;
   username: string | null;
   firstName: string | null;
   lastName: string | null;
   mobile: string;
+  status: UserStatus;
 }) {
   return {
+    id: user.id,
     username: user.username,
     displayName:
       [user.firstName, user.lastName].filter(Boolean).join(' ') ||
       user.username ||
       'کاربر هتل‌یاب',
     mobile: user.mobile,
+    status: user.status,
   };
 }
 
@@ -156,10 +248,12 @@ function serializeHotelReviewRaw(review: {
   createdAt: Date;
   hotel: { slug: string; name: string };
   user: {
+    id: string;
     username: string | null;
     firstName: string | null;
     lastName: string | null;
     mobile: string;
+    status: UserStatus;
   };
 }) {
   return {
@@ -178,16 +272,34 @@ function serializeVideoComment(comment: {
   moderationNote: string | null;
   createdAt: Date;
   user: {
+    id: string;
     username: string | null;
     firstName: string | null;
     lastName: string | null;
     mobile: string;
+    status: UserStatus;
   };
+  _count?: { reports: number };
+  reports?: Array<{
+    reason: CommentReportReason;
+    details: string | null;
+    createdAt: Date;
+  }>;
 }) {
   return {
-    ...comment,
+    id: comment.id,
+    videoId: comment.videoId,
+    parentId: comment.parentId,
+    body: comment.body,
+    status: comment.status,
+    moderationNote: comment.moderationNote,
     user: userLabel(comment.user),
     createdAt: comment.createdAt.toISOString(),
+    reportCount: comment._count?.reports ?? 0,
+    reports: (comment.reports ?? []).map((report) => ({
+      ...report,
+      createdAt: report.createdAt.toISOString(),
+    })),
   };
 }
 

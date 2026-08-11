@@ -2,9 +2,14 @@
 
 import type { ChangeEvent, SelectHTMLAttributes } from "react";
 
-export function AutoSubmitSelect(
-  props: SelectHTMLAttributes<HTMLSelectElement>,
-) {
+type AutoSubmitSelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
+  resetFields?: string[];
+};
+
+export function AutoSubmitSelect({
+  resetFields = [],
+  ...props
+}: AutoSubmitSelectProps) {
   function handleChange(event: ChangeEvent<HTMLSelectElement>) {
     props.onChange?.(event);
 
@@ -23,6 +28,10 @@ export function AutoSubmitSelect(
 
     if (params.get("type") === "provinces") {
       params.delete("province");
+    }
+
+    for (const field of resetFields) {
+      params.delete(field);
     }
 
     const search = params.toString();

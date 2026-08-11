@@ -63,7 +63,14 @@ Main responsibilities:
 - displaying images and public metadata;
 - maintaining client authentication state and the account modal;
 - rendering hotel reviews and collapsed-on-demand video comments;
+- rendering the authenticated user's review/comment activity and ownership actions;
 - communicating with the backend API.
+
+Server-rendered data uses the internal `API_BASE_URL`. Browser-side account,
+review, and comment requests default to same-origin `/api/v1`; a Next.js rewrite
+proxies those requests to the internal API. This avoids exposing a browser-side
+`localhost:4000` URL and keeps session cookies on the frontend host when the
+site is opened through a LAN IP.
 
 Main routes currently include:
 
@@ -75,7 +82,10 @@ Main routes currently include:
 /notable-people/[slug]
 /destinations
 /destinations/[type]/[slug]
+/explore
+/search
 /account
+/account/activity
 ```
 
 Frontend data access is handled through functions such as:
@@ -196,6 +206,18 @@ Frontend renders HotelCard components
 
 The notable-person listing follows the same general architecture.
 
+Global search is currently federated in the Next.js server route:
+
+```text
+/search?query=...
+      ├── getHotels(query) ─────────────> Hotel API / PostgreSQL
+      ├── getNotablePeople(query) ──────> Person API / PostgreSQL
+      └── destinations.json ────────────> City/province prototype
+```
+
+Results are grouped by canonical entity type. A failure in one API-backed
+group does not suppress destination results or another available group.
+
 ---
 
 ## Search and Pagination
@@ -268,6 +290,27 @@ relationship keys only. Person metadata comes from the existing notable-person
 API, while destination labels and links come from `destinations.json`. One
 video may resolve to multiple destinations.
 
+Destination detail pages also resolve hotels through the existing hotel API:
+
+```text
+City destination.name ──exact city filter──> Hotel API
+
+Province destination.slug
+        ↓
+destinations.cities[parentProvinceSlug]
+        ↓
+exact city filters ──deduplicate by hotel.id──> HotelCard
+```
+
+Hotel records remain canonical in PostgreSQL/API and are not copied into
+`destinations.json`. The province result currently covers only cities present
+in the prototype destination dataset.
+
+`/explore` reads the same normalized travel-video relationships and composes
+each result from the existing creator header, `TravelVideoCard`, and destination
+link components. Search and destination filters operate on resolved video
+relationships; person and destination metadata are not copied into video data.
+
 ---
 
 ## Current Architecture
@@ -291,12 +334,18 @@ Current capabilities include:
 - search and filtering;
 - pagination;
 - reusable hotel/person cards;
-- displaying hotel-person relationship data.
+- destination detail pages with related hotel cards below travel videos;
+- filtered travel-video Explore page with creator and multi-destination context
+  plus client-side progressive reveal in batches of six;
+- federated global search across hotels, notable people, cities, and provinces;
+- displaying hotel-person relationship data;
 - optional verified registration plus password/OTP login;
 - editable user profiles;
+- aggregated account activity for the current user's hotel reviews and video comments;
 - moderated hotel ratings/reviews;
-- moderated, collapsed video comments.
-- protected review/comment moderation queues.
+- collapsed video comments with hybrid trust/risk moderation and rate limiting;
+- user reports with automatic hiding at the unique-report threshold;
+- protected review/comment/report moderation queues and admin user blocking.
 
 ---
 
@@ -330,25 +379,38 @@ Login:    Mobile/Username + Password → scrypt verification → Session
 Fallback: Mobile/Username → OTP Challenge → Verify existing User → Session
 ```
 
+The website keeps registration minimal: name, family name, an `09…` mobile,
+username, and a strong new password. Email and Instagram are completed later in
+the account page. OTP responses drive the six-slot input and the default
+60-second resend countdown; the API enforces the same cooldown.
+
 The public site remains usable without authentication. Authenticated writes use
 the session guard, and public reads expose only published user-generated
 content. Passwords are stored only as salted hashes, while the raw opaque
 session token exists only in the HttpOnly cookie. Current capabilities include
-user profiles, hotel reviews, and video comments. Future extensions include:
+user profiles, hotel reviews, video comments, and an aggregated account activity
+view on the separate `/account/activity` route. The activity API returns only
+the current user's contributions, including
+non-public moderation states, and never exposes private moderation notes. The UI
+can delete the user's hotel review through the existing hotel endpoint or delete
+a video comment only while it has no replies. Future extensions include:
 
 - saved hotels;
 - favorites;
 - personalized discovery;
-- an aggregated account activity view.
 
 ### Admin and Moderation
 
 The current protected moderation layer supports:
 
 - an `ADMIN`/`MODERATOR` guard;
-- queues for hotel reviews and video comments by status;
+- queues for hotel reviews and video comments by status plus unresolved reports;
 - publish, reject, hide, and return-to-pending actions;
-- private notes plus moderator identity and decision timestamps.
+- private notes plus moderator identity and decision timestamps;
+- hybrid comment classification from published-comment trust and simple risk signals;
+- a five-comments-per-minute per-user limit;
+- automatic hiding after three independent unresolved reports;
+- administrator-only user blocking/reactivation with session revocation.
 
 The administration layer may later expand to:
 
@@ -371,7 +433,8 @@ Responsible for:
 - UI;
 - rendering;
 - navigation;
-- frontend API calls.
+- frontend API calls;
+- collapsed comment loading, report forms, and moderation/admin controls.
 
 Must not contain:
 
@@ -389,6 +452,7 @@ Responsible for:
 - publication filtering;
 - authentication and authorization;
 - moderation-state enforcement for user-generated content;
+- comment trust/risk classification, rate limiting, report thresholds, and account blocking;
 - database queries.
 
 ### Database Layer

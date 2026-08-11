@@ -50,6 +50,20 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Added publish, reject, hide, and return-to-pending moderation actions with moderator identity, decision time, and private note.
 - Added a `user:set-role` maintenance command for bootstrapping `ADMIN`/`MODERATOR` access.
 - Added published rating average and review count to the hotel-detail API and hero UI.
+- Added nullable official 1–5 hotel star ratings to Prisma, imports, APIs, hotel cards, and hotel detail pages.
+- Added unique video-comment reports with categorized reasons and optional private details.
+- Added automatic hiding after three independent unresolved reports and a reported-comments admin queue.
+- Added administrator-only user blocking/reactivation with immediate session revocation on block.
+- Added an accessible show/hide control to password fields in login, registration, legacy-profile completion, and account password changes.
+- Added compact mobile, username, and strong-password guidance between each field label and input.
+- Added a six-slot OTP entry control and resend countdown driven by the API's 60-second cooldown.
+- Added automatic OTP submission as soon as all six digits are entered or pasted.
+- Added related hotel cards below destination travel videos, with city matching, province-level city aggregation, deduplication, counts, and empty/unavailable states.
+- Added `/explore` with reusable creator/video/destination composition, title/creator/destination search, automatic destination filters, result counts, and empty states.
+- Added Explore navigation links to the main header and footer.
+- Added `/search` with grouped hotel, notable-person, city, and province results, per-group counts and links, partial API failure handling, and a unified no-result state.
+- Added client-side progressive Explore loading: six videos initially and six more per button press without a page refresh.
+- Added authenticated account-activity APIs and an «فعالیت‌های من» section for reviewing moderation states, opening related content, and safely deleting owned reviews/comments.
 
 ### Changed
 
@@ -83,11 +97,35 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Allowed optional email and Instagram profile fields to be cleared after registration.
 - Separated the login and registration UX: login defaults to password, OTP is an alternate path, and registration is offered through an explicit account-creation link.
 - Kept legacy OTP-created accounts usable and prompts them to add a username/password after login.
+- Compressed registration fields into a wider four-row desktop layout with shorter inputs so the complete form fits without internal scrolling.
+- Moved full registration validation and uniqueness checks before OTP delivery.
+- Separated official hotel classification from user-review scores; review scores now use `x.x از ۵` and `n نظر` without a star icon.
+- Formatted visible Iranian mobile numbers as `+98 991 123 4567` while preserving normalized API values.
+- Changed video comments from universal premoderation to hybrid trust/risk moderation: clean comments from users with three published comments publish immediately, while new, linked, repeated, or risky submissions remain pending.
+- Limited each user to five video-comment submissions per rolling minute.
+- Refined hotel, notable-person, and destination detail pages with a subtle layered background, translucent profile surface, and deeper destination hero while preserving the minimal visual language.
+- Reduced website registration to name, family name, `09…` mobile, username, and password; optional email and Instagram now move to the account page.
+- Enforced lowercase, uppercase, digit, and symbol requirements for newly created or changed passwords while preserving legacy password login.
+- Reset incompatible Explore destination selections automatically when the destination type changes.
+- Routed the homepage hero search to Global Search instead of the hotel-only listing.
+- Moved the Videos navigation item after Notable People in both the header and footer.
+- Prevented deletion of a video comment that already has replies, preserving other users' contributions.
+- Moved «فعالیت‌های من» out of the profile form into its own `/account/activity` route and account-menu item.
 
 ### Fixed
 
 - Fixed the footer destination link to use `/destinations` instead of the removed `/cities` route.
 - Fixed Iranian `+98` mobile numbers inside Persian OTP copy by isolating the number as LTR content.
+- Fixed duplicate email/username/Instagram/mobile errors appearing only after the user reached the OTP verification step.
+- Clarified the optional Instagram field note on the account profile.
+- Unified the user-score number and `از ۵` typography in both hotel rating summaries, and localized the lower summary number to Persian digits.
+- Rendered Persian hotel-rating decimals with a visible period (`۴.۵`) and enlarged the header login icon.
+- Fixed LAN access for authentication, hotel reviews, and video comments by proxying browser `/api/v1` requests through the Next.js origin instead of hard-coding browser-side `localhost:4000`.
+- Reset the hotel-review form after submission and page reload while retaining the previous review's moderation status and replacement behavior.
+- Fixed duplicate/self-report errors appearing only after closing the video-comment report form; errors now render immediately inside the open form.
+- Fixed account-profile saves hiding the API error behind a generic message; duplicate/invalid email, username, Instagram, password, mobile, and expired-session errors now have specific Persian messages.
+- Prevented password managers from autofilling the current password into the optional new-password field during unrelated profile edits.
+- Standardized negative form feedback across authentication, account, hotel reviews, video comments, reports, and administration as red error states while keeping successful feedback green.
 
 ### Removed
 

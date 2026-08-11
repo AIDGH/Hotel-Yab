@@ -30,6 +30,7 @@ export async function importDataset(
         websiteUrl: hotel.websiteUrl ?? null,
         imageUrl: hotel.imageUrl ?? null,
         logoUrl: hotel.logoUrl ?? null,
+        starRating: hotel.starRating ?? null,
         publicationStatus: hotel.publicationStatus ?? PublicationStatus.DRAFT,
       };
 

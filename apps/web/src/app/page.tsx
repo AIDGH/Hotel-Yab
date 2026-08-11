@@ -59,7 +59,7 @@ export default async function Home() {
               را همراه منبع و وضعیت بررسی، شفاف و قابل پیگیری می‌کند.
             </p>
 
-            <form className="hero-search" action="/hotels" method="get">
+            <form className="hero-search" action="/search" method="get">
               <label className="sr-only" htmlFor="hero-query">
                 جست‌وجوی هتل، شهر یا چهره
               </label>
@@ -69,7 +69,7 @@ export default async function Home() {
               <input
                 id="hero-query"
                 name="query"
-                placeholder="نام هتل یا شهر را جست‌وجو کنید..."
+                placeholder="نام هتل، چهره، شهر یا استان..."
                 autoComplete="off"
               />
               <button type="submit">جست‌وجو</button>

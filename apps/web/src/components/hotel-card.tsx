@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { HotelListItem } from "@/lib/types";
 import { HotelLogo } from "./hotel-logo";
+import { HotelStars } from "./hotel-stars";
 import { MediaTile } from "./media-tile";
 
 export function HotelCard({ hotel }: { hotel: HotelListItem }) {
@@ -36,6 +37,7 @@ export function HotelCard({ hotel }: { hotel: HotelListItem }) {
           <div>
             <span className="location-label">⌖ {hotel.city}</span>
             <h3>{hotel.name}</h3>
+            <HotelStars value={hotel.starRating} />
           </div>
           <p>
             {hotel.description ??

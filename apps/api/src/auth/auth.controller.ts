@@ -15,7 +15,7 @@ import type { AuthenticatedRequest } from './auth.types';
 import { LoginWithPasswordDto } from './dto/login-with-password.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RequestLoginOtpDto } from './dto/request-login-otp.dto';
-import { RequestOtpDto } from './dto/request-otp.dto';
+import { RequestRegistrationOtpDto } from './dto/request-registration-otp.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { VerifyLoginOtpDto } from './dto/verify-login-otp.dto';
 import { SessionAuthGuard } from './session-auth.guard';
@@ -66,8 +66,8 @@ export class AuthController {
   @ApiOperation({
     summary: 'Request a mobile verification OTP for registration',
   })
-  requestRegistrationOtp(@Body() dto: RequestOtpDto) {
-    return this.authService.requestRegistrationOtp(dto.mobile);
+  requestRegistrationOtp(@Body() dto: RequestRegistrationOtpDto) {
+    return this.authService.requestRegistrationOtp(dto);
   }
 
   @Post('register')

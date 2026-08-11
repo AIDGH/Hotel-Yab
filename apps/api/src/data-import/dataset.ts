@@ -23,6 +23,7 @@ export type HotelImportRecord = {
   websiteUrl?: string | null;
   imageUrl?: string | null;
   logoUrl?: string | null;
+  starRating?: number | null;
   publicationStatus?: PublicationStatus;
 };
 
@@ -104,6 +105,7 @@ const datasetSchema = Joi.object<ImportDataset>({
         websiteUrl: optionalUrl,
         imageUrl: optionalUrl,
         logoUrl: optionalUrl,
+        starRating: Joi.number().integer().min(1).max(5).allow(null),
         publicationStatus: Joi.string().valid(
           ...Object.values(PublicationStatus),
         ),

@@ -19,6 +19,7 @@ export type HotelListItem = {
   city: string;
   imageUrl: string | null;
   logoUrl: string | null;
+  starRating: number | null;
   associationCount: number;
   verifiedAssociationCount: number;
 };

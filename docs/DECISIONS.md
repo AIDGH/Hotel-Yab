@@ -326,13 +326,13 @@ page requires login. Authentication is introduced only where identity is needed
 for reviews, comments, and personal account data.
 
 Current account capabilities include verified registration, password/OTP login,
-profile data, hotel reviews, video comments, and contribution moderation.
+profile data, hotel reviews, video comments, contribution moderation, and a
+consolidated view of the current user's activity.
 Potential later features include:
 
 - favorites;
 - saved hotels;
 - personalization;
-- consolidated contribution management.
 
 **Reason:**
 
@@ -410,6 +410,16 @@ Travel videos may be associated with one or more cities or provinces through
 `videoDestinations`. Destination persistence and video relationships will be
 modeled in Prisma only after the real dataset structure is validated.
 
+Related hotels are resolved without adding hotel copies to destination data.
+For a city, the frontend requests published hotels whose `city` exactly matches
+the destination name. For a province, it collects the city records with the
+same `parentProvinceSlug`, queries those city names, and deduplicates the
+combined hotel result by canonical hotel ID.
+
+**Reason:** This reuses the current hotel API and `HotelCard`, keeps hotel data
+canonical, and gives province pages useful results while the destination model
+is still a frontend prototype.
+
 **Status:** Active
 
 ## 18. Separate Follower Count from Occupation
@@ -452,6 +462,13 @@ exact normalized Instagram handle. Destination metadata is resolved from
 `destinations.json`. `travel-videos.json` does not duplicate person or
 destination names, images, follower counts, or descriptions.
 
+The `/explore` route resolves the same keys for every video and composes the
+existing creator, player, and destination-link components. Filtering uses the
+resolved title, Instagram username, destination type, and destination slug;
+changing destination type clears an incompatible destination selection. The
+client initially reveals six matched videos and adds six more per explicit
+button press without navigation or refresh.
+
 **Reason:** A person's profile data can change independently, and one video may
 belong to several destinations. Relationship keys prevent stale copies and
 keep `sourceUrl` attached to the original Instagram post.
@@ -461,16 +478,24 @@ keep `sourceUrl` attached to the original Instagram post.
 ## 21. Use Password or Mobile OTP with Opaque Server-Side Sessions
 
 **Decision:** Registration is separate from login and requires mobile OTP
-verification, a unique username, and a password. Default login accepts mobile
-or username plus password; OTP remains a passwordless/fallback login for an
-existing account. Successful authentication sets an HttpOnly, SameSite=Lax
-cookie. The raw password, session token, and OTP are never persisted; only
-salted `scrypt`, SHA-256, and HMAC hashes respectively are stored.
+verification, a unique username, and a strong password. The website collects
+only name, family name, an `09…` mobile, username, and password during signup;
+email and Instagram are completed later. A new password must have 8–72
+characters with lowercase/uppercase Latin letters, a digit, and a symbol.
+Default login accepts mobile or username plus password; OTP remains a
+passwordless/fallback login for an existing account. OTP resend uses the
+server-provided cooldown, 60 seconds by default. Successful authentication sets
+an HttpOnly, SameSite=Lax cookie. The raw password, session token, and OTP are
+never persisted; only salted `scrypt`, SHA-256, and HMAC hashes respectively are
+stored.
 
 **Reason:** Explicit registration makes the account lifecycle understandable,
 password login avoids an SMS dependency on every visit, and OTP preserves
 mobile ownership verification and account access when the password is not used.
-Server-side sessions remain revocable. Email remains optional profile metadata.
+Server-side sessions remain revocable. Deferring optional profile fields lowers
+signup friction without removing them. Strong new-password validation improves
+account safety while password verification stays backward-compatible. Email
+remains optional profile metadata.
 Development may expose its OTP for local testing, but production requires an
 SMS provider.
 
@@ -487,16 +512,17 @@ false public-person identity would damage the product's trust model.
 
 **Status:** Active
 
-## 23. Moderate Reviews and Comments Before Publication
+## 23. Keep Hotel Reviews Premoderated
 
-**Decision:** Hotel reviews and video comments start as `PENDING`; public API
-responses include only `PUBLISHED` content. Editing a hotel review returns it to
-`PENDING`. One review is allowed per user/hotel.
+**Decision:** Hotel reviews start as `PENDING`; public API responses include only
+`PUBLISHED` reviews. Editing a hotel review returns it to `PENDING`. One review
+is allowed per user/hotel. Video comments follow the separate hybrid policy in
+Decision 27.
 
 **Reason:** User-generated content must not bypass the same trust boundary used
 elsewhere in Hotel-Yab.
 
-**Status:** Active; protected review/comment moderation UI is implemented
+**Status:** Active; protected review moderation UI is implemented
 
 ## 24. Attach Comments to the Canonical Video and Keep Them Collapsed
 
@@ -509,3 +535,79 @@ single comment thread prevents duplication, while collapsed UI keeps video
 discovery visually focused.
 
 **Status:** Active
+
+## 25. Keep Official Hotel Stars Separate from User Ratings
+
+**Decision:** Store the reviewed official hotel classification in nullable
+`Hotel.starRating` as an integer from 1 to 5. Calculate `ratingSummary` only
+from published user reviews. Present both as separate UI elements and do not
+place a star icon beside the user-review score.
+
+**Reason:** A hotel's official classification is an external property of the
+hotel, while a user score is a changing aggregate of Hotel-Yab reviews. Mixing
+them would misrepresent both values.
+
+**Status:** Active
+
+## 26. Proxy Browser API Requests Through the Frontend Origin
+
+**Decision:** Browser-side authentication, review, and comment requests use
+relative `/api/v1` URLs. Next.js rewrites them to the internal API URL. Server
+Components continue to use `API_BASE_URL` directly.
+
+**Reason:** A browser-side `localhost:4000` address points to the visitor's own
+device when the site is opened through a LAN IP. Same-origin proxying works on
+localhost and network addresses, avoids unnecessary CORS coupling, and keeps
+HttpOnly session cookies attached to the visible frontend host.
+
+**Status:** Active
+
+## 27. Use Hybrid Moderation for Video Comments
+
+**Decision:** A new video comment or reply is classified before insertion. A
+clean comment from a user with at least three published comments is published
+immediately. New users, links, exact recent repeats, and baseline risky terms go
+to `PENDING`. Each user is limited to five comment submissions per 60 seconds.
+Users may report someone else's published comment once; three distinct open
+reports hide it automatically. Staff can resolve reports through the existing
+content-status workflow, while only administrators can block/reactivate users.
+
+**Reason:** Premoderating every comment does not scale, but fully unmoderated
+publication creates avoidable abuse risk. Derived trust avoids a fragile manual
+badge, simple risk signals catch common cases, reports provide community input,
+and automatic hiding limits exposure until staff review.
+
+**Status:** Active
+
+## 28. Federate Global Search Across Current Canonical Sources
+
+**Decision:** `/search` queries the existing hotel and notable-person APIs in
+parallel and searches the current destination prototype locally. Results are
+grouped by entity type and link to the canonical detail or complete listing
+route. The homepage search form targets this route instead of the hotel-only
+listing.
+
+**Reason:** Hotels and people already have correct publication-aware API search,
+while destinations have not moved into PostgreSQL yet. A frontend federation
+delivers useful global search without duplicating entities or introducing a
+temporary backend index that would immediately need replacement. Independent
+group errors preserve partial results when one source is unavailable.
+
+**Status:** Active; reconsider a backend search index after destinations enter
+the main data pipeline or result volume requires ranked cross-entity search.
+
+## 29. Show Owners All Their Activity Without Exposing Moderation Notes
+
+**Decision:** The separate `/account/activity` page aggregates the authenticated
+user's hotel reviews and video comments across every moderation state, while
+`/account` remains focused on profile editing. The activity page reuses the
+canonical hotel review deletion endpoint and permits deleting an owned video
+comment only when that comment has no replies. Internal moderation notes are
+excluded.
+
+**Reason:** Contributors need one place to understand whether their content is
+pending, published, rejected, or hidden. Protecting reply-bearing parent comments
+avoids deleting another user's contribution or breaking conversation structure,
+while keeping staff notes private preserves the moderation boundary.
+
+**Status:** Active; implemented without a database migration.

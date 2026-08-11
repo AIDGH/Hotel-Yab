@@ -61,4 +61,21 @@ export function formatFollowerCount(value: number | null): string | null {
   }).format(value);
 }
 
+export function formatIranianMobile(value: string): string {
+  const compact = value.replace(/\s/g, "");
+
+  if (!/^\+98\d{10}$/.test(compact)) return value;
+
+  return `${compact.slice(0, 3)} ${compact.slice(3, 6)} ${compact.slice(6, 9)} ${compact.slice(9)}`;
+}
+
+export function formatPersianRating(value: number): string {
+  return value
+    .toLocaleString("fa-IR", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })
+    .replace("٫", ".");
+}
+
 export const notableCategories = Object.entries(categoryLabels);

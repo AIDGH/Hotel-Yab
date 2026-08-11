@@ -6,9 +6,16 @@ import {
   type ReactNode,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { browserApi } from "@/lib/browser-api";
+import {
+  authErrorMessage,
+  isRegistrationConflict,
+} from "@/lib/auth-errors";
+import { formatIranianMobile } from "@/lib/labels";
+import { PasswordInput } from "./password-input";
 
 export type AuthUser = {
   id: string;
@@ -39,8 +46,14 @@ type RegistrationDraft = {
   password: string;
   firstName: string;
   lastName: string;
-  email: string;
-  instagramHandle: string;
+};
+
+type OtpResponse = {
+  data: {
+    mobile: string;
+    resendAfterSeconds: number;
+    developmentCode?: string;
+  };
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -106,12 +119,23 @@ function AuthModal({
   const [mobile, setMobile] = useState(currentUser?.mobile ?? "");
   const [code, setCode] = useState("");
   const [developmentCode, setDevelopmentCode] = useState<string | null>(null);
+  const [resendSeconds, setResendSeconds] = useState(0);
   const [registration, setRegistration] = useState<RegistrationDraft | null>(
     null,
   );
   const [user, setUser] = useState(currentUser);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const otpVerificationInFlight = useRef(false);
+
+  useEffect(() => {
+    if (resendSeconds <= 0) return;
+    const timer = window.setTimeout(
+      () => setResendSeconds((seconds) => Math.max(0, seconds - 1)),
+      1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [resendSeconds]);
 
   async function loginWithPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -142,14 +166,14 @@ function AuthModal({
     setSubmitting(true);
     setError("");
     try {
-      const result = await browserApi<{
-        data: { mobile: string; developmentCode?: string };
-      }>("/auth/login/otp/request", {
+      const result = await browserApi<OtpResponse>("/auth/login/otp/request", {
         method: "POST",
         body: JSON.stringify({ identifier }),
       });
       setMobile(result.data.mobile);
       setDevelopmentCode(result.data.developmentCode ?? null);
+      setCode("");
+      setResendSeconds(result.data.resendAfterSeconds);
       setStage("login-otp");
     } catch (caught) {
       setError(authErrorMessage(caught));
@@ -158,8 +182,9 @@ function AuthModal({
     }
   }
 
-  async function verifyLoginOtp(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function verifyLoginOtp(verificationCode: string) {
+    if (otpVerificationInFlight.current) return;
+    otpVerificationInFlight.current = true;
     setSubmitting(true);
     setError("");
     try {
@@ -167,13 +192,14 @@ function AuthModal({
         "/auth/login/otp/verify",
         {
           method: "POST",
-          body: JSON.stringify({ identifier, code }),
+          body: JSON.stringify({ identifier, code: verificationCode }),
         },
       );
       finishAuthentication(result.data);
     } catch (caught) {
       setError(authErrorMessage(caught));
     } finally {
+      otpVerificationInFlight.current = false;
       setSubmitting(false);
     }
   }
@@ -189,20 +215,47 @@ function AuthModal({
       password: String(form.get("password") ?? ""),
       firstName: String(form.get("firstName") ?? ""),
       lastName: String(form.get("lastName") ?? ""),
-      email: String(form.get("email") ?? ""),
-      instagramHandle: String(form.get("instagramHandle") ?? ""),
     };
     try {
-      const result = await browserApi<{
-        data: { mobile: string; developmentCode?: string };
-      }>("/auth/register/otp/request", {
+      const result = await browserApi<OtpResponse>("/auth/register/otp/request", {
         method: "POST",
-        body: JSON.stringify({ mobile: draft.mobile }),
+        body: JSON.stringify(draft),
       });
       setRegistration({ ...draft, mobile: result.data.mobile });
       setMobile(result.data.mobile);
       setDevelopmentCode(result.data.developmentCode ?? null);
+      setCode("");
+      setResendSeconds(result.data.resendAfterSeconds);
       setStage("register-otp");
+    } catch (caught) {
+      const message = authErrorMessage(caught);
+      if (isRegistrationConflict(caught)) {
+        setStage("register");
+        setCode("");
+        setDevelopmentCode(null);
+      }
+      setError(message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function resendRegistrationOtp() {
+    if (!registration) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const result = await browserApi<OtpResponse>(
+        "/auth/register/otp/request",
+        {
+          method: "POST",
+          body: JSON.stringify(registration),
+        },
+      );
+      setMobile(result.data.mobile);
+      setDevelopmentCode(result.data.developmentCode ?? null);
+      setCode("");
+      setResendSeconds(result.data.resendAfterSeconds);
     } catch (caught) {
       setError(authErrorMessage(caught));
     } finally {
@@ -210,20 +263,28 @@ function AuthModal({
     }
   }
 
-  async function finishRegistration(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function finishRegistration(verificationCode: string) {
     if (!registration) return;
+    if (otpVerificationInFlight.current) return;
+    otpVerificationInFlight.current = true;
     setSubmitting(true);
     setError("");
     try {
       const result = await browserApi<{ data: AuthUser }>("/auth/register", {
         method: "POST",
-        body: JSON.stringify({ ...registration, code }),
+        body: JSON.stringify({ ...registration, code: verificationCode }),
       });
       finishAuthentication(result.data);
     } catch (caught) {
-      setError(authErrorMessage(caught));
+      const message = authErrorMessage(caught);
+      if (isRegistrationConflict(caught)) {
+        setStage("register");
+        setCode("");
+        setDevelopmentCode(null);
+      }
+      setError(message);
     } finally {
+      otpVerificationInFlight.current = false;
       setSubmitting(false);
     }
   }
@@ -266,6 +327,7 @@ function AuthModal({
     setError("");
     setCode("");
     setDevelopmentCode(null);
+    setResendSeconds(0);
     setStage(nextStage);
   }
 
@@ -276,7 +338,7 @@ function AuthModal({
       onMouseDown={onClose}
     >
       <section
-        className="auth-modal"
+        className={`auth-modal${stage === "register" ? " auth-modal-register" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"
@@ -309,7 +371,12 @@ function AuthModal({
             </label>
             <label>
               رمز عبور
-              <input name="password" type="password" minLength={8} required />
+              <PasswordInput
+                name="password"
+                minLength={8}
+                autoComplete="current-password"
+                required
+              />
             </label>
             <AuthError message={error} />
             <button className="button" type="submit" disabled={submitting}>
@@ -341,14 +408,16 @@ function AuthModal({
             submitting={submitting}
             error={error}
             onCodeChange={setCode}
-            onSubmit={verifyLoginOtp}
+            onVerify={verifyLoginOtp}
             onBack={() => switchStage("login")}
+            resendSeconds={resendSeconds}
+            onResend={requestLoginOtp}
           />
         ) : null}
 
         {stage === "register" ? (
           <form
-            className="auth-form auth-profile-form"
+            className="auth-form auth-profile-form auth-register-form"
             onSubmit={requestRegistrationOtp}
           >
             <h2 id="auth-modal-title">ساخت حساب کاربری</h2>
@@ -359,56 +428,69 @@ function AuthModal({
             <div className="auth-form-row">
               <label>
                 نام
-                <input name="firstName" required minLength={2} />
+                <input
+                  name="firstName"
+                  defaultValue={registration?.firstName ?? ""}
+                  required
+                  minLength={2}
+                />
               </label>
               <label>
                 نام خانوادگی
-                <input name="lastName" required minLength={2} />
+                <input
+                  name="lastName"
+                  defaultValue={registration?.lastName ?? ""}
+                  required
+                  minLength={2}
+                />
+              </label>
+            </div>
+            <div className="auth-form-row">
+              <label>
+                شماره تماس
+                <small>۱۱ رقم و با ۰۹ شروع شود</small>
+                <input
+                  name="mobile"
+                  type="tel"
+                  inputMode="tel"
+                  defaultValue={registration?.mobile ?? ""}
+                  placeholder="09121234567"
+                  pattern="09[0-9]{9}"
+                  required
+                />
+              </label>
+              <label>
+                نام‌کاربری
+                <small>۳ تا ۳۰؛ حداقل یک حرف لاتین، عدد، نقطه یا زیرخط</small>
+                <input
+                  name="username"
+                  dir="ltr"
+                  autoCapitalize="none"
+                  defaultValue={registration?.username ?? ""}
+                  placeholder="username"
+                  pattern="(?=.*[A-Za-z])[A-Za-z0-9._]{3,30}"
+                  required
+                />
               </label>
             </div>
             <label>
-              شماره تماس
-              <input
-                name="mobile"
-                type="tel"
-                inputMode="tel"
-                placeholder="09121234567"
-                required
-              />
-            </label>
-            <label>
-              نام‌کاربری
-              <input
-                name="username"
-                dir="ltr"
-                autoCapitalize="none"
-                placeholder="username"
-                pattern="(?=.*[A-Za-z])[A-Za-z0-9._]{3,30}"
-                required
-              />
-            </label>
-            <label>
-              رمز عبور <small>حداقل ۸ کاراکتر</small>
-              <input
+              رمز عبور
+              <small>
+                حداقل ۸؛ شامل حرف کوچک و بزرگ لاتین، عدد و نماد مثل @
+              </small>
+              <PasswordInput
                 name="password"
-                type="password"
+                defaultValue={registration?.password ?? ""}
                 minLength={8}
                 maxLength={72}
+                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,72}"
+                autoComplete="new-password"
                 required
               />
             </label>
-            <label>
-              ایمیل <small>اختیاری</small>
-              <input name="email" type="email" />
-            </label>
-            <label>
-              آیدی اینستاگرام <small>اختیاری و یکتا</small>
-              <input
-                name="instagramHandle"
-                dir="ltr"
-                placeholder="instagram.username"
-              />
-            </label>
+            <p className="auth-register-later-note">
+              ایمیل و آیدی اینستاگرام را بعداً از صفحه حساب اضافه کنید.
+            </p>
             <AuthError message={error} />
             <button className="button" type="submit" disabled={submitting}>
               {submitting ? "در حال ارسال…" : "ادامه و تأیید شماره"}
@@ -431,8 +513,10 @@ function AuthModal({
             submitting={submitting}
             error={error}
             onCodeChange={setCode}
-            onSubmit={finishRegistration}
+            onVerify={finishRegistration}
             onBack={() => switchStage("register")}
+            resendSeconds={resendSeconds}
+            onResend={resendRegistrationOtp}
           />
         ) : null}
 
@@ -462,6 +546,7 @@ function AuthModal({
             </div>
             <label>
               نام‌کاربری
+              <small>۳ تا ۳۰؛ حداقل یک حرف لاتین، عدد، نقطه یا زیرخط</small>
               <input
                 name="username"
                 dir="ltr"
@@ -471,12 +556,16 @@ function AuthModal({
               />
             </label>
             <label>
-              رمز عبور <small>حداقل ۸ کاراکتر</small>
-              <input
+              رمز عبور
+              <small>
+                حداقل ۸؛ شامل حرف کوچک و بزرگ لاتین، عدد و نماد مثل @
+              </small>
+              <PasswordInput
                 name="password"
-                type="password"
                 minLength={8}
                 maxLength={72}
+                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,72}"
+                autoComplete="new-password"
                 required={!user?.hasPassword}
               />
             </label>
@@ -515,8 +604,10 @@ function OtpForm({
   submitting,
   error,
   onCodeChange,
-  onSubmit,
+  onVerify,
   onBack,
+  resendSeconds,
+  onResend,
 }: {
   title: string;
   mobile: string;
@@ -525,16 +616,37 @@ function OtpForm({
   submitting: boolean;
   error: string;
   onCodeChange: (value: string) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onVerify: (code: string) => void | Promise<void>;
   onBack: () => void;
+  resendSeconds: number;
+  onResend: () => void | Promise<void>;
 }) {
+  const lastAutoSubmittedCode = useRef("");
+
+  useEffect(() => {
+    if (code.length !== 6) {
+      lastAutoSubmittedCode.current = "";
+      return;
+    }
+    if (submitting || lastAutoSubmittedCode.current === code) return;
+
+    lastAutoSubmittedCode.current = code;
+    void onVerify(code);
+  }, [code, onVerify, submitting]);
+
   return (
-    <form className="auth-form" onSubmit={onSubmit}>
+    <form
+      className="auth-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!submitting && code.length === 6) void onVerify(code);
+      }}
+    >
       <h2 id="auth-modal-title">{title}</h2>
       <p>
         کد شش‌رقمی ارسال‌شده به{" "}
         <bdi className="inline-mobile" dir="ltr">
-          {mobile}
+          {formatIranianMobile(mobile)}
         </bdi>{" "}
         را وارد کنید.
       </p>
@@ -543,29 +655,74 @@ function OtpForm({
           کد محیط توسعه: <strong>{developmentCode}</strong>
         </div>
       ) : null}
-      <label>
+      <label className="otp-code-field">
         کد ورود
-        <input
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]{6}"
-          maxLength={6}
-          value={code}
-          onChange={(event) => onCodeChange(event.target.value)}
-          placeholder="123456"
-          autoFocus
-          required
-        />
+        <span className="otp-code-control">
+          <input
+            className="otp-code-input"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]{6}"
+            maxLength={6}
+            value={code}
+            onChange={(event) =>
+              onCodeChange(event.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            aria-label="کد شش‌رقمی"
+            autoFocus
+            required
+          />
+          <span className="otp-code-slots" aria-hidden="true">
+            {Array.from({ length: 6 }, (_, index) => (
+              <span
+                className={`${code[index] ? "otp-code-slot-filled" : ""}${
+                  code.length < 6 && index === code.length
+                    ? " otp-code-slot-active"
+                    : ""
+                }`}
+                key={index}
+              >
+                {code[index] ?? "—"}
+              </span>
+            ))}
+          </span>
+        </span>
       </label>
       <AuthError message={error} />
-      <button className="button" type="submit" disabled={submitting}>
+      <button
+        className="button"
+        type="submit"
+        disabled={submitting || code.length !== 6}
+      >
         {submitting ? "در حال بررسی…" : "تأیید و ادامه"}
       </button>
-      <button className="button-link" type="button" onClick={onBack}>
-        بازگشت
-      </button>
+      <div className="otp-secondary-actions">
+        <button
+          className="button-link"
+          type="button"
+          onClick={() => void onResend()}
+          disabled={submitting || resendSeconds > 0}
+        >
+          {resendSeconds > 0
+            ? `ارسال مجدد تا ${formatCountdown(resendSeconds)}`
+            : "ارسال مجدد کد"}
+        </button>
+        <button className="button-link" type="button" onClick={onBack}>
+          بازگشت
+        </button>
+      </div>
     </form>
   );
+}
+
+function formatCountdown(seconds: number) {
+  const minutes = Math.floor(seconds / 60).toLocaleString("fa-IR");
+  const remainingSeconds = (seconds % 60).toLocaleString("fa-IR", {
+    minimumIntegerDigits: 2,
+    useGrouping: false,
+  });
+  return `${minutes}:${remainingSeconds}`;
 }
 
 function AuthError({ message }: { message: string }) {
@@ -574,25 +731,4 @@ function AuthError({ message }: { message: string }) {
       {message}
     </p>
   ) : null;
-}
-
-function authErrorMessage(caught: unknown) {
-  const message = caught instanceof Error ? caught.message : "خطایی رخ داد.";
-  if (message.includes("wait")) return "برای دریافت کد جدید کمی صبر کنید.";
-  if (message.includes("verification code"))
-    return "کد واردشده نادرست یا منقضی شده است.";
-  if (message.includes("credentials"))
-    return "شماره یا نام‌کاربری و رمز عبور درست نیست.";
-  if (message.includes("account was not found"))
-    return "حسابی با این مشخصات پیدا نشد.";
-  if (message.includes("mobile"))
-    return "این شماره تماس قبلاً استفاده شده است.";
-  if (message.includes("username") && message.includes("Instagram"))
-    return "این آیدی اینستاگرام قبلاً استفاده شده است.";
-  if (message.includes("username"))
-    return "این نام‌کاربری قبلاً استفاده شده است.";
-  if (message.includes("email")) return "این ایمیل قبلاً استفاده شده است.";
-  if (message.includes("Instagram"))
-    return "این آیدی اینستاگرام قبلاً استفاده شده است.";
-  return "درخواست انجام نشد. اطلاعات را بررسی و دوباره تلاش کنید.";
 }

@@ -31,6 +31,7 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/)
   @MinLength(8)
   @MaxLength(72)
   password?: string;

@@ -69,6 +69,14 @@ enum ContentModerationStatus {
   HIDDEN
 }
 
+enum CommentReportReason {
+  SPAM
+  HARASSMENT
+  HATEFUL
+  MISINFORMATION
+  OTHER
+}
+
 model Hotel {
   id                String             @id @default(uuid()) @db.Uuid
   slug              String             @unique @db.VarChar(160)
@@ -82,6 +90,7 @@ model Hotel {
   websiteUrl        String?            @db.Text
   imageUrl          String?            @db.Text
   logoUrl           String?            @db.Text
+  starRating        Int?
   publicationStatus PublicationStatus  @default(DRAFT)
   associations      HotelAssociation[]
   reviews           HotelReview[]
@@ -163,26 +172,28 @@ model AssociationEvidence {
 }
 
 model User {
-  id                     String         @id @default(uuid()) @db.Uuid
-  mobile                 String         @unique @db.VarChar(16)
-  username               String?        @unique @db.VarChar(30)
-  passwordHash           String?        @db.VarChar(255)
-  firstName              String?        @db.VarChar(80)
-  lastName               String?        @db.VarChar(100)
-  email                  String?        @unique @db.VarChar(254)
-  instagramHandle        String?        @unique @db.VarChar(30)
-  role                   UserRole       @default(USER)
-  status                 UserStatus     @default(ACTIVE)
-  notablePersonId        String?        @unique @db.Uuid
-  notablePerson          NotablePerson? @relation("UserNotablePerson", fields: [notablePersonId], references: [id], onDelete: SetNull)
+  id                     String               @id @default(uuid()) @db.Uuid
+  mobile                 String               @unique @db.VarChar(16)
+  username               String?              @unique @db.VarChar(30)
+  passwordHash           String?              @db.VarChar(255)
+  firstName              String?              @db.VarChar(80)
+  lastName               String?              @db.VarChar(100)
+  email                  String?              @unique @db.VarChar(254)
+  instagramHandle        String?              @unique @db.VarChar(30)
+  role                   UserRole             @default(USER)
+  status                 UserStatus           @default(ACTIVE)
+  notablePersonId        String?              @unique @db.Uuid
+  notablePerson          NotablePerson?       @relation("UserNotablePerson", fields: [notablePersonId], references: [id], onDelete: SetNull)
   sessions               UserSession[]
   hotelReviews           HotelReview[]
   videoComments          VideoComment[]
-  moderatedHotelReviews  HotelReview[]  @relation("HotelReviewModerator")
-  moderatedVideoComments VideoComment[] @relation("VideoCommentModerator")
-  lastLoginAt            DateTime?      @db.Timestamptz(3)
-  createdAt              DateTime       @default(now()) @db.Timestamptz(3)
-  updatedAt              DateTime       @updatedAt @db.Timestamptz(3)
+  videoCommentReports    VideoCommentReport[] @relation("VideoCommentReporter")
+  resolvedCommentReports VideoCommentReport[] @relation("VideoCommentReportResolver")
+  moderatedHotelReviews  HotelReview[]        @relation("HotelReviewModerator")
+  moderatedVideoComments VideoComment[]       @relation("VideoCommentModerator")
+  lastLoginAt            DateTime?            @db.Timestamptz(3)
+  createdAt              DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime             @updatedAt @db.Timestamptz(3)
 
   @@index([status])
 }
@@ -260,6 +271,7 @@ model VideoComment {
   moderator      User?                   @relation("VideoCommentModerator", fields: [moderatedById], references: [id], onDelete: SetNull)
   parent         VideoComment?           @relation("VideoCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies        VideoComment[]          @relation("VideoCommentReplies")
+  reports        VideoCommentReport[]
   createdAt      DateTime                @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime                @updatedAt @db.Timestamptz(3)
 
@@ -267,4 +279,23 @@ model VideoComment {
   @@index([userId, createdAt])
   @@index([parentId])
   @@index([moderatedById, moderatedAt])
+}
+
+model VideoCommentReport {
+  id           String              @id @default(uuid()) @db.Uuid
+  commentId    String              @db.Uuid
+  reporterId   String              @db.Uuid
+  reason       CommentReportReason
+  details      String?             @db.VarChar(500)
+  resolvedAt   DateTime?           @db.Timestamptz(3)
+  resolvedById String?             @db.Uuid
+  comment      VideoComment        @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporter     User                @relation("VideoCommentReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolvedBy   User?               @relation("VideoCommentReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime            @default(now()) @db.Timestamptz(3)
+
+  @@unique([commentId, reporterId])
+  @@index([commentId, resolvedAt])
+  @@index([reporterId, createdAt])
+  @@index([resolvedById, resolvedAt])
 }

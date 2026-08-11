@@ -107,10 +107,15 @@ Important information may include:
 - slug;
 - city;
 - image;
+- official star classification when supported by a reliable hotel or booking
+  source;
 - basic hotel information;
 - at least one useful public reference when necessary.
 
 Incomplete hotel records may remain stored without being publicly visible.
+
+Official hotel stars and user-review averages are separate facts. A review
+average must never be copied into the hotel's official `starRating` field.
 
 ---
 
@@ -180,6 +185,18 @@ normalized published `instagramHandle`; similar display names are not enough.
 Destination relationships use destination type and slug. One video may belong
 to multiple destinations, and destination/person metadata must be resolved
 from their canonical records rather than copied into the video dataset.
+
+## Destination Hotel Matching
+
+Hotels displayed for a city destination are resolved from the published hotel
+API by an exact city-name match. Hotels displayed for a province are the
+deduplicated union of hotels belonging to city records whose
+`parentProvinceSlug` matches that province.
+
+Hotel names, images, logos, star ratings, and relationship counts must remain
+in the canonical hotel record and must not be duplicated in destination data.
+Until destinations move into the main database pipeline, a province page can
+only include cities represented in the reviewed prototype destination dataset.
 
 ---
 
@@ -315,23 +332,30 @@ Raw spreadsheet data should not bypass validation and be published directly.
 ## User-Submitted Data
 
 Hotel-Yab accepts hotel reviews and video comments from authenticated users.
-Submissions do not become public automatically.
+Hotel reviews never become public automatically. Video comments use a hybrid
+trust/risk policy: new or risky submissions wait for review, while clean
+submissions from trusted users may publish immediately.
 
 Current flow:
 
 ```text
-User Submission
-      ↓
-PENDING moderation
-      ↓
-PUBLISHED / REJECTED / HIDDEN
-      ↓
-Public API (published only)
+Hotel Review → PENDING → PUBLISHED / REJECTED / HIDDEN
+
+Video Comment → trust/risk/rate checks → PENDING or PUBLISHED
+                                      ↓
+                       reports/moderator decision → HIDDEN / REJECTED / PUBLISHED
 ```
 
 - Mobile numbers and email addresses are private account data and must never be
   included in public review/comment responses. Passwords are never retained in
   plaintext or exposed by any API; only salted hashes are stored.
+- Website registration collects only name, family name, an Iranian `09…`
+  mobile, username, and password. Optional email and Instagram are added later
+  from the account page.
+- New passwords must be 8–72 characters and include lowercase and uppercase
+  Latin letters, a digit, and a non-alphanumeric symbol. Existing password
+  verification remains backward-compatible; the stronger rule applies when a
+  password is created or changed.
 - Site usernames and optional Instagram handles are normalized and uniqueness
   protected. Instagram uniqueness still does not prove notable-person identity.
 - Public contributions use the user's display name only.
@@ -341,9 +365,25 @@ Public API (published only)
   remains a separately maintained snapshot.
 - Editing a review returns it to `PENDING` so previously approved text cannot be
   replaced without review.
-- The same moderation rule applies to comments and replies.
+- Comments and replies use the same hybrid rule. Three already-published comments
+  establish the current trust threshold; links, exact recent repetition, and a
+  conservative risky-term baseline still route the submission to `PENDING`.
+- Each account can submit at most five comments in 60 seconds. This application
+  limit is a minimum abuse control and does not replace infrastructure-level
+  throttling in a scaled deployment.
+- A user may report another user's published comment once. Three independent,
+  unresolved reports hide the comment automatically pending staff review.
+- Report reasons and free-text details are moderation data, not public content.
+- Only administrators may block/reactivate accounts; blocking revokes current
+  sessions. Moderators may decide content status but cannot block users.
 - The latest moderation action records the responsible manager/moderator,
   timestamp, and an internal note; these audit fields are not public content.
+- An authenticated user may view all moderation states of their own hotel
+  reviews and video comments from the account activity page. Internal moderator
+  notes remain private even to the content owner.
+- Users may delete their own single hotel review. They may delete their own
+  video comment only when it has no replies; preserving an existing reply thread
+  takes precedence over destructive deletion of its parent.
 
 ---
 

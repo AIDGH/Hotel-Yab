@@ -6,6 +6,7 @@
       "countryCode": "US",
       "city": "Replace with city",
       "logoUrl": "https://replace.example/with-real-hotel-logo.webp",
+      "starRating": 4,
       "publicationStatus": "DRAFT"
     }
   ],

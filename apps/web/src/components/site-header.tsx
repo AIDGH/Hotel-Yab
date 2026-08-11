@@ -10,6 +10,7 @@ const navigation = [
   { href: "/destinations", label: "مقصدها" },
   { href: "/hotels", label: "هتل‌ها" },
   { href: "/notable-people", label: "چهره‌ها" },
+  { href: "/explore", label: "ویدیوها" },
 ];
 
 export function SiteHeader() {
@@ -65,6 +66,12 @@ export function SiteHeader() {
                 <div className="account-dropdown">
                   <Link href="/account" onClick={() => setAccountOpen(false)}>
                     حساب من
+                  </Link>
+                  <Link
+                    href="/account/activity"
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    فعالیت‌های من
                   </Link>
                   {user.role === "ADMIN" || user.role === "MODERATOR" ? (
                     <Link

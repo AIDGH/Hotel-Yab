@@ -11,6 +11,7 @@ import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import type { AuthenticatedRequest } from '../auth/auth.types';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { CreateVideoCommentDto } from './dto/create-video-comment.dto';
+import { ReportVideoCommentDto } from './dto/report-video-comment.dto';
 import { VideoCommentsService } from './video-comments.service';
 
 @Controller('videos/:videoId/comments')
@@ -38,5 +39,21 @@ export class VideoCommentsController {
     @Body() dto: CreateVideoCommentDto,
   ) {
     return this.commentsService.create(videoId, request.user.id, dto);
+  }
+
+  @Post(':commentId/reports')
+  @UseGuards(SessionAuthGuard)
+  report(
+    @Param('videoId') videoId: string,
+    @Param('commentId') commentId: string,
+    @Req() request: AuthenticatedRequest,
+    @Body() dto: ReportVideoCommentDto,
+  ) {
+    return this.commentsService.report(
+      videoId,
+      commentId,
+      request.user.id,
+      dto,
+    );
   }
 }

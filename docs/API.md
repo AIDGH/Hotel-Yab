@@ -19,9 +19,10 @@ http://localhost:4000
 
 The frontend must not access PostgreSQL directly.
 
-All paths below are relative to `/api/v1`. Browser session requests use
-`credentials: include`; the API permits credentialed CORS only from the
-configured frontend origin.
+All paths below are relative to `/api/v1`. Browser requests use the same-origin
+`/api/v1` path with `credentials: include`; Next.js proxies them to the internal
+API configured by `API_BASE_URL`. `NEXT_PUBLIC_API_BASE_URL` may override this
+only when a deliberately separate public API origin is required.
 
 ---
 
@@ -71,6 +72,7 @@ name
 city
 imageUrl
 logoUrl
+starRating
 associationCount
 verifiedAssociationCount
 ```
@@ -176,6 +178,8 @@ This is the passwordless/fallback path for an existing account. `identifier`
 may be the user's mobile or username. The response contains the normalized
 destination mobile, expiry, resend timing, and non-production-only
 `developmentCode`. Production must deliver the code through an SMS provider.
+The default resend cooldown is 60 seconds and the client must use the returned
+`resendAfterSeconds` rather than starting an unrelated timer.
 
 ## POST /auth/login/otp/verify
 
@@ -189,11 +193,26 @@ Successful verification logs in the existing user and sets the opaque
 ## POST /auth/register/otp/request
 
 ```json
-{ "mobile": "09123456789" }
+{
+  "mobile": "09123456789",
+  "username": "arad.example",
+  "password": "Arad@2026pass",
+  "firstName": "آراد",
+  "lastName": "نمونه"
+}
 ```
 
-Requests mobile verification for a new account and rejects a mobile already
-attached to a user.
+Validates the complete registration draft before sending an OTP. It rejects
+invalid fields and any existing mobile, username, email, or Instagram handle on
+the registration request itself, so known conflicts are not deferred to the code
+verification step. The final registration endpoint repeats uniqueness checks
+to protect against races.
+
+The website registration form accepts an 11-digit Iranian mobile beginning
+with `09`. New passwords require 8–72 characters with at least one lowercase
+ASCII letter, one uppercase ASCII letter, one digit, and one non-alphanumeric
+symbol. Email and Instagram remain optional API fields for compatible clients,
+but the website collects them later from `/account` to reduce signup friction.
 
 ## POST /auth/register
 
@@ -202,11 +221,9 @@ attached to a user.
   "mobile": "09123456789",
   "code": "123456",
   "username": "arad.example",
-  "password": "a-long-password",
+  "password": "Arad@2026pass",
   "firstName": "آراد",
-  "lastName": "نمونه",
-  "email": "arad@example.com",
-  "instagramHandle": "arad.example"
+  "lastName": "نمونه"
 }
 ```
 
@@ -247,6 +264,31 @@ administratively.
 ## POST /auth/logout
 
 Deletes the current server-side session and clears the session cookie.
+
+---
+
+# Account Activity
+
+## GET /account/activity
+
+Authenticated request returning the current user's own hotel reviews and video
+comments. Each item includes its moderation status and timestamps. Hotel-review
+items include the canonical hotel slug/name/city; video-comment items include
+the canonical video ID and direct-reply count. Results are ordered newest first
+and currently capped at 50 reviews and 100 comments.
+
+This private endpoint may include the owner's `PENDING`, `PUBLISHED`, `REJECTED`,
+or `HIDDEN` items, but it never exposes internal `moderationNote` values.
+
+## DELETE /account/activity/video-comments/:id
+
+Deletes a video comment owned by the authenticated user. A comment with one or
+more replies cannot be deleted and returns `409 Conflict`, preserving other
+users' replies. Missing or non-owned comments return `404`.
+
+Hotel reviews continue to be deleted through
+`DELETE /hotels/:slug/reviews/me`; the account page reuses that endpoint rather
+than introducing a duplicate review-deletion contract.
 
 ---
 
@@ -298,9 +340,29 @@ Authenticated request requiring a completed first and last name:
 { "body": "ویدیوی مفیدی بود.", "parentId": null }
 ```
 
-`parentId` is optional and supports one reply level. New comments are `PENDING`
-until moderation. The relationship is always User → VideoComment → Video; it
-does not depend on which destination or person page rendered the video.
+`parentId` is optional and supports one reply level. The API allows at most five
+comment submissions per user in a rolling 60-second window. New users and
+comments containing a link, exact recent repetition, or a baseline risky term
+start as `PENDING`. A clean comment from a user with at least three published
+comments starts as `PUBLISHED`. The response returns the resulting status so the
+UI can distinguish immediate publication from a moderation queue.
+
+The relationship is always User → VideoComment → Video; it does not depend on
+which destination or person page rendered the video.
+
+## POST /videos/:videoId/comments/:commentId/reports
+
+Authenticated request for reporting another user's published comment:
+
+```json
+{ "reason": "SPAM", "details": "پیام تکراری است." }
+```
+
+Supported reasons are `SPAM`, `HARASSMENT`, `HATEFUL`, `MISINFORMATION`, and
+`OTHER`. A user cannot report their own comment or report the same comment more
+than once. At three unresolved unique reports, the comment is automatically
+hidden. The response includes the current report count and whether auto-hide
+occurred.
 
 ---
 
@@ -314,9 +376,11 @@ All moderation endpoints require an authenticated `ADMIN` or `MODERATOR`.
 GET /admin/moderation/queue?status=PENDING
 ```
 
-Returns hotel reviews and video comments for one moderation status. The default
-is `PENDING`; supported values are `PENDING`, `PUBLISHED`, `REJECTED`, and
-`HIDDEN`.
+Returns hotel reviews and video comments for one moderation status, plus a
+separate `reportedComments` collection for unresolved reports. The default is
+`PENDING`; supported status values are `PENDING`, `PUBLISHED`, `REJECTED`, and
+`HIDDEN`. Reported items include the unique report count and report reasons,
+while private account contact data remains excluded.
 
 ## PATCH /admin/moderation/hotel-reviews/:id
 
@@ -327,7 +391,19 @@ is `PENDING`; supported values are `PENDING`, `PUBLISHED`, `REJECTED`, and
 ```
 
 The decision records moderator identity, decision time, and an optional private
-note. Publishing sets `publishedAt`; other states clear it.
+note. Publishing sets `publishedAt`; other states clear it. Resolving a reported
+comment to a non-`PENDING` status also resolves its open reports.
+
+## PATCH /admin/moderation/users/:id/status
+
+Administrator-only endpoint:
+
+```json
+{ "status": "BLOCKED" }
+```
+
+Supported values are `ACTIVE` and `BLOCKED`. Blocking immediately revokes all
+sessions for the target user. Administrators cannot block their own account.
 
 ---
 
@@ -415,9 +491,11 @@ These endpoints return:
 
 - hotel information;
 - media;
+- nullable `starRating` for the hotel's official 1–5 classification;
 - documented notable-person associations;
 - verified relationship information.
-- `ratingSummary` containing the average and count of published reviews.
+- `ratingSummary` containing the user-review average and count of published
+  reviews. It is independent from `starRating`.
 
 ### Notable Person Detail
 

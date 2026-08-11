@@ -50,6 +50,7 @@ Typical hotel information includes:
 - city;
 - image;
 - optional logo (`logoUrl`);
+- optional official classification (`starRating`, integer 1–5);
 - publication information;
 - relationships with notable people.
 
@@ -192,6 +193,19 @@ single reply level enforced by the service. Public reads return only comments
 with status `PUBLISHED`. The latest moderation decision uses the same
 moderator/time/note fields as hotel reviews.
 
+Clean comments from trusted users may start as `PUBLISHED`; new users, exact
+repeats, links, and baseline risky terms start as `PENDING`. Trust is derived
+from the user's published-comment count rather than stored as a separate mutable
+flag.
+
+## VideoCommentReport
+
+`VideoCommentReport` links one reporter to one published comment and stores a
+reason, optional detail, creation time, and optional resolution audit. The
+composite unique key `(commentId, reporterId)` prevents duplicate reports from
+one account. Three unresolved reports from distinct accounts automatically move
+the comment to `HIDDEN`; a later moderator decision resolves the open reports.
+
 `HotelReview` and `VideoComment` share `ContentModerationStatus`:
 
 ```text
@@ -200,6 +214,18 @@ PUBLISHED
 REJECTED
 HIDDEN
 ```
+
+## Account Activity Queries
+
+The account activity endpoint reads `HotelReview` and `VideoComment` by the
+authenticated `userId`, newest first. Existing `(userId, createdAt)` indexes
+support these queries, so this feature requires no schema change or migration.
+Review rows join their canonical `Hotel`; video metadata remains outside the
+database prototype and is resolved in the frontend by the canonical video ID.
+
+Deleting a video comment first checks its owner and reply count. Parent comments
+with replies are retained to avoid orphaning or destructively removing another
+user's contribution.
 
 ---
 
@@ -302,7 +328,10 @@ The database currently supports common application queries such as:
 - upsert one hotel review per user/hotel;
 - aggregate published hotel ratings;
 - list published video comments and one-level replies.
-- list contribution moderation queues by status and persist the moderator audit fields.
+- classify new video comments using trust/risk rules and enforce the per-user rate limit;
+- create unique comment reports and auto-hide comments at the report threshold;
+- list contribution moderation queues plus unresolved reports and persist moderator audit fields;
+- let administrators block/reactivate users and revoke sessions when blocking.
 
 ---
 

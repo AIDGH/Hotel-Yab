@@ -10,11 +10,13 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ModeratorGuard } from '../auth/moderator.guard';
+import { AdminGuard } from '../auth/admin.guard';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import type { AuthenticatedRequest } from '../auth/auth.types';
 import { ModerateContentDto } from './dto/moderate-content.dto';
 import { ModerationQueryDto } from './dto/moderation-query.dto';
 import { ModerationService } from './moderation.service';
+import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 
 @Controller('admin/moderation')
 @ApiTags('Moderation')
@@ -49,6 +51,20 @@ export class ModerationController {
       id,
       request.user.id,
       dto,
+    );
+  }
+
+  @Patch('users/:id/status')
+  @UseGuards(AdminGuard)
+  updateUserStatus(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+    @Body() dto: UpdateUserStatusDto,
+  ) {
+    return this.moderationService.updateUserStatus(
+      id,
+      request.user.id,
+      dto.status,
     );
   }
 }

@@ -18,6 +18,10 @@ temporary Instagram CDN URL.
 Use `logoUrl` only for an optional hotel logo, separate from the main hotel
 image. Local logo filenames follow `<hotel-slug>-logo.webp`.
 
+Use `starRating` only for a reviewed official hotel classification from 1 to 5.
+Leave it empty when the classification is unknown; never infer it from user
+reviews or amenities.
+
 ### People
 
 One row represents one notable person. `slug`, `displayName`,

@@ -21,6 +21,7 @@ import { PrismaService } from '../database/prisma.service';
 import { UserStatus } from '../generated/prisma/enums';
 import { LoginWithPasswordDto } from './dto/login-with-password.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RequestRegistrationOtpDto } from './dto/request-registration-otp.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
 const SESSION_COOKIE = 'hotel_yab_session';
@@ -44,14 +45,15 @@ export class AuthService {
     return this.createOtpChallenge(user.mobile);
   }
 
-  async requestRegistrationOtp(inputMobile: string) {
-    const mobile = normalizeIranianMobile(inputMobile);
-    const existing = await this.prisma.user.findUnique({
-      where: { mobile },
-      select: { id: true },
-    });
-    if (existing) throw new ConflictException('This mobile is already in use');
-    return this.createOtpChallenge(mobile);
+  async requestRegistrationOtp(dto: RequestRegistrationOtpDto) {
+    const values = {
+      mobile: normalizeIranianMobile(dto.mobile),
+      username: normalizeUsername(dto.username),
+      email: dto.email?.trim().toLowerCase() ?? null,
+      instagramHandle: normalizeInstagramHandle(dto.instagramHandle),
+    };
+    await this.assertRegistrationValuesAvailable(values);
+    return this.createOtpChallenge(values.mobile);
   }
 
   async loginWithPassword(
