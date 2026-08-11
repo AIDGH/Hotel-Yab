@@ -2,9 +2,14 @@
 
 import type { FormEvent } from "react";
 import { useState } from "react";
+import { AccountShell } from "@/components/account-shell";
 import { useAuth, type AuthUser } from "@/components/auth-provider";
 import { PasswordInput } from "@/components/password-input";
-import { authErrorMessage } from "@/lib/auth-errors";
+import {
+  authErrorMessage,
+  isStrongPassword,
+  STRONG_PASSWORD_ERROR,
+} from "@/lib/auth-errors";
 import { browserApi } from "@/lib/browser-api";
 import { formatIranianMobile } from "@/lib/labels";
 
@@ -21,6 +26,12 @@ export default function AccountPage() {
     setSaving(true);
     setFeedback(null);
     const form = new FormData(event.currentTarget);
+    const password = String(form.get("password") ?? "");
+    if (password && !isStrongPassword(password)) {
+      setFeedback({ tone: "error", text: STRONG_PASSWORD_ERROR });
+      setSaving(false);
+      return;
+    }
     try {
       const result = await browserApi<{ data: AuthUser }>("/auth/me/profile", {
         method: "PATCH",
@@ -28,7 +39,7 @@ export default function AccountPage() {
           firstName: form.get("firstName"),
           lastName: form.get("lastName"),
           username: form.get("username"),
-          ...(form.get("password") ? { password: form.get("password") } : {}),
+          ...(password ? { password } : {}),
           email: form.get("email"),
           instagramHandle: form.get("instagramHandle"),
         }),
@@ -70,24 +81,26 @@ export default function AccountPage() {
 
   return (
     <main className="section container account-page">
-      <div className="account-page-heading">
-        <span className="section-eyebrow">حساب من</span>
-        <h1>{user.displayName ?? "تکمیل اطلاعات حساب"}</h1>
-        <p>
-          <bdi className="inline-mobile" dir="ltr">
-            {formatIranianMobile(user.mobile)}
-          </bdi>
-        </p>
-      </div>
-      <form className="account-profile-card auth-form" onSubmit={save}>
-        <h2>اطلاعات پروفایل</h2>
-        <div className="auth-form-row">
+      <AccountShell active="profile">
+        <div className="account-page-heading">
+          <span className="section-eyebrow">حساب من</span>
+          <h1>اطلاعات حساب</h1>
+          <p>اطلاعات نمایشی و راه‌های ارتباطی حساب خود را مدیریت کنید.</p>
+        </div>
+        <form
+          className="account-profile-card auth-form"
+          onSubmit={save}
+          noValidate
+        >
+          <h2>اطلاعات اصلی</h2>
+          <div className="account-profile-fields">
           <label>
             نام
+            <small>اختیاری؛ برای نمایش نام در نظرها و دیدگاه‌ها</small>
             <input
               name="firstName"
               defaultValue={user.firstName ?? ""}
-              required
+              minLength={2}
             />
           </label>
           <label>
@@ -95,68 +108,78 @@ export default function AccountPage() {
             <input
               name="lastName"
               defaultValue={user.lastName ?? ""}
+              minLength={2}
+            />
+          </label>
+          <label>
+            شماره تماس
+            <small>شماره تأییدشده حساب</small>
+            <input
+              dir="ltr"
+              value={formatIranianMobile(user.mobile)}
+              readOnly
+            />
+          </label>
+          <label>
+            نام‌کاربری
+            <small>۳ تا ۳۰؛ حداقل یک حرف لاتین، عدد، نقطه یا زیرخط</small>
+            <input
+              name="username"
+              dir="ltr"
+              defaultValue={user.username ?? ""}
+              pattern="(?=.*[A-Za-z])[A-Za-z0-9._]{3,30}"
               required
             />
           </label>
-        </div>
-        <label>
-          نام‌کاربری
-          <small>۳ تا ۳۰؛ حداقل یک حرف لاتین، عدد، نقطه یا زیرخط</small>
-          <input
-            name="username"
-            dir="ltr"
-            defaultValue={user.username ?? ""}
-            pattern="(?=.*[A-Za-z])[A-Za-z0-9._]{3,30}"
-            required
-          />
-        </label>
-        <label>
-          رمز عبور جدید
-          <small>
-            اختیاری؛ حداقل ۸ و شامل حرف کوچک و بزرگ لاتین، عدد و نماد مثل @
-          </small>
-          <PasswordInput
-            name="password"
-            minLength={8}
-            maxLength={72}
-            pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,72}"
-            autoComplete="new-password"
-          />
-        </label>
-        <label>
-          ایمیل <small>اختیاری</small>
-          <input name="email" type="email" defaultValue={user.email ?? ""} />
-        </label>
-        <label>
-          آیدی اینستاگرام <small>اختیاری</small>
-          <input
-            name="instagramHandle"
-            dir="ltr"
-            defaultValue={user.instagramHandle ?? ""}
-          />
-        </label>
-        {user.notablePerson ? (
-          <p className="account-linked-person">
-            ✓ این حساب به چهرهٔ «{user.notablePerson.displayName}» متصل است.
-          </p>
-        ) : (
-          <p className="auth-field-note">
-            ثبت آیدی اینستاگرام به معنای تأیید چهره بودن نیست؛ اتصال پس از بررسی
-            انجام می‌شود.
-          </p>
-        )}
-        {feedback ? (
-          <p
-            className={`form-feedback form-feedback-${feedback.tone}`}
-            role={feedback.tone === "error" ? "alert" : "status"}
-          >
-            {feedback.text}
-          </p>
-        ) : null}
-        <button className="button" type="submit" disabled={saving}>
-          {saving ? "در حال ذخیره…" : "ذخیره تغییرات"}
-        </button>
-      </form>
+          <label>
+            ایمیل <small>اختیاری</small>
+            <input name="email" type="email" defaultValue={user.email ?? ""} />
+          </label>
+          <label>
+            آیدی اینستاگرام <small>اختیاری</small>
+            <input
+              name="instagramHandle"
+              dir="ltr"
+              defaultValue={user.instagramHandle ?? ""}
+            />
+          </label>
+          <label>
+            رمز عبور جدید
+            <small>
+              اختیاری؛ حداقل ۸ و شامل حرف کوچک و بزرگ لاتین، عدد و نماد مثل @
+            </small>
+            <PasswordInput
+              name="password"
+              minLength={8}
+              maxLength={72}
+              pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,72}"
+              autoComplete="new-password"
+            />
+          </label>
+          </div>
+          {user.notablePerson ? (
+            <p className="account-linked-person">
+              ✓ این حساب به چهرهٔ «{user.notablePerson.displayName}» متصل است.
+            </p>
+          ) : (
+            <p className="auth-field-note">
+              ثبت آیدی اینستاگرام به معنای تأیید چهره بودن نیست؛ اتصال پس از
+              بررسی انجام می‌شود.
+            </p>
+          )}
+          {feedback ? (
+            <p
+              className={`form-feedback form-feedback-${feedback.tone}`}
+              role={feedback.tone === "error" ? "alert" : "status"}
+            >
+              {feedback.text}
+            </p>
+          ) : null}
+          <button className="button" type="submit" disabled={saving}>
+            {saving ? "در حال ذخیره…" : "ذخیره تغییرات"}
+          </button>
+        </form>
+      </AccountShell>
     </main>
   );
 }

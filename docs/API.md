@@ -168,6 +168,11 @@ username:
 Passwords are never stored or returned in plaintext. The server verifies the
 salted `scrypt` hash and creates an opaque HttpOnly-cookie session.
 
+New-password forms validate the 8–72 character lowercase/uppercase/digit/symbol
+rule before making a request and render the failure as Persian red inline
+feedback. Native browser validation bubbles are disabled for these account
+forms; the API remains the authoritative validation boundary.
+
 ## POST /auth/login/otp/request
 
 ```json
@@ -196,9 +201,7 @@ Successful verification logs in the existing user and sets the opaque
 {
   "mobile": "09123456789",
   "username": "arad.example",
-  "password": "Arad@2026pass",
-  "firstName": "آراد",
-  "lastName": "نمونه"
+  "password": "Arad@2026pass"
 }
 ```
 
@@ -211,8 +214,8 @@ to protect against races.
 The website registration form accepts an 11-digit Iranian mobile beginning
 with `09`. New passwords require 8–72 characters with at least one lowercase
 ASCII letter, one uppercase ASCII letter, one digit, and one non-alphanumeric
-symbol. Email and Instagram remain optional API fields for compatible clients,
-but the website collects them later from `/account` to reduce signup friction.
+symbol. Name, family name, email, Instagram, and avatar are completed later
+from `/account` to reduce signup friction.
 
 ## POST /auth/register
 
@@ -221,9 +224,7 @@ but the website collects them later from `/account` to reduce signup friction.
   "mobile": "09123456789",
   "code": "123456",
   "username": "arad.example",
-  "password": "Arad@2026pass",
-  "firstName": "آراد",
-  "lastName": "نمونه"
+  "password": "Arad@2026pass"
 }
 ```
 
@@ -237,7 +238,7 @@ them after OTP login.
 
 Returns the authenticated user, including optional profile fields and an
 admin-verified notable-person link when present. The response includes
-`username`, `hasPassword`, and `profileComplete`, but never `passwordHash`.
+`username`, `hasPassword`, `profileComplete`, and nullable `avatarUrl`, but never `passwordHash`.
 Returns `401` without a valid session.
 
 ## PATCH /auth/me/profile
@@ -255,11 +256,27 @@ Authenticated request. All fields are optional at the API boundary:
 }
 ```
 
-Empty `email` or `instagramHandle` values clear those optional fields. Username
-and Instagram uniqueness are enforced. An optional password value replaces the
-stored salted hash. Users
+Empty name, family-name, `email`, or `instagramHandle` values clear those
+optional fields. Username and Instagram uniqueness are enforced. An optional
+password value replaces the stored salted hash. Users
 cannot link themselves to a `NotablePerson`; that relation is verified and set
 administratively.
+
+## GET /auth/me/avatar
+
+Authenticated binary response for the current user's avatar. Returns `404` if
+the account has no avatar. The `avatarUrl` returned by account responses points
+to this endpoint with an update-version query parameter.
+
+## POST /auth/me/avatar
+
+Authenticated `multipart/form-data` upload using the `avatar` field. Accepted
+formats are JPEG, PNG, and WebP; declared MIME type and file signature must
+match, and the maximum size is 1 MB. Returns the updated public account object.
+
+## DELETE /auth/me/avatar
+
+Deletes the current user's avatar and returns the updated public account object.
 
 ## POST /auth/logout
 
@@ -292,6 +309,47 @@ than introducing a duplicate review-deletion contract.
 
 ---
 
+# Account Library
+
+All account-library endpoints require a valid session. Likes and saves are
+separate private states; changing one never changes the other.
+
+## GET /account/library
+
+Returns the current user's four collections in one response:
+
+```json
+{
+  "likedHotels": [],
+  "savedHotels": [],
+  "likedNotablePeople": [],
+  "savedNotablePeople": []
+}
+```
+
+Items contain only the minimal catalog metadata needed for controls and the
+private library UI. Targets that are no longer published are excluded.
+
+## PUT/DELETE /account/library/hotels/:slug/like
+
+Adds or removes the current user's hotel like. `PUT` is idempotent.
+
+## PUT/DELETE /account/library/hotels/:slug/save
+
+Adds or removes the current user's saved-hotel state. `PUT` is idempotent.
+
+## PUT/DELETE /account/library/notable-people/:slug/like
+
+Adds or removes the current user's notable-person like. `PUT` is idempotent.
+
+## PUT/DELETE /account/library/notable-people/:slug/save
+
+Adds or removes the current user's saved-notable-person state. `PUT` is
+idempotent. All four mutation routes return `404` for missing or unpublished
+targets and `401` without a valid session.
+
+---
+
 # Hotel Reviews
 
 ## GET /hotels/:slug/reviews
@@ -311,8 +369,11 @@ Creates or updates the current user's single review for the hotel.
 { "rating": 4, "body": "تجربه خوبی بود." }
 ```
 
-`rating` must be 1–5. New and edited reviews are stored as `PENDING` and are not
-included in the public list until moderation publishes them.
+`rating` must be 1–5. Review text is optional; when present it must contain 3–2000
+characters. New and edited reviews are stored as `PENDING` and are not included
+in the public list until moderation publishes them. The frontend performs the
+same minimum check and renders a Persian red inline error rather than relying on
+the browser's native validation bubble.
 
 ## DELETE /hotels/:slug/reviews/me
 
@@ -334,7 +395,7 @@ used by the collapsed comment control.
 
 ## POST /videos/:videoId/comments
 
-Authenticated request requiring a completed first and last name:
+Authenticated request. Completing first and last name is optional:
 
 ```json
 { "body": "ویدیوی مفیدی بود.", "parentId": null }
@@ -343,9 +404,10 @@ Authenticated request requiring a completed first and last name:
 `parentId` is optional and supports one reply level. The API allows at most five
 comment submissions per user in a rolling 60-second window. New users and
 comments containing a link, exact recent repetition, or a baseline risky term
-start as `PENDING`. A clean comment from a user with at least three published
+start as `PENDING`. A clean comment from a user with at least two published
 comments starts as `PUBLISHED`. The response returns the resulting status so the
-UI can distinguish immediate publication from a moderation queue.
+UI can distinguish immediate publication from a moderation queue. When profile
+names are still empty, the public author label is `کاربر هتل‌یاب`.
 
 The relationship is always User → VideoComment → Video; it does not depend on
 which destination or person page rendered the video.
@@ -393,6 +455,15 @@ while private account contact data remains excluded.
 The decision records moderator identity, decision time, and an optional private
 note. Publishing sets `publishedAt`; other states clear it. Resolving a reported
 comment to a non-`PENDING` status also resolves its open reports.
+
+## DELETE /admin/moderation/hotel-reviews/:id
+
+## DELETE /admin/moderation/video-comments/:id
+
+Administrator-only permanent deletion endpoints. They return
+`{ "data": { "success": true } }`; a missing item returns `404`. Deleting a
+parent video comment also removes its replies through the database relation.
+Moderators may change moderation status but cannot use these deletion routes.
 
 ## PATCH /admin/moderation/users/:id/status
 

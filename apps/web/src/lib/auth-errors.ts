@@ -1,3 +1,17 @@
+export const STRONG_PASSWORD_ERROR =
+  "رمز جدید باید حداقل ۸ کاراکتر و شامل حرف کوچک و بزرگ لاتین، عدد و نماد باشد.";
+
+export function isStrongPassword(value: string) {
+  return (
+    value.length >= 8 &&
+    value.length <= 72 &&
+    /[a-z]/.test(value) &&
+    /[A-Z]/.test(value) &&
+    /[0-9]/.test(value) &&
+    /[^A-Za-z0-9]/.test(value)
+  );
+}
+
 export function authErrorMessage(caught: unknown) {
   const message = caught instanceof Error ? caught.message : "خطایی رخ داد.";
   const normalized = message.toLowerCase();
@@ -28,7 +42,7 @@ export function authErrorMessage(caught: unknown) {
   if (normalized.includes("instagram"))
     return "فرمت آیدی اینستاگرام درست نیست.";
   if (normalized.includes("password"))
-    return "رمز جدید باید حداقل ۸ کاراکتر و شامل حرف کوچک و بزرگ لاتین، عدد و نماد باشد.";
+    return STRONG_PASSWORD_ERROR;
   if (normalized.includes("username"))
     return "نام‌کاربری باید ۳ تا ۳۰ کاراکتر و شامل حداقل یک حرف لاتین باشد.";
   if (normalized.includes("mobile"))

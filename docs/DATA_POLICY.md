@@ -349,9 +349,12 @@ Video Comment → trust/risk/rate checks → PENDING or PUBLISHED
 - Mobile numbers and email addresses are private account data and must never be
   included in public review/comment responses. Passwords are never retained in
   plaintext or exposed by any API; only salted hashes are stored.
-- Website registration collects only name, family name, an Iranian `09…`
-  mobile, username, and password. Optional email and Instagram are added later
-  from the account page.
+- Website registration collects only an Iranian `09…` mobile, username, and
+  password. Name, family name, optional email, optional Instagram, and avatar
+  are added later from the account page.
+- Account avatars are private authenticated media in the current MVP. Only
+  JPEG, PNG, and WebP with a verified signature and a maximum size of 1 MB are
+  accepted. The binary is not embedded in normal account JSON responses.
 - New passwords must be 8–72 characters and include lowercase and uppercase
   Latin letters, a digit, and a non-alphanumeric symbol. Existing password
   verification remains backward-compatible; the stronger rule applies when a
@@ -365,7 +368,7 @@ Video Comment → trust/risk/rate checks → PENDING or PUBLISHED
   remains a separately maintained snapshot.
 - Editing a review returns it to `PENDING` so previously approved text cannot be
   replaced without review.
-- Comments and replies use the same hybrid rule. Three already-published comments
+- Comments and replies use the same hybrid rule. Two already-published comments
   establish the current trust threshold; links, exact recent repetition, and a
   conservative risky-term baseline still route the submission to `PENDING`.
 - Each account can submit at most five comments in 60 seconds. This application
@@ -384,6 +387,18 @@ Video Comment → trust/risk/rate checks → PENDING or PUBLISHED
 - Users may delete their own single hotel review. They may delete their own
   video comment only when it has no replies; preserving an existing reply thread
   takes precedence over destructive deletion of its parent.
+- Profile names are optional for contributing a video comment. Public output
+  uses `کاربر هتل‌یاب` instead of exposing mobile, username, or other private
+  account identifiers when no name is present.
+- Only `ADMIN` may permanently delete another user's hotel review, video
+  comment, or reply from the public interface. This destructive action uses a
+  confirmation step; deleting a parent comment also deletes its replies.
+- Hotel/person likes and saves are private account data and are never exposed in
+  public catalog responses. Only the authenticated owner may read or change
+  them, and the library returns only targets that remain published.
+- Like and save are separate user intentions; deleting one must not alter the
+  other. Composite database keys prevent duplicate rows and entity/user deletion
+  cascades remove orphaned state.
 
 ---
 

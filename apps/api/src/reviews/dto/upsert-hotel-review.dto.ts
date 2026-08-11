@@ -16,10 +16,10 @@ export class UpsertHotelReviewDto {
   @Max(5)
   rating!: number;
 
-  @ApiProperty({ required: false, minLength: 10, maxLength: 2000 })
+  @ApiProperty({ required: false, minLength: 3, maxLength: 2000 })
   @IsOptional()
   @IsString()
-  @MinLength(10)
+  @MinLength(3)
   @MaxLength(2000)
   body?: string;
 }

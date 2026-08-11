@@ -12,6 +12,7 @@ import { HotelReviewsModule } from './reviews/hotel-reviews.module';
 import { VideoCommentsModule } from './video-comments/video-comments.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { AccountActivityModule } from './account-activity/account-activity.module';
+import { AccountLibraryModule } from './account-library/account-library.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { AccountActivityModule } from './account-activity/account-activity.modul
     VideoCommentsModule,
     ModerationModule,
     AccountActivityModule,
+    AccountLibraryModule,
   ],
 })
 export class AppModule {}

@@ -40,15 +40,17 @@ export class UpdateProfileDto {
   @IsString()
   @MinLength(2)
   @MaxLength(80)
+  @Transform(emptyToNull)
   @Transform(trimText)
-  firstName?: string;
+  firstName?: string | null;
 
   @IsOptional()
   @IsString()
   @MinLength(2)
   @MaxLength(100)
+  @Transform(emptyToNull)
   @Transform(trimText)
-  lastName?: string;
+  lastName?: string | null;
 
   @IsOptional()
   @IsEmail()

@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { browserApi } from "@/lib/browser-api";
 import { formatPersianRating } from "@/lib/labels";
+import { AdminDeleteAction } from "./admin-delete-action";
 import { useAuth } from "./auth-provider";
 
 type PublicReview = {
@@ -73,6 +74,14 @@ export function HotelReviews({ hotelSlug, hotelName }: { hotelSlug: string; hote
       setFeedback({ tone: "error", text: "لطفاً امتیاز هتل را انتخاب کنید." });
       return;
     }
+    const normalizedBody = body.trim();
+    if (normalizedBody.length > 0 && normalizedBody.length < 3) {
+      setFeedback({
+        tone: "error",
+        text: "متن نظر باید حداقل ۳ کاراکتر باشد.",
+      });
+      return;
+    }
     setSaving(true);
     setFeedback(null);
     try {
@@ -82,7 +91,7 @@ export function HotelReviews({ hotelSlug, hotelName }: { hotelSlug: string; hote
           method: "PUT",
           body: JSON.stringify({
             rating,
-            ...(body.trim() ? { body } : {}),
+            ...(normalizedBody ? { body: normalizedBody } : {}),
           }),
         },
       );
@@ -96,11 +105,25 @@ export function HotelReviews({ hotelSlug, hotelName }: { hotelSlug: string; hote
     } catch {
       setFeedback({
         tone: "error",
-        text: "ثبت انجام نشد. اگر نظر می‌نویسید، متن باید حداقل ۱۰ کاراکتر باشد.",
+        text: "ثبت نظر انجام نشد؛ اطلاعات را بررسی و دوباره تلاش کنید.",
       });
     } finally {
       setSaving(false);
     }
+  }
+
+  function removePublishedReview(reviewId: string) {
+    if (mine?.id === reviewId) setMine(null);
+    setReviews((items) => {
+      const next = items.filter((item) => item.id !== reviewId);
+      setCount(next.length);
+      setAverage(
+        next.length
+          ? next.reduce((total, item) => total + item.rating, 0) / next.length
+          : null,
+      );
+      return next;
+    });
   }
 
   return (
@@ -145,7 +168,6 @@ export function HotelReviews({ hotelSlug, hotelName }: { hotelSlug: string; hote
               <textarea
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
-                minLength={10}
                 maxLength={2000}
                 placeholder="نکته‌ای که به انتخاب دیگران کمک می‌کند…"
               />
@@ -182,6 +204,13 @@ export function HotelReviews({ hotelSlug, hotelName }: { hotelSlug: string; hote
               </div>
               {review.body ? <p>{review.body}</p> : null}
               <small>{new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(review.publishedAt ?? review.createdAt))}</small>
+              {user?.role === "ADMIN" ? (
+                <AdminDeleteAction
+                  endpoint={`/admin/moderation/hotel-reviews/${encodeURIComponent(review.id)}`}
+                  itemLabel="نظر"
+                  onDeleted={() => removePublishedReview(review.id)}
+                />
+              ) : null}
             </article>
           )) : (
             <div className="reviews-empty">

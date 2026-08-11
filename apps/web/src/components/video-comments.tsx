@@ -3,6 +3,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { browserApi } from "@/lib/browser-api";
+import { AdminDeleteAction } from "./admin-delete-action";
 import { useAuth } from "./auth-provider";
 
 type VideoComment = {
@@ -37,18 +38,18 @@ export function VideoComments({ videoId }: { videoId: string }) {
     const nextOpen = !open;
     setOpen(nextOpen);
     if (nextOpen && !loaded) {
+      setFeedback(null);
       try {
         const result = await browserApi<{ data: VideoComment[] }>(
           `/videos/${encodeURIComponent(videoId)}/comments`,
         );
         setComments(result.data);
+        setLoaded(true);
       } catch {
         setFeedback({
           tone: "error",
           text: "دیدگاه‌ها فعلاً در دسترس نیستند.",
         });
-      } finally {
-        setLoaded(true);
       }
     }
   }
@@ -81,7 +82,9 @@ export function VideoComments({ videoId }: { videoId: string }) {
         tone: "error",
         text: error.includes("Too many comments")
           ? "تعداد ارسال‌ها زیاد است؛ یک دقیقه دیگر دوباره تلاش کنید."
-          : "ثبت دیدگاه انجام نشد؛ ابتدا پروفایل را کامل کنید.",
+          : error.includes("video was not found")
+            ? "این ویدیو هنوز برای ثبت دیدگاه آماده نشده است."
+            : "ثبت دیدگاه انجام نشد؛ دوباره تلاش کنید.",
       });
     } finally {
       setSubmitting(false);
@@ -146,6 +149,17 @@ export function VideoComments({ videoId }: { videoId: string }) {
                     }
                   />
                 ) : null}
+                {user?.role === "ADMIN" ? (
+                  <AdminDeleteAction
+                    endpoint={`/admin/moderation/video-comments/${encodeURIComponent(comment.id)}`}
+                    itemLabel="دیدگاه"
+                    onDeleted={() =>
+                      setComments((items) =>
+                        items.filter((item) => item.id !== comment.id),
+                      )
+                    }
+                  />
+                ) : null}
                 {comment.replies?.map((reply) => (
                   <div className="video-comment-reply" key={reply.id}>
                     <strong>{reply.authorName}</strong>
@@ -166,10 +180,30 @@ export function VideoComments({ videoId }: { videoId: string }) {
                         )
                       }
                     />
+                    {user?.role === "ADMIN" ? (
+                      <AdminDeleteAction
+                        endpoint={`/admin/moderation/video-comments/${encodeURIComponent(reply.id)}`}
+                        itemLabel="پاسخ"
+                        onDeleted={() =>
+                          setComments((items) =>
+                            items.map((item) => ({
+                              ...item,
+                              replies: item.replies.filter(
+                                (candidate) => candidate.id !== reply.id,
+                              ),
+                            })),
+                          )
+                        }
+                      />
+                    ) : null}
                   </div>
                 ))}
               </article>
-            )) : loaded ? <p className="video-comments-empty">هنوز دیدگاهی منتشر نشده است.</p> : <p>در حال دریافت دیدگاه‌ها…</p>}
+            )) : loaded ? (
+              <p className="video-comments-empty">هنوز دیدگاهی منتشر نشده است.</p>
+            ) : feedback?.tone === "error" ? null : (
+              <p>در حال دریافت دیدگاه‌ها…</p>
+            )}
           </div>
         </div>
       ) : null}

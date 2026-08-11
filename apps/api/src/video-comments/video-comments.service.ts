@@ -92,9 +92,6 @@ export class VideoCommentsService {
         }),
       ]);
 
-    if (!user.firstName || !user.lastName) {
-      throw new BadRequestException('Complete your profile before commenting');
-    }
     if (recentCommentCount >= COMMENT_RATE_LIMIT) {
       throw new HttpException(
         'Too many comments. Try again in one minute',

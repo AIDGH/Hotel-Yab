@@ -3,6 +3,7 @@ import type { HotelListItem } from "@/lib/types";
 import { HotelLogo } from "./hotel-logo";
 import { HotelStars } from "./hotel-stars";
 import { MediaTile } from "./media-tile";
+import { EntityLibraryActions } from "./entity-library-actions";
 
 export function HotelCard({ hotel }: { hotel: HotelListItem }) {
   const hasAssociations = hotel.associationCount > 0;
@@ -51,6 +52,7 @@ export function HotelCard({ hotel }: { hotel: HotelListItem }) {
           </div>
         </div>
       </Link>
+      <EntityLibraryActions entity="hotel" slug={hotel.slug} label={hotel.name} />
     </article>
   );
 }

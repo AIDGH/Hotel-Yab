@@ -177,6 +177,22 @@ export class ModerationService {
     return { data: serializeModerationResult(comment) };
   }
 
+  async deleteHotelReview(id: string) {
+    const result = await this.prisma.hotelReview.deleteMany({ where: { id } });
+    if (result.count === 0) {
+      throw new NotFoundException('The hotel review was not found');
+    }
+    return { data: { success: true } };
+  }
+
+  async deleteVideoComment(id: string) {
+    const result = await this.prisma.videoComment.deleteMany({ where: { id } });
+    if (result.count === 0) {
+      throw new NotFoundException('The video comment was not found');
+    }
+    return { data: { success: true } };
+  }
+
   async updateUserStatus(id: string, adminId: string, status: UserStatus) {
     if (id === adminId && status === UserStatus.BLOCKED) {
       throw new BadRequestException('You cannot block your own account');

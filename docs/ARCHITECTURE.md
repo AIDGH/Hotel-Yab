@@ -62,8 +62,10 @@ Main responsibilities:
 - RTL Persian interface;
 - displaying images and public metadata;
 - maintaining client authentication state and the account modal;
+- rendering the responsive account sidebar, optional avatar controls, and compact profile form;
 - rendering hotel reviews and collapsed-on-demand video comments;
 - rendering the authenticated user's review/comment activity and ownership actions;
+- rendering shared hotel/person like-save controls and the private account library;
 - communicating with the backend API.
 
 Server-rendered data uses the internal `API_BASE_URL`. Browser-side account,
@@ -86,6 +88,7 @@ Main routes currently include:
 /search
 /account
 /account/activity
+/account/library
 ```
 
 Frontend data access is handled through functions such as:
@@ -163,7 +166,7 @@ Core domain concepts currently include:
 - Hotel
 - Notable Person
 - Hotel–Person Association
-- User, User Session, and OTP Challenge
+- User, User Avatar, User Session, and OTP Challenge
 - Hotel Review
 - Video and Video Comment
 - Moderation decisions linked back to a moderator account
@@ -379,24 +382,25 @@ Login:    Mobile/Username + Password → scrypt verification → Session
 Fallback: Mobile/Username → OTP Challenge → Verify existing User → Session
 ```
 
-The website keeps registration minimal: name, family name, an `09…` mobile,
-username, and a strong new password. Email and Instagram are completed later in
-the account page. OTP responses drive the six-slot input and the default
+The website keeps registration minimal: an `09…` mobile, username, and a strong
+new password. Name, family name, email, Instagram, and avatar are completed
+later in the account page. OTP responses drive the six-slot input and the default
 60-second resend countdown; the API enforces the same cooldown.
 
 The public site remains usable without authentication. Authenticated writes use
 the session guard, and public reads expose only published user-generated
 content. Passwords are stored only as salted hashes, while the raw opaque
 session token exists only in the HttpOnly cookie. Current capabilities include
-user profiles, hotel reviews, video comments, and an aggregated account activity
-view on the separate `/account/activity` route. The activity API returns only
+user profiles with separately stored avatars, hotel reviews, video comments, an aggregated account activity
+view on `/account/activity`, and independent hotel/person likes and saves shown
+on `/account/library`. A single authenticated frontend provider loads the four
+library sets once and supplies card/detail controls, avoiding one request per
+rendered entity. The activity API returns only
 the current user's contributions, including
 non-public moderation states, and never exposes private moderation notes. The UI
 can delete the user's hotel review through the existing hotel endpoint or delete
 a video comment only while it has no replies. Future extensions include:
 
-- saved hotels;
-- favorites;
 - personalized discovery;
 
 ### Admin and Moderation
@@ -407,10 +411,13 @@ The current protected moderation layer supports:
 - queues for hotel reviews and video comments by status plus unresolved reports;
 - publish, reject, hide, and return-to-pending actions;
 - private notes plus moderator identity and decision timestamps;
-- hybrid comment classification from published-comment trust and simple risk signals;
+- hybrid comment classification after two published comments, plus simple risk signals;
 - a five-comments-per-minute per-user limit;
 - automatic hiding after three independent unresolved reports;
 - administrator-only user blocking/reactivation with session revocation.
+- administrator-only permanent deletion controls for published hotel reviews
+  and video comments/replies, exposed beside public content with an inline
+  confirmation step.
 
 The administration layer may later expand to:
 

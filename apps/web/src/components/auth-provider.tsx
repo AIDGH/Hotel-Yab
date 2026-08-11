@@ -12,7 +12,9 @@ import {
 import { browserApi } from "@/lib/browser-api";
 import {
   authErrorMessage,
+  isStrongPassword,
   isRegistrationConflict,
+  STRONG_PASSWORD_ERROR,
 } from "@/lib/auth-errors";
 import { formatIranianMobile } from "@/lib/labels";
 import { PasswordInput } from "./password-input";
@@ -26,6 +28,7 @@ export type AuthUser = {
   displayName: string | null;
   email: string | null;
   instagramHandle: string | null;
+  avatarUrl: string | null;
   role: string;
   hasPassword: boolean;
   profileComplete: boolean;
@@ -44,8 +47,6 @@ type RegistrationDraft = {
   mobile: string;
   username: string;
   password: string;
-  firstName: string;
-  lastName: string;
 };
 
 type OtpResponse = {
@@ -139,15 +140,24 @@ function AuthModal({
 
   async function loginWithPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const password = String(form.get("password") ?? "");
+    if (!identifier.trim()) {
+      setError("شماره تماس یا نام‌کاربری را وارد کنید.");
+      return;
+    }
+    if (!password) {
+      setError("رمز عبور را وارد کنید.");
+      return;
+    }
     setSubmitting(true);
     setError("");
-    const form = new FormData(event.currentTarget);
     try {
       const result = await browserApi<{ data: AuthUser }>(
         "/auth/login/password",
         {
           method: "POST",
-          body: JSON.stringify({ identifier, password: form.get("password") }),
+          body: JSON.stringify({ identifier, password }),
         },
       );
       finishAuthentication(result.data);
@@ -213,9 +223,12 @@ function AuthModal({
       mobile: String(form.get("mobile") ?? ""),
       username: String(form.get("username") ?? ""),
       password: String(form.get("password") ?? ""),
-      firstName: String(form.get("firstName") ?? ""),
-      lastName: String(form.get("lastName") ?? ""),
     };
+    if (!isStrongPassword(draft.password)) {
+      setError(STRONG_PASSWORD_ERROR);
+      setSubmitting(false);
+      return;
+    }
     try {
       const result = await browserApi<OtpResponse>("/auth/register/otp/request", {
         method: "POST",
@@ -295,12 +308,15 @@ function AuthModal({
     setError("");
     const form = new FormData(event.currentTarget);
     const password = String(form.get("password") ?? "");
+    if ((!user?.hasPassword || password) && !isStrongPassword(password)) {
+      setError(STRONG_PASSWORD_ERROR);
+      setSubmitting(false);
+      return;
+    }
     try {
       const result = await browserApi<{ data: AuthUser }>("/auth/me/profile", {
         method: "PATCH",
         body: JSON.stringify({
-          firstName: form.get("firstName"),
-          lastName: form.get("lastName"),
           username: form.get("username"),
           ...(password ? { password } : {}),
           email: form.get("email"),
@@ -355,7 +371,7 @@ function AuthModal({
         <span className="section-eyebrow">حساب هتل‌یاب</span>
 
         {stage === "login" ? (
-          <form className="auth-form" onSubmit={loginWithPassword}>
+          <form className="auth-form" onSubmit={loginWithPassword} noValidate>
             <h2 id="auth-modal-title">ورود به حساب</h2>
             <p>با شماره تماس یا نام‌کاربری و رمز عبور وارد شوید.</p>
             <label>
@@ -373,7 +389,6 @@ function AuthModal({
               رمز عبور
               <PasswordInput
                 name="password"
-                minLength={8}
                 autoComplete="current-password"
                 required
               />
@@ -419,60 +434,39 @@ function AuthModal({
           <form
             className="auth-form auth-profile-form auth-register-form"
             onSubmit={requestRegistrationOtp}
+            noValidate
           >
             <h2 id="auth-modal-title">ساخت حساب کاربری</h2>
             <p>
-              ابتدا اطلاعات را وارد کنید؛ سپس شماره تماس با کد شش‌رقمی تأیید
-              می‌شود.
+              شماره تماس، نام‌کاربری و رمز را وارد کنید؛ اطلاعات پروفایل را
+              بعداً از «حساب من» تکمیل می‌کنید.
             </p>
-            <div className="auth-form-row">
-              <label>
-                نام
-                <input
-                  name="firstName"
-                  defaultValue={registration?.firstName ?? ""}
-                  required
-                  minLength={2}
-                />
-              </label>
-              <label>
-                نام خانوادگی
-                <input
-                  name="lastName"
-                  defaultValue={registration?.lastName ?? ""}
-                  required
-                  minLength={2}
-                />
-              </label>
-            </div>
-            <div className="auth-form-row">
-              <label>
-                شماره تماس
-                <small>۱۱ رقم و با ۰۹ شروع شود</small>
-                <input
-                  name="mobile"
-                  type="tel"
-                  inputMode="tel"
-                  defaultValue={registration?.mobile ?? ""}
-                  placeholder="09121234567"
-                  pattern="09[0-9]{9}"
-                  required
-                />
-              </label>
-              <label>
-                نام‌کاربری
-                <small>۳ تا ۳۰؛ حداقل یک حرف لاتین، عدد، نقطه یا زیرخط</small>
-                <input
-                  name="username"
-                  dir="ltr"
-                  autoCapitalize="none"
-                  defaultValue={registration?.username ?? ""}
-                  placeholder="username"
-                  pattern="(?=.*[A-Za-z])[A-Za-z0-9._]{3,30}"
-                  required
-                />
-              </label>
-            </div>
+            <label>
+              شماره تماس
+              <small>۱۱ رقم و با ۰۹ شروع شود</small>
+              <input
+                name="mobile"
+                type="tel"
+                inputMode="tel"
+                defaultValue={registration?.mobile ?? ""}
+                placeholder="09121234567"
+                pattern="09[0-9]{9}"
+                required
+              />
+            </label>
+            <label>
+              نام‌کاربری
+              <small>۳ تا ۳۰؛ حداقل یک حرف لاتین، عدد، نقطه یا زیرخط</small>
+              <input
+                name="username"
+                dir="ltr"
+                autoCapitalize="none"
+                defaultValue={registration?.username ?? ""}
+                placeholder="username"
+                pattern="(?=.*[A-Za-z])[A-Za-z0-9._]{3,30}"
+                required
+              />
+            </label>
             <label>
               رمز عبور
               <small>
@@ -489,7 +483,8 @@ function AuthModal({
               />
             </label>
             <p className="auth-register-later-note">
-              ایمیل و آیدی اینستاگرام را بعداً از صفحه حساب اضافه کنید.
+              نام، نام خانوادگی، ایمیل، آیدی اینستاگرام و عکس پروفایل بعداً
+              قابل تکمیل‌اند.
             </p>
             <AuthError message={error} />
             <button className="button" type="submit" disabled={submitting}>
@@ -521,29 +516,13 @@ function AuthModal({
         ) : null}
 
         {stage === "profile" ? (
-          <form className="auth-form auth-profile-form" onSubmit={saveProfile}>
+          <form
+            className="auth-form auth-profile-form"
+            onSubmit={saveProfile}
+            noValidate
+          >
             <h2 id="auth-modal-title">تکمیل حساب قدیمی</h2>
             <p>برای ورودهای بعدی یک نام‌کاربری و رمز عبور تعیین کنید.</p>
-            <div className="auth-form-row">
-              <label>
-                نام
-                <input
-                  name="firstName"
-                  defaultValue={user?.firstName ?? ""}
-                  required
-                  minLength={2}
-                />
-              </label>
-              <label>
-                نام خانوادگی
-                <input
-                  name="lastName"
-                  defaultValue={user?.lastName ?? ""}
-                  required
-                  minLength={2}
-                />
-              </label>
-            </div>
             <label>
               نام‌کاربری
               <small>۳ تا ۳۰؛ حداقل یک حرف لاتین، عدد، نقطه یا زیرخط</small>

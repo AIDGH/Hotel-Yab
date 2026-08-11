@@ -141,7 +141,7 @@ verification. Important fields include:
 - nullable `passwordHash` containing a salted `scrypt` hash for legacy compatibility;
 - optional unique `email`;
 - optional unique normalized `instagramHandle`;
-- `firstName` and `lastName`;
+- optional `firstName` and `lastName` completed after registration;
 - `role` (`USER`, `MODERATOR`, `ADMIN`);
 - `status` (`ACTIVE`, `BLOCKED`);
 - optional unique `notablePersonId`, set only after administrative verification.
@@ -150,8 +150,34 @@ Follower count is not collected from regular users. Public notable-person data
 continues to live in `NotablePerson`.
 
 No public or private API response exposes `passwordHash`. New registrations
-require username and password; legacy accounts are prompted to complete both
-after OTP login.
+require username and password; name and family name remain nullable profile
+fields completed later. Legacy accounts are prompted to complete username and
+password after OTP login.
+
+## UserAvatar
+
+`UserAvatar` has a one-to-zero-or-one relation with `User` and stores the
+validated image bytes, MIME type, and timestamps. Keeping the binary in a
+separate relation prevents normal login/profile queries from loading image data.
+The API accepts JPEG, PNG, or WebP up to 1 MB and returns only a versioned
+authenticated avatar URL in the public account object. Deleting a user cascades
+to the avatar row.
+
+## User Likes and Saves
+
+Likes and saves are intentionally independent and use four explicit join models:
+
+- `UserHotelLike`;
+- `UserSavedHotel`;
+- `UserNotablePersonLike`;
+- `UserSavedNotablePerson`.
+
+Each model stores `userId`, the target entity ID, and `createdAt`. Its composite
+primary key prevents duplicate state for the same user and entity, while target
+and creation-time indexes support library reads. Deleting a user, hotel, or
+notable person cascades to the corresponding join rows. The public status of an
+entity is still evaluated when an action is written and when the private library
+is read.
 
 ## UserSession
 
@@ -174,7 +200,7 @@ never stored in plaintext.
 `HotelReview` belongs to one `User` and one `Hotel`. The composite unique key
 `(hotelId, userId)` permits one active review per user/hotel. `rating` is
 validated as 1–5 in both the API and database constraint. Review text is
-optional.
+optional. When present, it must contain 3–2000 characters.
 
 `moderatedById` and `moderatedAt` preserve who made the latest moderation
 decision and when. `moderationNote` is internal and is never returned publicly.
@@ -193,10 +219,13 @@ single reply level enforced by the service. Public reads return only comments
 with status `PUBLISHED`. The latest moderation decision uses the same
 moderator/time/note fields as hotel reviews.
 
-Clean comments from trusted users may start as `PUBLISHED`; new users, exact
+Clean comments from users with at least two published comments may start as
+`PUBLISHED`; new users, exact
 repeats, links, and baseline risky terms start as `PENDING`. Trust is derived
 from the user's published-comment count rather than stored as a separate mutable
-flag.
+flag. First and last name remain optional for commenting; serialization falls
+back to the public label `کاربر هتل‌یاب` when both are absent. An administrator
+may permanently delete a comment; deleting a parent cascades to its replies.
 
 ## VideoCommentReport
 
@@ -383,8 +412,8 @@ Structured information about sources used to verify hotel-person relationships.
 
 Possible future entities:
 
-- Favorite
-- Saved Hotel
+- personalization signals derived from existing private likes/saves;
+- named collections, only if the product requires more than the current two states.
 
 ## Moderation History
 

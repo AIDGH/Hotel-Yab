@@ -7,7 +7,7 @@ describe('decideCommentModeration', () => {
       decideCommentModeration({
         body: 'این ویدیو اطلاعات خوبی داشت.',
         role: UserRole.USER,
-        publishedCommentCount: 3,
+        publishedCommentCount: 2,
         repeated: false,
       }),
     ).toEqual({ publishImmediately: true, reasons: [] });
@@ -18,12 +18,12 @@ describe('decideCommentModeration', () => {
       decideCommentModeration({
         body: 'این ویدیو اطلاعات خوبی داشت.',
         role: UserRole.USER,
-        publishedCommentCount: 2,
+        publishedCommentCount: 1,
         repeated: false,
       }),
     ).toMatchObject({
       publishImmediately: false,
-      reasons: ['کمتر از سه دیدگاه تأییدشده'],
+      reasons: ['کمتر از دو دیدگاه تأییدشده'],
     });
   });
 
@@ -32,7 +32,7 @@ describe('decideCommentModeration', () => {
       decideCommentModeration({
         body: 'دوباره ببینید https://example.com',
         role: UserRole.USER,
-        publishedCommentCount: 3,
+        publishedCommentCount: 2,
         repeated: true,
       }),
     ).toMatchObject({

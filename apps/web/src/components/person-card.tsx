@@ -4,6 +4,7 @@ import type { NotablePersonListItem } from "@/lib/types";
 import { MediaTile } from "./media-tile";
 import { PersonDisplayName } from "./person-display-name";
 import { PersonProfileMeta } from "./person-profile-meta";
+import { EntityLibraryActions } from "./entity-library-actions";
 
 export function PersonCard({ person }: { person: NotablePersonListItem }) {
   return (
@@ -34,6 +35,11 @@ export function PersonCard({ person }: { person: NotablePersonListItem }) {
           </div>
         </div>
       </Link>
+      <EntityLibraryActions
+        entity="notable-person"
+        slug={person.slug}
+        label={person.displayName}
+      />
     </article>
   );
 }

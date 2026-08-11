@@ -1,6 +1,7 @@
 "use client";
 
 import { AccountActivity } from "@/components/account-activity";
+import { AccountShell } from "@/components/account-shell";
 import { useAuth } from "@/components/auth-provider";
 
 export default function AccountActivityPage() {
@@ -34,7 +35,9 @@ export default function AccountActivityPage() {
 
   return (
     <main className="section container account-page account-activity-page">
-      <AccountActivity />
+      <AccountShell active="activity">
+        <AccountActivity />
+      </AccountShell>
     </main>
   );
 }

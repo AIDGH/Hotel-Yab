@@ -8,9 +8,10 @@ This file tracks open product and technical work for Hotel-Yab.
 
 ## 1. User Features
 
-- [ ] Add favorite/saved hotels
-- [ ] Consider saved notable people
-- [ ] Consider personalized discovery
+- [x] Add separate like/save states for hotels
+- [x] Add separate like/save states for notable people
+- [x] Add a private account library for liked and saved entities
+- [ ] Consider personalized discovery after enough behavioral data exists (deferred)
 
 Hotel data enrichment and a fuller Hotel Detail Page continue after the required hotel dataset is ready. Manual data collection continues in parallel and is not blocked by this execution order.
 
@@ -125,14 +126,17 @@ The account foundation is implemented without making login mandatory for public 
 - [x] Implement mobile/username password login and OTP fallback with revocable sessions
 - [x] Add unique username and salted password hashing
 - [x] Add strong new-password rules and show/hide password controls
+- [x] Render password-format failures as Persian red inline form feedback
 - [x] Add six-slot OTP entry with API-backed 60-second resend countdown
 - [x] Auto-submit a complete six-digit OTP without requiring Enter or the confirmation button
-- [x] Keep signup minimal and defer optional email/Instagram to the account page
+- [x] Keep signup to mobile/username/password and defer optional profile identity fields to the account page
 - [x] Add editable user profile with optional unique email and Instagram
+- [x] Add a responsive account layout and validated profile-avatar upload/removal
 - [x] Add hotel ratings/reviews with pending moderation
 - [x] Add collapsed video comments with hybrid trust/risk moderation
 - [x] Add per-user comment rate limiting and user reports with automatic hiding
 - [x] Add account activity management for reviews/comments with moderation states and safe deletion
+- [x] Add independent likes and saves for hotels and notable people with a private account library
 - [ ] Integrate a production SMS provider
 - [ ] Consider user-submitted hotel/person information
 
@@ -146,6 +150,7 @@ The contribution-moderation slice is implemented; catalog administration remains
 - [x] Create hotel-review and video-comment moderation queues
 - [x] Add publish/reject/hide/pending actions with moderator identity, time, and note
 - [x] Add unresolved comment-report queue and administrator user blocking/reactivation
+- [x] Add administrator-only deletion of hotel reviews and video comments from public content
 - [x] Add a safe local command to bootstrap an admin/moderator role
 - [ ] Create hotel management interface
 - [ ] Create notable-person management interface

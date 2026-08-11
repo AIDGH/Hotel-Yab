@@ -1,14 +1,18 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
   Req,
   Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import type { AuthenticatedRequest } from './auth.types';
@@ -95,6 +99,37 @@ export class AuthController {
     @Body() dto: UpdateProfileDto,
   ) {
     return this.authService.updateProfile(request.user.id, dto);
+  }
+
+  @Get('me/avatar')
+  @UseGuards(SessionAuthGuard)
+  async getAvatar(
+    @Req() request: AuthenticatedRequest,
+    @Res() response: Response,
+  ) {
+    const avatar = await this.authService.getAvatar(request.user.id);
+    response.setHeader('Content-Type', avatar.mimeType);
+    response.setHeader('Cache-Control', 'private, max-age=300');
+    response.send(avatar.data);
+  }
+
+  @Post('me/avatar')
+  @UseGuards(SessionAuthGuard)
+  @UseInterceptors(
+    FileInterceptor('avatar', { limits: { fileSize: 1_000_000 } }),
+  )
+  updateAvatar(
+    @Req() request: AuthenticatedRequest,
+    @UploadedFile()
+    file: { buffer: Buffer; mimetype: string; size: number } | undefined,
+  ) {
+    return this.authService.updateAvatar(request.user.id, file);
+  }
+
+  @Delete('me/avatar')
+  @UseGuards(SessionAuthGuard)
+  removeAvatar(@Req() request: AuthenticatedRequest) {
+    return this.authService.removeAvatar(request.user.id);
   }
 
   @Post('logout')

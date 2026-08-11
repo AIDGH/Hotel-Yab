@@ -94,6 +94,8 @@ model Hotel {
   publicationStatus PublicationStatus  @default(DRAFT)
   associations      HotelAssociation[]
   reviews           HotelReview[]
+  likes             UserHotelLike[]
+  savedBy           UserSavedHotel[]
   createdAt         DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime           @updatedAt @db.Timestamptz(3)
 
@@ -102,21 +104,23 @@ model Hotel {
 }
 
 model NotablePerson {
-  id                String                @id @default(uuid()) @db.Uuid
-  slug              String                @unique @db.VarChar(160)
-  displayName       String                @db.VarChar(200)
-  instagramHandle   String?               @db.VarChar(30)
+  id                String                   @id @default(uuid()) @db.Uuid
+  slug              String                   @unique @db.VarChar(160)
+  displayName       String                   @db.VarChar(200)
+  instagramHandle   String?                  @db.VarChar(30)
   primaryCategory   NotablePersonCategory
-  occupation        String?               @db.VarChar(200)
+  occupation        String?                  @db.VarChar(200)
   followerCount     Int?
-  biography         String?               @db.Text
-  countryCode       String?               @db.Char(2)
-  imageUrl          String?               @db.Text
-  publicationStatus PublicationStatus     @default(DRAFT)
+  biography         String?                  @db.Text
+  countryCode       String?                  @db.Char(2)
+  imageUrl          String?                  @db.Text
+  publicationStatus PublicationStatus        @default(DRAFT)
   associations      HotelAssociation[]
-  linkedUser        User?                 @relation("UserNotablePerson")
-  createdAt         DateTime              @default(now()) @db.Timestamptz(3)
-  updatedAt         DateTime              @updatedAt @db.Timestamptz(3)
+  linkedUser        User?                    @relation("UserNotablePerson")
+  likes             UserNotablePersonLike[]
+  savedBy           UserSavedNotablePerson[]
+  createdAt         DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime                 @updatedAt @db.Timestamptz(3)
 
   @@index([primaryCategory])
   @@index([publicationStatus])
@@ -172,30 +176,92 @@ model AssociationEvidence {
 }
 
 model User {
-  id                     String               @id @default(uuid()) @db.Uuid
-  mobile                 String               @unique @db.VarChar(16)
-  username               String?              @unique @db.VarChar(30)
-  passwordHash           String?              @db.VarChar(255)
-  firstName              String?              @db.VarChar(80)
-  lastName               String?              @db.VarChar(100)
-  email                  String?              @unique @db.VarChar(254)
-  instagramHandle        String?              @unique @db.VarChar(30)
-  role                   UserRole             @default(USER)
-  status                 UserStatus           @default(ACTIVE)
-  notablePersonId        String?              @unique @db.Uuid
-  notablePerson          NotablePerson?       @relation("UserNotablePerson", fields: [notablePersonId], references: [id], onDelete: SetNull)
+  id                     String                   @id @default(uuid()) @db.Uuid
+  mobile                 String                   @unique @db.VarChar(16)
+  username               String?                  @unique @db.VarChar(30)
+  passwordHash           String?                  @db.VarChar(255)
+  firstName              String?                  @db.VarChar(80)
+  lastName               String?                  @db.VarChar(100)
+  email                  String?                  @unique @db.VarChar(254)
+  instagramHandle        String?                  @unique @db.VarChar(30)
+  role                   UserRole                 @default(USER)
+  status                 UserStatus               @default(ACTIVE)
+  notablePersonId        String?                  @unique @db.Uuid
+  notablePerson          NotablePerson?           @relation("UserNotablePerson", fields: [notablePersonId], references: [id], onDelete: SetNull)
+  avatar                 UserAvatar?
+  hotelLikes             UserHotelLike[]
+  savedHotels            UserSavedHotel[]
+  notablePersonLikes     UserNotablePersonLike[]
+  savedNotablePeople     UserSavedNotablePerson[]
   sessions               UserSession[]
   hotelReviews           HotelReview[]
   videoComments          VideoComment[]
-  videoCommentReports    VideoCommentReport[] @relation("VideoCommentReporter")
-  resolvedCommentReports VideoCommentReport[] @relation("VideoCommentReportResolver")
-  moderatedHotelReviews  HotelReview[]        @relation("HotelReviewModerator")
-  moderatedVideoComments VideoComment[]       @relation("VideoCommentModerator")
-  lastLoginAt            DateTime?            @db.Timestamptz(3)
-  createdAt              DateTime             @default(now()) @db.Timestamptz(3)
-  updatedAt              DateTime             @updatedAt @db.Timestamptz(3)
+  videoCommentReports    VideoCommentReport[]     @relation("VideoCommentReporter")
+  resolvedCommentReports VideoCommentReport[]     @relation("VideoCommentReportResolver")
+  moderatedHotelReviews  HotelReview[]            @relation("HotelReviewModerator")
+  moderatedVideoComments VideoComment[]           @relation("VideoCommentModerator")
+  lastLoginAt            DateTime?                @db.Timestamptz(3)
+  createdAt              DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime                 @updatedAt @db.Timestamptz(3)
 
   @@index([status])
+}
+
+model UserAvatar {
+  userId    String   @id @db.Uuid
+  data      Bytes
+  mimeType  String   @db.VarChar(32)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model UserHotelLike {
+  userId    String   @db.Uuid
+  hotelId   String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@id([userId, hotelId])
+  @@index([hotelId])
+  @@index([userId, createdAt])
+}
+
+model UserSavedHotel {
+  userId    String   @db.Uuid
+  hotelId   String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@id([userId, hotelId])
+  @@index([hotelId])
+  @@index([userId, createdAt])
+}
+
+model UserNotablePersonLike {
+  userId          String        @db.Uuid
+  notablePersonId String        @db.Uuid
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notablePerson   NotablePerson @relation(fields: [notablePersonId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+
+  @@id([userId, notablePersonId])
+  @@index([notablePersonId])
+  @@index([userId, createdAt])
+}
+
+model UserSavedNotablePerson {
+  userId          String        @db.Uuid
+  notablePersonId String        @db.Uuid
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notablePerson   NotablePerson @relation(fields: [notablePersonId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+
+  @@id([userId, notablePersonId])
+  @@index([notablePersonId])
+  @@index([userId, createdAt])
 }
 
 model UserSession {

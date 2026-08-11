@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -52,6 +53,20 @@ export class ModerationController {
       request.user.id,
       dto,
     );
+  }
+
+  @Delete('hotel-reviews/:id')
+  @UseGuards(AdminGuard)
+  @ApiOperation({ summary: 'Permanently delete a hotel review as admin' })
+  deleteHotelReview(@Param('id') id: string) {
+    return this.moderationService.deleteHotelReview(id);
+  }
+
+  @Delete('video-comments/:id')
+  @UseGuards(AdminGuard)
+  @ApiOperation({ summary: 'Permanently delete a video comment as admin' })
+  deleteVideoComment(@Param('id') id: string) {
+    return this.moderationService.deleteVideoComment(id);
   }
 
   @Patch('users/:id/status')

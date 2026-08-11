@@ -1,6 +1,6 @@
 import { UserRole } from '../generated/prisma/enums';
 
-export const TRUSTED_PUBLISHED_COMMENT_COUNT = 3;
+export const TRUSTED_PUBLISHED_COMMENT_COUNT = 2;
 export const COMMENT_RATE_LIMIT = 5;
 export const COMMENT_RATE_WINDOW_MS = 60_000;
 export const AUTO_HIDE_REPORT_COUNT = 3;
@@ -96,7 +96,7 @@ export function decideCommentModeration(input: CommentModerationInput) {
     input.role === UserRole.MODERATOR ||
     input.publishedCommentCount >= TRUSTED_PUBLISHED_COMMENT_COUNT;
 
-  if (!trusted) reasons.push('کمتر از سه دیدگاه تأییدشده');
+  if (!trusted) reasons.push('کمتر از دو دیدگاه تأییدشده');
 
   return {
     publishImmediately: trusted && reasons.length === 0,

@@ -8,10 +8,6 @@ import {
   MinLength,
 } from 'class-validator';
 
-function trimText({ value }: { value: unknown }): unknown {
-  return typeof value === 'string' ? value.trim() : value;
-}
-
 function emptyToUndefined({ value }: { value: unknown }): unknown {
   return typeof value === 'string' && value.trim() === '' ? undefined : value;
 }
@@ -29,7 +25,9 @@ export class RegisterDto {
   @Matches(/^(?=.*[A-Za-z])[A-Za-z0-9._]+$/)
   @MinLength(3)
   @MaxLength(30)
-  @Transform(trimText)
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   username!: string;
 
   @IsString()
@@ -37,18 +35,6 @@ export class RegisterDto {
   @MinLength(8)
   @MaxLength(72)
   password!: string;
-
-  @IsString()
-  @MinLength(2)
-  @MaxLength(80)
-  @Transform(trimText)
-  firstName!: string;
-
-  @IsString()
-  @MinLength(2)
-  @MaxLength(100)
-  @Transform(trimText)
-  lastName!: string;
 
   @IsOptional()
   @IsEmail()

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
+import { EntityLibraryActions } from "@/components/entity-library-actions";
 import { HotelLogo } from "@/components/hotel-logo";
 import { HotelReviews } from "@/components/hotel-reviews";
 import { HotelStars } from "@/components/hotel-stars";
@@ -119,6 +120,12 @@ export default async function HotelPage({ params }: HotelPageProps) {
                 : "این هتل در فهرست عمومی ثبت شده و ارتباط‌های آن در حال بررسی و منبع‌دهی است.")}
           </p>
           <div className="detail-actions">
+            <EntityLibraryActions
+              entity="hotel"
+              slug={hotel.slug}
+              label={hotel.name}
+              variant="detail"
+            />
             {hotel.websiteUrl ? (
               <a
                 className="button"

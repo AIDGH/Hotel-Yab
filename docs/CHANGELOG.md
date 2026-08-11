@@ -64,6 +64,12 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Added `/search` with grouped hotel, notable-person, city, and province results, per-group counts and links, partial API failure handling, and a unified no-result state.
 - Added client-side progressive Explore loading: six videos initially and six more per button press without a page refresh.
 - Added authenticated account-activity APIs and an «فعالیت‌های من» section for reviewing moderation states, opening related content, and safely deleting owned reviews/comments.
+- Added authenticated profile-avatar upload, retrieval, and removal with JPEG/PNG/WebP signature checks, a 1 MB limit, and a separate `UserAvatar` model.
+- Added a responsive account sidebar with profile summary and direct navigation to account, activity, moderation, and logout.
+- Added independent hotel and notable-person likes and saves backed by four uniqueness-protected Prisma relations and authenticated idempotent endpoints.
+- Added reusable like/save controls to hotel/person cards and detail pages, with login prompting for guests and shared client-side library state for signed-in users.
+- Added `/account/library` with separate liked and saved sections for hotels and notable people, linked from the account menu and sidebar.
+- Added administrator-only, inline-confirmed permanent deletion controls for published hotel reviews and video comments/replies.
 
 ### Changed
 
@@ -101,7 +107,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Moved full registration validation and uniqueness checks before OTP delivery.
 - Separated official hotel classification from user-review scores; review scores now use `x.x از ۵` and `n نظر` without a star icon.
 - Formatted visible Iranian mobile numbers as `+98 991 123 4567` while preserving normalized API values.
-- Changed video comments from universal premoderation to hybrid trust/risk moderation: clean comments from users with three published comments publish immediately, while new, linked, repeated, or risky submissions remain pending.
+- Changed video comments from universal premoderation to hybrid trust/risk moderation: clean comments from users with two published comments publish immediately, while new, linked, repeated, or risky submissions remain pending.
 - Limited each user to five video-comment submissions per rolling minute.
 - Refined hotel, notable-person, and destination detail pages with a subtle layered background, translucent profile surface, and deeper destination hero while preserving the minimal visual language.
 - Reduced website registration to name, family name, `09…` mobile, username, and password; optional email and Instagram now move to the account page.
@@ -111,6 +117,10 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Moved the Videos navigation item after Notable People in both the header and footer.
 - Prevented deletion of a video comment that already has replies, preserving other users' contributions.
 - Moved «فعالیت‌های من» out of the profile form into its own `/account/activity` route and account-menu item.
+- Reduced registration to mobile, username, and password; name, family name, email, Instagram, and avatar are completed later from the account page.
+- Reworked the account page into a wider two-column laptop layout with compact single-column fields and a stacked mobile layout.
+- Reduced optional hotel-review text minimum from 10 to 3 characters.
+- Allowed authenticated users to comment before completing first and last name, using «کاربر هتل‌یاب» as the public fallback label.
 
 ### Fixed
 
@@ -126,6 +136,10 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Fixed account-profile saves hiding the API error behind a generic message; duplicate/invalid email, username, Instagram, password, mobile, and expired-session errors now have specific Persian messages.
 - Prevented password managers from autofilling the current password into the optional new-password field during unrelated profile edits.
 - Standardized negative form feedback across authentication, account, hotel reviews, video comments, reports, and administration as red error states while keeping successful feedback green.
+- Prevented the hotel-review paragraph style from overriding shared red error text, and replaced the native short-review error with a Persian inline message.
+- Registered the missing canonical `morteza.kowsari-002` video in the backend import dataset so its comments load and submit normally.
+- Replaced the misleading profile-completion comment error with cause-specific Persian feedback and made a failed comment-list load retryable.
+- Replaced native English password-format validation bubbles with the shared Persian red inline error across login, registration, legacy completion, and account editing.
 
 ### Removed
 

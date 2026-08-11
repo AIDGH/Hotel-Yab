@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
+import { EntityLibraryActions } from "@/components/entity-library-actions";
 import { MediaTile } from "@/components/media-tile";
 import { PersonDisplayName } from "@/components/person-display-name";
 import { PersonProfileMeta } from "@/components/person-profile-meta";
@@ -82,6 +83,12 @@ export default async function PersonPage({ params }: PersonPageProps) {
               "هتل‌های مرتبط با این فرد نمایش داده می‌شوند و وضعیت بررسی هر رابطه به‌صورت شفاف مشخص است."}
           </p>
           <div className="detail-actions">
+            <EntityLibraryActions
+              entity="notable-person"
+              slug={person.slug}
+              label={person.displayName}
+              variant="detail"
+            />
             <span>{person.associations.length.toLocaleString("fa-IR")} هتل مرتبط</span>
           </div>
         </div>

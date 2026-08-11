@@ -1,8 +1,10 @@
 import {
+  BadRequestException,
   ConflictException,
   HttpException,
   HttpStatus,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -28,8 +30,15 @@ const SESSION_COOKIE = 'hotel_yab_session';
 const MAX_OTP_ATTEMPTS = 5;
 const SCRYPT_KEY_LENGTH = 64;
 const SCRYPT_COST = 16_384;
+const MAX_AVATAR_BYTES = 1_000_000;
+const AVATAR_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 type RequestMetadata = { userAgent?: string; ipAddress?: string };
+type AvatarUpload = {
+  buffer: Buffer;
+  mimetype: string;
+  size: number;
+};
 
 @Injectable()
 export class AuthService {
@@ -117,13 +126,14 @@ export class AuthService {
           mobile,
           username,
           passwordHash,
-          firstName: dto.firstName,
-          lastName: dto.lastName,
           email,
           instagramHandle,
           lastLoginAt: new Date(),
         },
-        include: { notablePerson: true },
+        include: {
+          notablePerson: true,
+          avatar: { select: { updatedAt: true } },
+        },
       });
     });
 
@@ -150,7 +160,10 @@ export class AuthService {
   async getCurrentUser(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      include: { notablePerson: true },
+      include: {
+        notablePerson: true,
+        avatar: { select: { updatedAt: true } },
+      },
     });
     return { data: toPublicUser(user) };
   }
@@ -185,9 +198,53 @@ export class AuthService {
           ? { passwordHash: await hashPassword(dto.password) }
           : {}),
       },
-      include: { notablePerson: true },
+      include: {
+        notablePerson: true,
+        avatar: { select: { updatedAt: true } },
+      },
     });
     return { data: toPublicUser(user) };
+  }
+
+  async getAvatar(userId: string) {
+    const avatar = await this.prisma.userAvatar.findUnique({
+      where: { userId },
+      select: { data: true, mimeType: true },
+    });
+    if (!avatar) throw new NotFoundException('The avatar was not found');
+    return { data: Buffer.from(avatar.data), mimeType: avatar.mimeType };
+  }
+
+  async updateAvatar(userId: string, file: AvatarUpload | undefined) {
+    if (!file) throw new BadRequestException('Choose an avatar image');
+    if (file.size > MAX_AVATAR_BYTES) {
+      throw new BadRequestException('The avatar image must be at most 1 MB');
+    }
+    if (
+      !AVATAR_MIME_TYPES.has(file.mimetype) ||
+      !matchesAvatarSignature(file.buffer, file.mimetype)
+    ) {
+      throw new BadRequestException('The avatar image format is invalid');
+    }
+
+    await this.prisma.userAvatar.upsert({
+      where: { userId },
+      create: {
+        userId,
+        data: Uint8Array.from(file.buffer),
+        mimeType: file.mimetype,
+      },
+      update: {
+        data: Uint8Array.from(file.buffer),
+        mimeType: file.mimetype,
+      },
+    });
+    return this.getCurrentUser(userId);
+  }
+
+  async removeAvatar(userId: string) {
+    await this.prisma.userAvatar.deleteMany({ where: { userId } });
+    return this.getCurrentUser(userId);
   }
 
   async logout(token: string | undefined): Promise<void> {
@@ -307,7 +364,10 @@ export class AuthService {
       where: mobilePattern.test(trimmed)
         ? { mobile: normalizeIranianMobile(trimmed) }
         : { username: normalizeUsername(trimmed) },
-      include: { notablePerson: true },
+      include: {
+        notablePerson: true,
+        avatar: { select: { updatedAt: true } },
+      },
     });
   }
 
@@ -494,6 +554,7 @@ function toPublicUser(user: {
   email: string | null;
   instagramHandle: string | null;
   role: string;
+  avatar: { updatedAt: Date } | null;
   notablePerson: { slug: string; displayName: string } | null;
 }) {
   return {
@@ -506,11 +567,12 @@ function toPublicUser(user: {
       [user.firstName, user.lastName].filter(Boolean).join(' ') || null,
     email: user.email,
     instagramHandle: user.instagramHandle,
+    avatarUrl: user.avatar
+      ? `/api/v1/auth/me/avatar?v=${user.avatar.updatedAt.getTime()}`
+      : null,
     role: user.role,
     hasPassword: Boolean(user.passwordHash),
-    profileComplete: Boolean(
-      user.firstName && user.lastName && user.username && user.passwordHash,
-    ),
+    profileComplete: Boolean(user.username && user.passwordHash),
     notablePerson: user.notablePerson
       ? {
           slug: user.notablePerson.slug,
@@ -518,4 +580,29 @@ function toPublicUser(user: {
         }
       : null,
   };
+}
+
+function matchesAvatarSignature(buffer: Buffer, mimeType: string): boolean {
+  if (mimeType === 'image/jpeg') {
+    return (
+      buffer.length >= 3 &&
+      buffer[0] === 0xff &&
+      buffer[1] === 0xd8 &&
+      buffer[2] === 0xff
+    );
+  }
+  if (mimeType === 'image/png') {
+    const signature = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
+    return (
+      buffer.length >= signature.length &&
+      buffer.subarray(0, 8).equals(signature)
+    );
+  }
+  return (
+    buffer.length >= 12 &&
+    buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
+    buffer.subarray(8, 12).toString('ascii') === 'WEBP'
+  );
 }

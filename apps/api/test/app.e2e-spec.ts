@@ -636,8 +636,6 @@ describe('Hotel-Yab API (e2e)', () => {
       mobile: '09120000001',
       username: 'e2e.user',
       password: 'E2e-password-123',
-      firstName: 'E2E',
-      lastName: 'User',
       email: 'e2e-user@example.com',
       instagramHandle: '@e2e.user',
     };
@@ -680,6 +678,56 @@ describe('Hotel-Yab API (e2e)', () => {
       : setCookieHeader;
     if (!cookieValue) throw new Error('Session cookie was not returned');
     const sessionCookie: string = cookieValue.split(';')[0];
+
+    expect(verifyResponse.body).toMatchObject({
+      data: {
+        firstName: null,
+        lastName: null,
+        displayName: null,
+        avatarUrl: null,
+        profileComplete: true,
+      },
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/auth/me/avatar')
+      .set('Cookie', sessionCookie)
+      .expect(404);
+
+    const avatarBytes = Buffer.concat([
+      Buffer.from('RIFF', 'ascii'),
+      Buffer.from([4, 0, 0, 0]),
+      Buffer.from('WEBP', 'ascii'),
+    ]);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/me/avatar')
+      .set('Cookie', sessionCookie)
+      .attach('avatar', avatarBytes, {
+        filename: 'avatar.webp',
+        contentType: 'image/webp',
+      })
+      .expect(201)
+      .expect((response) => {
+        const body = response.body as { data: { avatarUrl: string } };
+        expect(body.data.avatarUrl).toContain('/auth/me/avatar?v=');
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/auth/me/avatar')
+      .set('Cookie', sessionCookie)
+      .expect('Content-Type', /image\/webp/)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/auth/me/profile')
+      .set('Cookie', sessionCookie)
+      .send({ firstName: 'E2E', lastName: 'User' })
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          data: { displayName: 'E2E User' },
+        });
+      });
 
     await request(app.getHttpServer())
       .post('/api/v1/auth/register/otp/request')
@@ -725,16 +773,93 @@ describe('Hotel-Yab API (e2e)', () => {
       .send({ identifier: fixtureMobile, code: loginOtpCode })
       .expect(201);
 
+    await request(app.getHttpServer())
+      .get('/api/v1/account/library')
+      .expect(401);
+
+    for (const path of [
+      '/api/v1/account/library/hotels/e2e-visible-hotel/like',
+      '/api/v1/account/library/hotels/e2e-visible-hotel/save',
+      '/api/v1/account/library/notable-people/e2e-visible-athlete/like',
+      '/api/v1/account/library/notable-people/e2e-visible-athlete/save',
+    ]) {
+      await request(app.getHttpServer())
+        .put(path)
+        .set('Cookie', sessionCookie)
+        .expect(200)
+        .expect({ data: { active: true } });
+    }
+
+    await request(app.getHttpServer())
+      .put('/api/v1/account/library/hotels/e2e-visible-hotel/like')
+      .set('Cookie', sessionCookie)
+      .expect(200)
+      .expect({ data: { active: true } });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/account/library')
+      .set('Cookie', sessionCookie)
+      .expect(200)
+      .expect((response) => {
+        const body = response.body as {
+          data: {
+            likedHotels: Array<{ slug: string }>;
+            savedHotels: Array<{ slug: string }>;
+            likedNotablePeople: Array<{ slug: string }>;
+            savedNotablePeople: Array<{ slug: string }>;
+          };
+        };
+        expect(body.data.likedHotels).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ slug: 'e2e-visible-hotel' }),
+          ]),
+        );
+        expect(body.data.savedHotels).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ slug: 'e2e-visible-hotel' }),
+          ]),
+        );
+        expect(body.data.likedNotablePeople).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ slug: 'e2e-visible-athlete' }),
+          ]),
+        );
+        expect(body.data.savedNotablePeople).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ slug: 'e2e-visible-athlete' }),
+          ]),
+        );
+      });
+
+    for (const path of [
+      '/api/v1/account/library/hotels/e2e-visible-hotel/like',
+      '/api/v1/account/library/hotels/e2e-visible-hotel/save',
+      '/api/v1/account/library/notable-people/e2e-visible-athlete/like',
+      '/api/v1/account/library/notable-people/e2e-visible-athlete/save',
+    ]) {
+      await request(app.getHttpServer())
+        .delete(path)
+        .set('Cookie', sessionCookie)
+        .expect(200)
+        .expect({ data: { active: false } });
+    }
+
+    await request(app.getHttpServer())
+      .put('/api/v1/hotels/e2e-visible-hotel/reviews/me')
+      .set('Cookie', sessionCookie)
+      .send({ rating: 5, body: 'ab' })
+      .expect(400);
+
     const reviewResponse = await request(app.getHttpServer())
       .put('/api/v1/hotels/e2e-visible-hotel/reviews/me')
       .set('Cookie', sessionCookie)
-      .send({ rating: 5 })
+      .send({ rating: 5, body: 'خوب' })
       .expect(200)
       .expect((response) => {
         const body = response.body as { data: unknown };
         expect(body.data).toMatchObject({
           rating: 5,
-          body: '',
+          body: 'خوب',
           status: 'PENDING',
         });
       });
@@ -794,6 +919,16 @@ describe('Hotel-Yab API (e2e)', () => {
 
     await request(app.getHttpServer())
       .get('/api/v1/admin/moderation/queue')
+      .set('Cookie', sessionCookie)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/admin/moderation/video-comments/${commentId}`)
+      .set('Cookie', sessionCookie)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/admin/moderation/hotel-reviews/${reviewId}`)
       .set('Cookie', sessionCookie)
       .expect(403);
 
@@ -893,8 +1028,6 @@ describe('Hotel-Yab API (e2e)', () => {
       mobile: '09120000002',
       username: 'e2e.reporter',
       password: 'E2e-password-456',
-      firstName: 'E2E',
-      lastName: 'Reporter',
       email: 'e2e-reporter@example.com',
     };
     const reporterOtpResponse = await request(app.getHttpServer())
@@ -919,6 +1052,32 @@ describe('Hotel-Yab API (e2e)', () => {
     const reporterCookie = reporterCookieHeader.split(';')[0];
     const reporterId = (reporterResponse.body as { data: { id: string } }).data
       .id;
+
+    const namelessCommentResponse = await request(app.getHttpServer())
+      .post(`/api/v1/videos/${fixtureVideoId}/comments`)
+      .set('Cookie', reporterCookie)
+      .send({ body: 'A comment from a profile without names.' })
+      .expect(201)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          data: {
+            authorName: 'کاربر هتل‌یاب',
+            status: 'PENDING',
+          },
+        });
+      });
+    const namelessCommentId = (
+      namelessCommentResponse.body as { data: { id: string } }
+    ).data.id;
+
+    const reporterReviewResponse = await request(app.getHttpServer())
+      .put('/api/v1/hotels/e2e-visible-hotel/reviews/me')
+      .set('Cookie', reporterCookie)
+      .send({ rating: 4, body: 'خوب' })
+      .expect(200);
+    const reporterReviewId = (
+      reporterReviewResponse.body as { data: { id: string } }
+    ).data.id;
 
     await request(app.getHttpServer())
       .post(`/api/v1/videos/${fixtureVideoId}/comments/${commentId}/reports`)
@@ -960,6 +1119,25 @@ describe('Hotel-Yab API (e2e)', () => {
       .expect(401);
 
     await request(app.getHttpServer())
+      .delete(`/api/v1/admin/moderation/video-comments/${namelessCommentId}`)
+      .set('Cookie', sessionCookie)
+      .expect(200)
+      .expect({ data: { success: true } });
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/admin/moderation/hotel-reviews/${reporterReviewId}`)
+      .set('Cookie', sessionCookie)
+      .expect(200)
+      .expect({ data: { success: true } });
+
+    await expect(
+      prisma.videoComment.findUnique({ where: { id: namelessCommentId } }),
+    ).resolves.toBeNull();
+    await expect(
+      prisma.hotelReview.findUnique({ where: { id: reporterReviewId } }),
+    ).resolves.toBeNull();
+
+    await request(app.getHttpServer())
       .patch('/api/v1/auth/me/profile')
       .set('Cookie', sessionCookie)
       .send({ email: registration.email })
@@ -968,6 +1146,14 @@ describe('Hotel-Yab API (e2e)', () => {
         expect(response.body).toMatchObject({
           data: { email: registration.email },
         });
+      });
+
+    await request(app.getHttpServer())
+      .delete('/api/v1/auth/me/avatar')
+      .set('Cookie', sessionCookie)
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toMatchObject({ data: { avatarUrl: null } });
       });
 
     await request(app.getHttpServer())

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -57,7 +58,17 @@ export function SiteHeader() {
                 onClick={() => setAccountOpen((value) => !value)}
               >
                 <span className="account-avatar">
-                  {(user.firstName ?? "ک").slice(0, 1)}
+                  {user.avatarUrl ? (
+                    <Image
+                      src={user.avatarUrl}
+                      alt=""
+                      width={32}
+                      height={32}
+                      unoptimized
+                    />
+                  ) : (
+                    (user.firstName ?? user.username ?? "ک").slice(0, 1)
+                  )}
                 </span>
                 <span>{user.displayName ?? "حساب من"}</span>
                 <small>⌄</small>
@@ -72,6 +83,12 @@ export function SiteHeader() {
                     onClick={() => setAccountOpen(false)}
                   >
                     فعالیت‌های من
+                  </Link>
+                  <Link
+                    href="/account/library"
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    پسندیده‌ها و ذخیره‌ها
                   </Link>
                   {user.role === "ADMIN" || user.role === "MODERATOR" ? (
                     <Link

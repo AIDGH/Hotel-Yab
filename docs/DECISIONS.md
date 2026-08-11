@@ -479,8 +479,8 @@ keep `sourceUrl` attached to the original Instagram post.
 
 **Decision:** Registration is separate from login and requires mobile OTP
 verification, a unique username, and a strong password. The website collects
-only name, family name, an `09…` mobile, username, and password during signup;
-email and Instagram are completed later. A new password must have 8–72
+only an `09…` mobile, username, and password during signup; name, family name,
+email, Instagram, and avatar are completed later. A new password must have 8–72
 characters with lowercase/uppercase Latin letters, a digit, and a symbol.
 Default login accepts mobile or username plus password; OTP remains a
 passwordless/fallback login for an existing account. OTP resend uses the
@@ -565,7 +565,7 @@ HttpOnly session cookies attached to the visible frontend host.
 ## 27. Use Hybrid Moderation for Video Comments
 
 **Decision:** A new video comment or reply is classified before insertion. A
-clean comment from a user with at least three published comments is published
+clean comment from a user with at least two published comments is published
 immediately. New users, links, exact recent repeats, and baseline risky terms go
 to `PENDING`. Each user is limited to five comment submissions per 60 seconds.
 Users may report someone else's published comment once; three distinct open
@@ -609,5 +609,51 @@ excluded.
 pending, published, rejected, or hidden. Protecting reply-bearing parent comments
 avoids deleting another user's contribution or breaking conversation structure,
 while keeping staff notes private preserves the moderation boundary.
+
+**Status:** Active; implemented without a database migration.
+
+## 30. Keep Avatars Separate and Registration Identity-Minimal
+
+**Decision:** Registration requires only verified mobile, unique username, and
+a strong password. Name and family name are optional profile fields completed
+from `/account`. Avatar bytes live in a one-to-one `UserAvatar` relation instead
+of the main `User` row; the authenticated upload accepts signature-validated
+JPEG/PNG/WebP up to 1 MB.
+
+**Reason:** A three-field signup reduces friction without weakening account
+ownership or uniqueness. A separate avatar relation avoids loading binary data
+during normal authentication queries and leaves a clean boundary for replacing
+database-backed MVP storage with object storage later.
+
+**Status:** Active; migration `20260811190000_add_user_avatar`.
+
+## 31. Keep Likes and Saves Separate with Explicit Relations
+
+**Decision:** Hotels and notable people each support two independent private
+states: like and save. Four explicit user-entity join tables use composite
+primary keys, and authenticated idempotent `PUT`/`DELETE` endpoints change one
+state at a time. The frontend loads the current user's complete library through
+one shared provider instead of querying the API from every card.
+
+**Reason:** A like expresses preference while a save expresses intent to revisit;
+combining them would make future analytics and personalization ambiguous. Explicit
+relations keep referential integrity and duplicate prevention in PostgreSQL, and
+the shared provider avoids N-per-card network requests across listing pages.
+
+**Status:** Active; migration `20260811203000_add_user_likes_and_saves`.
+
+## 32. Do Not Make Profile Names a Commenting Gate
+
+**Decision:** Any authenticated active account may comment without completing
+first and last name. Public serialization uses `کاربر هتل‌یاب` when both names
+are missing. Only `ADMIN`, not `MODERATOR`, receives permanent-delete endpoints
+and inline confirmed deletion controls for hotel reviews and video comments.
+
+**Reason:** Registration intentionally requires only mobile, username, and
+password, so requiring names at comment time contradicted the new signup flow.
+The neutral author label preserves privacy without blocking participation.
+Status moderation remains the normal staff workflow, while permanent deletion
+is reserved for administrators because it is destructive and parent-comment
+deletion cascades to replies.
 
 **Status:** Active; implemented without a database migration.
