@@ -119,6 +119,7 @@ Hotel-Yab در حال حاضر سرویس رزرو هتل نیست.
 - کامنت ویدیو با نمایش بسته به‌صورت پیش‌فرض و moderation هیبریدی مبتنی بر اعتماد و ریسک
 - گزارش کامنت، مخفی‌سازی خودکار پس از ۳ گزارش مستقل و محدودیت ۵ کامنت در دقیقه
 - پنل محافظت‌شده مدیر/ناظر برای انتشار، رد، پنهان‌کردن و بازگرداندن Review و Comment؛ همراه رسیدگی به گزارش‌ها و مسدودسازی کاربر توسط مدیر
+- پنل فقط-ادمین `/admin/catalog` برای افزودن مقصد، هتل، چهره و ویدیو، اتصال چندمقصدی/چندهتلی و دریافت خروجی JSON سازگار با Import
 - نمایش خلاصه امتیاز کاربران و تعداد نظر در hero صفحه هتل، مستقل از ستاره رسمی
 
 ---
@@ -224,6 +225,8 @@ User ──< UserSession
   ├──< VideoComment >── Video
   ├──< VideoCommentReport >── VideoComment
   └── NotablePerson (اتصال اختیاری و تأییدشده توسط ادمین)
+
+Destination ──< VideoDestination >── Video ──< VideoHotel >── Hotel
 ```
 
 ### Hotel
@@ -258,6 +261,13 @@ User ──< UserSession
 - publicationStatus
 
 `instagramHandle` بدون `@` ذخیره می‌شود و نباید از slug حدس زده شود.
+
+### Destination و Video
+
+- `Destination` رکورد canonical شهر/استان را با `type + slug` یکتا، استان والد اختیاری، ترتیب نمایش مستقل برای هر نوع، منبع و وضعیت انتشار نگه می‌دارد.
+- `Video` علاوه بر شناسه canonical، اطلاعات سازنده، منبع اصلی، عنوان، رسانه، کاور، وضعیت بررسی و انتشار را در PostgreSQL نگه می‌دارد.
+- `VideoDestination` اتصال چندبه‌چند ویدیو به شهرها/استان‌ها و `VideoHotel` اتصال اختیاری ویدیو به هتل‌ها را نگه می‌دارند.
+- فایل‌های رسانه فعلاً جابه‌جا نشده‌اند؛ `mediaUrl`، `thumbnailUrl` و `imageUrl` همان مسیرهای فعلی زیر `public` را ذخیره می‌کنند.
 
 ### دسته‌بندی فعلی افراد
 
@@ -310,7 +320,7 @@ REJECTED
 - `OtpChallenge` کد OTP را به‌صورت HMAC hash و با زمان انقضا/محدودیت تلاش نگه می‌دارد.
 - درخواست مجدد OTP در API و UI دارای cooldown پیش‌فرض ۶۰ ثانیه است.
 - هر کاربر برای هر هتل یک `HotelReview` فعال با امتیاز ۱ تا ۵ دارد.
-- `Video` شناسه canonical ویدیو را نگه می‌دارد و `VideoComment` به آن وصل می‌شود.
+- `Video` رکورد کامل ویدیو را نگه می‌دارد و `VideoComment` با همان شناسه canonical به آن وصل می‌شود.
 - Review جدید همیشه با وضعیت `PENDING` ثبت می‌شود. Comment و پاسخ کاربر تازه‌وارد، تکراری یا پرریسک نیز `PENDING` است؛ کامنت سالم کاربر قابل‌اعتماد می‌تواند مستقیم `PUBLISHED` شود.
 - کاربر پس از ۲ کامنت منتشرشده قابل‌اعتماد محسوب می‌شود. هر حساب حداکثر ۵ کامنت در ۶۰ ثانیه می‌تواند ثبت کند.
 - نام و نام خانوادگی برای ثبت کامنت اجباری نیست؛ حسابی که هنوز نامش را کامل نکرده با عنوان عمومی «کاربر هتل‌یاب» نمایش داده می‌شود.
@@ -430,16 +440,17 @@ Website
 
 ### داده مقصدها
 
-- منبع prototype در `apps/web/src/data/destinations.json` است و دو گروه `cities` و `provinces` دارد.
-- ویدیوها و اتصال چندبه‌چند آن‌ها به مقصدها در `apps/web/src/data/travel-videos.json` نگهداری می‌شوند.
+- منبع runtime مقصدها، ویدیوها و رابطه‌های آن‌ها PostgreSQL و API است.
+- فایل‌های `apps/web/src/data/destinations.json` و `apps/web/src/data/travel-videos.json` فعلاً به‌عنوان ورودی مهاجرت/بکاپ دوره انتقال باقی مانده‌اند و صفحه‌های عمومی مستقیماً آن‌ها را import نمی‌کنند.
 - workbook خصوصی `../Data/HotelYab_Destinations_Data.xlsx` منبع کاری مقصدها، ویدیوها و رابطه‌های ویدیو–مقصد است؛ دادهٔ آن پیش از ورود به JSON نرمال و اعتبارسنجی می‌شود.
 - `displayOrder` شهر و استان دو فضای شماره‌گذاری مستقل دارد و نباید میان دو نوع مقصد یکتا فرض شود.
 - مسیر تصویر مقصد از نوع و slug مشتق می‌شود: `/images/provinces/<slug>.webp` یا `/images/cities/<slug>.webp` و داخل workbook تکرار نمی‌شود.
-- `instagramUsername` ویدیو به رکورد منتشرشده شخص در API وصل می‌شود؛ اطلاعات شخص داخل فایل ویدیو تکرار نمی‌شود.
+- `instagramUsername` ویدیو به رکورد منتشرشده شخص در API وصل می‌شود؛ اطلاعات شخص داخل ویدیو تکرار نمی‌شود.
 - هتل‌های صفحه شهر با فیلتر دقیق `Hotel.city = City.name` از API گرفته می‌شوند. هتل‌های صفحه استان از تجمیع بدون تکرار هتل‌های شهرهایی به‌دست می‌آیند که `parentProvinceSlug` آن‌ها برابر slug استان است؛ اطلاعات هتل داخل داده مقصد کپی نمی‌شود.
-- شناسه canonical ویدیوها در مدل `Video` دیتابیس import می‌شود تا کامنت‌ها به خود ویدیو متصل باشند.
+- رکورد کامل ویدیوها در مدل `Video` دیتابیس نگهداری می‌شود تا نمایش عمومی و کامنت‌ها از یک شناسه canonical استفاده کنند.
 - تصاویر شهرها و استان‌ها به‌ترتیب در `apps/web/public/images/cities/` و `apps/web/public/images/provinces/` قرار دارند و نام فایل تصویر با slug مقصد یکسان است.
-- رکورد کامل مقصد، فایل رسانه و رابطه چندمقصدی هنوز frontend/file-based است؛ فقط شناسه ویدیو برای قابلیت‌های کاربری وارد Prisma شده است.
+- رکورد مقصد، مشخصات ویدیو و رابطه‌های `VideoDestination`/`VideoHotel` وارد Prisma شده‌اند؛ خود باینری رسانه فعلاً در `apps/web/public` باقی مانده و دیتابیس فقط مسیر آن را نگه می‌دارد.
+- دستور `pnpm --filter @hotel-yab/api data:import-travel` داده‌های JSON انتقالی را idempotent به PostgreSQL وارد می‌کند.
 - دادهٔ فعلی مرتضی کوثری شامل ۵ ویدیو و ۹ اتصال مقصدی است؛ رسانه‌های ۰۰۱ تا ۰۰۴ موجودند و فایل MP4/thumbnail ویدیوی ۰۰۵ هنوز باید اضافه شود.
 
 ---
@@ -469,8 +480,8 @@ apps/web/public/images/people/
 منبع و مجوز رسانه‌های محلی در `docs/MEDIA_ATTRIBUTIONS.md` ثبت می‌شود.
 
 هر Travel Video مسیر رسانه محلی و `sourceUrl` پست اصلی Instagram را نگه
-می‌دارد. یک ویدیو می‌تواند از طریق `videoDestinations` به چند شهر یا استان
-متصل باشد.
+می‌دارد. یک ویدیو می‌تواند از طریق `VideoDestination` به چند شهر یا استان و
+از طریق `VideoHotel` به چند هتل متصل باشد.
 
 ### کارهای محتوایی آینده
 
@@ -502,6 +513,8 @@ Endpointهای فعلی:
 | GET            | `/api/v1/hotels/:slug`                                         | جزئیات هتل                           |
 | GET            | `/api/v1/notable-people`                                       | فهرست چهره‌ها                        |
 | GET            | `/api/v1/notable-people/:slug`                                 | جزئیات چهره                          |
+| GET            | `/api/v1/destinations[/:type/:slug]`                           | فهرست یا جزئیات مقصدهای منتشرشده    |
+| GET            | `/api/v1/travel-videos`                                       | فهرست ویدیوهای سفر منتشرشده         |
 | POST           | `/api/v1/auth/login/password`                                  | ورود با شماره/نام‌کاربری و رمز       |
 | POST           | `/api/v1/auth/login/otp/request`                               | درخواست OTP برای حساب موجود          |
 | POST           | `/api/v1/auth/login/otp/verify`                                | ورود حساب موجود با OTP               |
@@ -523,6 +536,9 @@ Endpointهای فعلی:
 | PATCH          | `/api/v1/admin/moderation/{hotel-reviews\|video-comments}/:id` | ثبت تصمیم moderation                 |
 | DELETE         | `/api/v1/admin/moderation/{hotel-reviews\|video-comments}/:id` | حذف دائمی محتوا فقط توسط ادمین       |
 | PATCH          | `/api/v1/admin/moderation/users/:id/status`                    | مسدود/فعال‌کردن کاربر توسط مدیر      |
+| GET            | `/api/v1/admin/catalog/bootstrap`                              | داده‌های لازم پنل کاتالوگ            |
+| POST           | `/api/v1/admin/catalog/{destinations\|hotels\|notable-people\|videos}` | افزودن رکورد canonical توسط ادمین |
+| GET            | `/api/v1/admin/catalog/export`                                 | خروجی JSON قابل ورود مجدد            |
 
 Swagger در development:
 
@@ -641,6 +657,12 @@ Landing Page
 
 صف محافظت‌شده بررسی نظر هتل، کامنت ویدیوی در انتظار و کامنت‌های گزارش‌شده برای نقش‌های `ADMIN` و `MODERATOR`؛ مسدودسازی کاربر فقط برای `ADMIN`
 
+```text
+/admin/catalog
+```
+
+پنل فقط-ادمین برای افزودن مقصد، هتل، چهره و ویدیو، انتخاب مسیر رسانه موجود، اتصال ویدیو به چند مقصد/هتل و Export داده
+
 ### قابلیت‌های فعلی UI
 
 - RTL
@@ -758,7 +780,11 @@ pnpm api:prisma:migrate:deploy
 
 ```bash
 pnpm api:data:import
+pnpm --filter @hotel-yab/api data:import-travel
 ```
+
+دستور اول dataset خصوصی Hotel/Person/Association و دستور دوم JSONهای انتقالی
+Destination/TravelVideo را idempotent وارد PostgreSQL می‌کند.
 
 ### اجرای Backend
 
@@ -840,7 +866,9 @@ apps/api/src/
 apps/api/prisma/schema.prisma
 apps/api/prisma/migrations/
 apps/api/prisma/import-data.ts
+apps/api/prisma/import-travel-data.ts
 apps/api/prisma/data/import.example.json
+apps/api/src/catalog/
 ```
 
 ### Frontend
@@ -849,6 +877,7 @@ apps/api/prisma/data/import.example.json
 apps/web/src/app/
 apps/web/src/components/
 apps/web/src/lib/
+apps/web/src/app/admin/catalog/
 apps/web/public/images/
 ```
 
@@ -990,9 +1019,9 @@ docs/data-workbook-guide.md
 
 - ادامه جمع‌آوری دستی داده توسط صاحب پروژه
 - تکمیل عکس، Instagram، Biography، Occupation، ویدیو و Source
-- Clean Dataset، Sync Script، Validation، Duplicate Detection و Dry Run
+- تکمیل Import گروهی با Dry Run و گزارش Duplicate؛ Import JSON و Export پنل اکنون موجود است
 - تکمیل صفحه هتل پس از آماده‌شدن داده‌های موردنیاز
-- گسترش Admin Panel به مدیریت هتل، چهره، association و source
+- تکمیل Admin Panel با ویرایش رکوردها، مدیریت association/source و آپلود واقعی رسانه؛ افزودن مقصد، هتل، چهره و ویدیو اکنون موجود است
 - گسترش Moderation و گزارش‌های مدیریتی
 - Production Hosting
 - Media Storage
@@ -1025,7 +1054,7 @@ docs/TODO.md
 - media upload UI وجود ندارد.
 - storage production هنوز انتخاب نشده است.
 - برخی تصاویر هنوز missing یا placeholder هستند.
-- بخش Destination هنوز frontend prototype است و وارد Prisma/API نشده.
+- پنل Catalog فعلاً create-only است؛ ویرایش/آرشیو رکوردهای موجود هنوز UI ندارد.
 - داده ویدیو/مقصد هنوز فایل‌محور است؛ فقط اطلاعات شخص از API اصلی resolve می‌شود.
 
 ### Product

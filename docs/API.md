@@ -141,13 +141,32 @@ Only records allowed by publication rules should be returned.
 
 Travel-video composition reuses this list endpoint with `query` and then
 matches `instagramHandle` exactly after removing an optional leading `@` and
-normalizing case. No person fields are copied into `travel-videos.json`.
+normalizing case. No person profile fields are copied into the Video record.
 
 Example:
 
 ```text
 GET /notable-people?query=morteza.kowsari&pageSize=100
 ```
+
+---
+
+# Destinations and Travel Videos
+
+## GET /destinations
+
+Returns all published city/province records from PostgreSQL, including parent
+province metadata, display order, and media paths.
+
+## GET /destinations/:type/:slug
+
+Returns one published destination. `type` is `cities` or `provinces`.
+
+## GET /travel-videos
+
+Returns published canonical videos with `sourceUrl`, media/thumbnail paths,
+destination records, and optional linked hotels. Person profile data remains
+resolved by exact normalized Instagram username.
 
 ---
 
@@ -475,6 +494,43 @@ Administrator-only endpoint:
 
 Supported values are `ACTIVE` and `BLOCKED`. Blocking immediately revokes all
 sessions for the target user. Administrators cannot block their own account.
+
+---
+
+# Admin Catalog
+
+All catalog endpoints require an authenticated `ADMIN`; `MODERATOR` access is
+not sufficient.
+
+## GET /admin/catalog/bootstrap
+
+Returns compact destination, hotel, person, and video records for the forms and
+relationship selectors.
+
+## POST /admin/catalog/destinations
+
+Creates a city or province. Cities require a valid parent-province ID.
+
+## POST /admin/catalog/hotels
+
+Creates a Hotel using the same field concepts as the import dataset, including
+optional local or remote image/logo paths.
+
+## POST /admin/catalog/notable-people
+
+Creates a NotablePerson after slug and normalized Instagram duplicate checks.
+
+## POST /admin/catalog/videos
+
+Creates a complete Video, at least one `VideoDestination`, and optional
+`VideoHotel` links in one transaction. The Instagram username must resolve to
+an existing notable person and the original public `sourceUrl` is required.
+
+## GET /admin/catalog/export
+
+Returns a JSON snapshot containing `hotels`, `notablePeople`, `sources`,
+`associations`, `destinations`, and enriched `videos` in the extended validated
+import shape.
 
 ---
 

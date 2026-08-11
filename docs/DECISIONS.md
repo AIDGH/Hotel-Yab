@@ -395,8 +395,8 @@ The MVP currently supports two destination types:
 - City
 - Province
 
-Destination data is temporarily stored in `apps/web/src/data/destinations.json`,
-separated into `cities` and `provinces`.
+Destination data was initially stored in frontend JSON and is now canonical in
+the `Destination` Prisma model.
 
 Public destination routes use:
 
@@ -407,8 +407,8 @@ The type segment prevents ambiguity when a city and province share the same slug
 such as Tehran.
 
 Travel videos may be associated with one or more cities or provinces through
-`videoDestinations`. Destination persistence and video relationships will be
-modeled in Prisma only after the real dataset structure is validated.
+`VideoDestination`; persistence moved to Prisma after the workbook structure
+was validated.
 
 Related hotels are resolved without adding hotel copies to destination data.
 For a city, the frontend requests published hotels whose `city` exactly matches
@@ -417,10 +417,10 @@ same `parentProvinceSlug`, queries those city names, and deduplicates the
 combined hotel result by canonical hotel ID.
 
 **Reason:** This reuses the current hotel API and `HotelCard`, keeps hotel data
-canonical, and gives province pages useful results while the destination model
-is still a frontend prototype.
+canonical, and gives province pages useful results without duplicating hotels
+inside destination records.
 
-**Status:** Active
+**Status:** Active; persistence details superseded by Decision 34.
 
 ## 18. Separate Follower Count from Occupation
 
@@ -458,8 +458,8 @@ TravelVideo.videoId ← VideoDestinations.videoId → Destination type + slug
 ```
 
 Person metadata is resolved through the existing notable-person API using an
-exact normalized Instagram handle. Destination metadata is resolved from
-`destinations.json`. `travel-videos.json` does not duplicate person or
+exact normalized Instagram handle. Destination metadata is resolved from the
+canonical `Destination` relation. Video rows do not duplicate person or
 destination names, images, follower counts, or descriptions.
 
 The `/explore` route resolves the same keys for every video and composes the
@@ -611,6 +611,21 @@ avoids deleting another user's contribution or breaking conversation structure,
 while keeping staff notes private preserves the moderation boundary.
 
 **Status:** Active; implemented without a database migration.
+
+## 34. Make PostgreSQL the Runtime Source for Destinations and Travel Videos
+
+**Decision:** Canonical destination metadata, complete travel-video metadata,
+and video–destination/video–hotel links live in Prisma/PostgreSQL. Existing
+frontend `public` media paths stay unchanged during this phase. Administrators
+create records through `/admin/catalog`; transition JSON remains an idempotent
+import input, and the catalog provides a validated JSON export.
+
+**Reason:** A deployed admin page cannot safely edit repository files, and
+dual-writing JSON plus PostgreSQL would create conflicting sources of truth.
+Separating binary-media migration from metadata migration preserves current
+local paths until production object storage is introduced.
+
+**Status:** Active; migration `20260811220000_add_catalog_management`.
 
 ## 33. Keep Destination Workbook Input Minimal and Derive Repeated Fields
 

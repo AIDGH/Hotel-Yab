@@ -4,7 +4,7 @@ import { EmptyState } from "@/components/empty-state";
 import { HotelCard } from "@/components/hotel-card";
 import { TravelVideoCard } from "@/components/travel-video-card";
 import { TravelVideoPersonCard } from "@/components/travel-video-person-card";
-import destinations from "@/data/destinations.json";
+import { getDestinationCatalog } from "@/lib/destination-catalog";
 import {
   getHotels,
   getNotablePersonByInstagramUsername,
@@ -22,6 +22,7 @@ export default async function DestinationPage({
   params,
 }: DestinationPageProps) {
   const { type, slug } = await params;
+  const destinations = await getDestinationCatalog();
 
   if (type !== "cities" && type !== "provinces") {
     notFound();
@@ -49,7 +50,7 @@ export default async function DestinationPage({
 
   const destinationType = isCity ? "CITY" : "PROVINCE";
 
-  const destinationVideos = getTravelVideosForDestination(
+  const destinationVideos = await getTravelVideosForDestination(
     destinationType,
     slug,
   );

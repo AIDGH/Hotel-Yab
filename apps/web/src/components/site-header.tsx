@@ -95,7 +95,15 @@ export function SiteHeader() {
                       href="/admin/moderation"
                       onClick={() => setAccountOpen(false)}
                     >
-                      پنل مدیریت
+                      بررسی محتوا
+                    </Link>
+                  ) : null}
+                  {user.role === "ADMIN" ? (
+                    <Link
+                      href="/admin/catalog"
+                      onClick={() => setAccountOpen(false)}
+                    >
+                      مدیریت داده‌ها
                     </Link>
                   ) : null}
                   {user.notablePerson ? (

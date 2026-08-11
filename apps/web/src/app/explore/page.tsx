@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
 import { EmptyState } from "@/components/empty-state";
 import { ExploreVideoList } from "@/components/explore-video-list";
-import destinations from "@/data/destinations.json";
 import { getNotablePersonByInstagramUsername } from "@/lib/api";
+import { getDestinationCatalog } from "@/lib/destination-catalog";
 import { getAllTravelVideos } from "@/lib/travel-videos";
 
 export const metadata: Metadata = {
@@ -31,7 +31,10 @@ export default async function ExplorePage({
   const normalizedQuery = query.toLocaleLowerCase("fa-IR");
   const destinationType = params.destinationType ?? "all";
   const selectedDestination = params.destination ?? "";
-  const allTravelVideos = getAllTravelVideos();
+  const [allTravelVideos, destinations] = await Promise.all([
+    getAllTravelVideos(),
+    getDestinationCatalog(),
+  ]);
 
   const destinationOptions = [
     ...(destinationType === "all" || destinationType === "cities"

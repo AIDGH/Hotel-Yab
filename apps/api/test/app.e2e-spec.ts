@@ -36,6 +36,7 @@ const reporterFixtureMobile = '+989120000002';
 const fixtureVideoId = 'e2e-travel-video';
 const importFixture: ImportDataset = {
   videos: [],
+  destinations: [],
   hotels: [
     {
       slug: 'e2e-import-hotel',
@@ -297,7 +298,10 @@ describe('Hotel-Yab API (e2e)', () => {
       notablePeople: 1,
       sources: 1,
       associations: 1,
+      destinations: 0,
       videos: 0,
+      videoDestinations: 0,
+      videoHotels: 0,
     });
 
     const [hotels, people, sources, associations, evidence] =

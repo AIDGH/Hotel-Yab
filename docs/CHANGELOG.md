@@ -71,6 +71,11 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Added `/account/library` with separate liked and saved sections for hotels and notable people, linked from the account menu and sidebar.
 - Added administrator-only, inline-confirmed permanent deletion controls for published hotel reviews and video comments/replies.
 - Added three more Morteza Kowsari travel-video records, five new video–destination links, and normalized destination metadata for Isfahan, Hormozgan, Fars, Qeshm, and Firuzabad from the private destination workbook.
+- Added canonical `Destination`, enriched `Video`, `VideoDestination`, and `VideoHotel` Prisma models with an applied PostgreSQL migration.
+- Added public destination/travel-video APIs and switched discovery pages from direct runtime JSON imports to API-backed PostgreSQL data.
+- Added the administrator-only `/admin/catalog` interface for creating destinations, hotels, notable people, and multi-linked travel videos using existing `public` media paths.
+- Added a complete catalog JSON export plus extended idempotent import validation for destinations, enriched videos, and their destination/hotel references.
+- Added `data:import-travel` to migrate the existing destination/video transition JSON without moving media files.
 
 ### Changed
 
@@ -136,6 +141,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Fixed duplicate/self-report errors appearing only after closing the video-comment report form; errors now render immediately inside the open form.
 - Fixed account-profile saves hiding the API error behind a generic message; duplicate/invalid email, username, Instagram, password, mobile, and expired-session errors now have specific Persian messages.
 - Prevented password managers from autofilling the current password into the optional new-password field during unrelated profile edits.
+- Kept `import.json` backward-compatible: legacy ID-only video rows no longer clear enriched video metadata or relationship links.
 - Standardized negative form feedback across authentication, account, hotel reviews, video comments, reports, and administration as red error states while keeping successful feedback green.
 - Prevented the hotel-review paragraph style from overriding shared red error text, and replaced the native short-review error with a Persian inline message.
 - Registered the missing canonical `morteza.kowsari-002` video in the backend import dataset so its comments load and submit normally.

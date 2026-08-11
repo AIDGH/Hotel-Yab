@@ -4,7 +4,7 @@ import Link from "next/link";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { browserApi } from "@/lib/browser-api";
-import { getAllTravelVideos } from "@/lib/travel-videos";
+import type { TravelVideo } from "@/lib/types";
 
 type AccountHotelReview = {
   id: string;
@@ -32,25 +32,27 @@ type AccountActivityData = {
   videoComments: AccountVideoComment[];
 };
 
-const videoMetadataById = new Map(
-  getAllTravelVideos().map(({ video, destinations }) => [
-    video.videoId,
-    { video, destinations },
-  ]),
-);
-
 export function AccountActivity() {
   const [activity, setActivity] = useState<AccountActivityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [videoMetadataById, setVideoMetadataById] = useState(
+    new Map<string, TravelVideo>(),
+  );
   const [feedback, setFeedback] = useState<{
     tone: "error" | "success";
     text: string;
   } | null>(null);
 
   useEffect(() => {
-    browserApi<{ data: AccountActivityData }>("/account/activity")
-      .then(({ data }) => setActivity(data))
+    Promise.all([
+      browserApi<{ data: AccountActivityData }>("/account/activity"),
+      browserApi<{ data: TravelVideo[] }>("/travel-videos"),
+    ])
+      .then(([{ data: accountActivity }, { data: videos }]) => {
+        setActivity(accountActivity);
+        setVideoMetadataById(new Map(videos.map((video) => [video.id, video])));
+      })
       .catch(() =>
         setFeedback({
           tone: "error",
@@ -202,7 +204,7 @@ export function AccountActivity() {
                       <span>
                         {comment.parentId ? "پاسخ به دیدگاه" : "دیدگاه ویدیو"}
                       </span>
-                      <h3>{metadata?.video.title ?? comment.videoId}</h3>
+                      <h3>{metadata?.title ?? comment.videoId}</h3>
                     </div>
                     <ModerationStatus status={comment.status} />
                   </div>
@@ -216,7 +218,7 @@ export function AccountActivity() {
                   <div className="account-activity-actions">
                     {metadata ? (
                       <Link
-                        href={`/explore?query=${encodeURIComponent(metadata.video.title)}`}
+                        href={`/explore?query=${encodeURIComponent(metadata.title)}`}
                       >
                         مشاهده در ویدیوها
                       </Link>

@@ -6,6 +6,8 @@ import type {
   NotablePersonDetail,
   NotablePersonListItem,
   PaginatedResponse,
+  Destination,
+  TravelVideo,
 } from "./types";
 
 const API_BASE_URL = (
@@ -96,4 +98,25 @@ export function getNotablePerson(
   slug: string,
 ): Promise<ApiResult<ApiEnvelope<NotablePersonDetail>>> {
   return request(`/notable-people/${encodeURIComponent(slug)}`);
+}
+
+export function getDestinations(): Promise<
+  ApiResult<ApiEnvelope<Destination[]>>
+> {
+  return request("/destinations");
+}
+
+export function getDestination(
+  type: "cities" | "provinces",
+  slug: string,
+): Promise<ApiResult<ApiEnvelope<Destination>>> {
+  return request(
+    `/destinations/${type}/${encodeURIComponent(slug)}`,
+  );
+}
+
+export function getTravelVideos(): Promise<
+  ApiResult<ApiEnvelope<TravelVideo[]>>
+> {
+  return request("/travel-videos");
 }

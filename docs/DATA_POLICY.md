@@ -186,6 +186,12 @@ Destination relationships use destination type and slug. One video may belong
 to multiple destinations, and destination/person metadata must be resolved
 from their canonical records rather than copied into the video dataset.
 
+Destination and full video records are now canonical in PostgreSQL. New records
+created through `/admin/catalog` must keep the original public source URL,
+resolve an existing notable person by normalized Instagram handle, and connect
+only to existing destination/hotel IDs. The transition JSON files are import
+inputs or backups, not a second writable runtime source.
+
 ## Destination Hotel Matching
 
 Hotels displayed for a city destination are resolved from the published hotel
@@ -195,8 +201,8 @@ deduplicated union of hotels belonging to city records whose
 
 Hotel names, images, logos, star ratings, and relationship counts must remain
 in the canonical hotel record and must not be duplicated in destination data.
-Until destinations move into the main database pipeline, a province page can
-only include cities represented in the reviewed prototype destination dataset.
+Province pages can only include reviewed city records already represented in
+the canonical destination table.
 
 ---
 
@@ -286,6 +292,10 @@ Examples include:
 
 When updated information is found, the structured dataset and database should be updated rather than creating unnecessary duplicate records.
 
+Routine additions should be made through the admin catalog. JSON export is a
+recoverable snapshot/import artifact and must not be edited in parallel as a
+second source of truth.
+
 ---
 
 ## Duplicate Prevention
@@ -300,6 +310,10 @@ Useful identifiers include:
 - existing external identifiers.
 
 Duplicate associations between the same hotel and person should also be avoided.
+
+Destination duplicate checks use `(type, slug)` and type-scoped display order.
+Video duplicate checks use canonical ID and original `sourceUrl`; join-table
+primary keys prevent duplicate video–destination or video–hotel links.
 
 ---
 

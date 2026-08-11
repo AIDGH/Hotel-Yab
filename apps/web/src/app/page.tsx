@@ -5,14 +5,15 @@ import { PersonCard } from "@/components/person-card";
 import { SectionHeading } from "@/components/section-heading";
 import { getHotels, getNotablePeople } from "@/lib/api";
 import { DestinationCard } from "@/components/destination-card";
-import destinations from "@/data/destinations.json";
+import { getDestinationCatalog } from "@/lib/destination-catalog";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [hotelsResult, peopleResult] = await Promise.all([
+  const [hotelsResult, peopleResult, destinations] = await Promise.all([
     getHotels({ pageSize: 4 }),
     getNotablePeople({ pageSize: 4 }),
+    getDestinationCatalog(),
   ]);
 
   const provinceMap = new Map(

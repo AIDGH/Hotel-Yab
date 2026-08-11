@@ -207,10 +207,23 @@ decision and when. `moderationNote` is internal and is never returned publicly.
 
 ## Video
 
-`Video` is the canonical database identity used by interactive features. It
-does not duplicate person, destination, source, or media metadata from the
-current travel-video prototype. Video IDs are imported from the same dataset so
-comments cannot attach to an arbitrary unknown video.
+`Video` is the canonical database record used by discovery and interactive
+features. It stores the normalized Instagram username, original `sourceUrl`,
+display metadata, media paths, verification status, and publication status.
+`VideoComment` uses the same stable ID, so comments cannot attach to an
+arbitrary unknown video. Person profile fields are still resolved from
+`NotablePerson` and are not copied into the video.
+
+## Destination, VideoDestination, and VideoHotel
+
+`Destination` represents either a `CITY` or `PROVINCE`. `(type, slug)` is
+unique, and a city may point to a parent province through a self-relation.
+Display order is unique within each type, keeping city and province sequences
+independent.
+
+`VideoDestination` connects one video to any number of cities/provinces.
+`VideoHotel` optionally connects a video to hotels. Composite primary keys
+prevent duplicate links, and both relations cascade with their canonical rows.
 
 ## VideoComment
 
@@ -314,6 +327,10 @@ logoUrl (Hotel only)
 ```
 
 The database stores references to media rather than the binary image itself.
+
+Destination and travel-video media currently keep their existing `/images/...`
+and `/travel-videos/...` paths under the frontend `public` directory. Only
+`imageUrl`, `mediaUrl`, and `thumbnailUrl` are stored in PostgreSQL.
 
 Media storage strategy may change as the product evolves.
 
@@ -423,7 +440,10 @@ extension if every transition must be audited rather than only the latest one.
 
 ## Data Sync
 
-Future metadata may be required for the spreadsheet-to-database sync process, such as:
+The private core importer remains idempotent. `data:import-travel` separately
+upserts the transition destination/video JSON, while the admin catalog exports
+the full database in the extended import shape. Future bulk synchronization may
+still require metadata such as:
 
 - external IDs;
 - sync timestamps;

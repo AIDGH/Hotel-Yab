@@ -101,7 +101,8 @@ Website
 
 # 5. Data Sync Script
 
-- [ ] Build a destination-workbook converter that validates and writes `destinations.json`, `travel-videos.json`, and canonical video IDs
+- [x] Add an idempotent transition importer for destination/video JSON into PostgreSQL
+- [ ] Replace the transition importer with a workbook-to-PostgreSQL bulk command and dry-run report
 - [ ] Add dry-run checks for missing destination images, MP4 files, thumbnails, slugs, duplicate type-scoped display orders, and unresolved video links
 - [ ] Design spreadsheet-to-database sync process
 - [ ] Normalize hotel names
@@ -146,7 +147,7 @@ The account foundation is implemented without making login mandatory for public 
 
 # 7. Admin and Moderation
 
-The contribution-moderation slice is implemented; catalog administration remains open.
+The contribution-moderation slice and first create-only catalog slice are implemented.
 
 - [x] Define and enforce `USER`, `MODERATOR`, and `ADMIN` roles
 - [x] Create hotel-review and video-comment moderation queues
@@ -154,8 +155,10 @@ The contribution-moderation slice is implemented; catalog administration remains
 - [x] Add unresolved comment-report queue and administrator user blocking/reactivation
 - [x] Add administrator-only deletion of hotel reviews and video comments from public content
 - [x] Add a safe local command to bootstrap an admin/moderator role
-- [ ] Create hotel management interface
-- [ ] Create notable-person management interface
+- [x] Create administrator-only add forms for destinations, hotels, notable people, and travel videos
+- [x] Add multi-destination and optional hotel links while creating a video
+- [x] Add an import-compatible catalog JSON export
+- [ ] Add edit/archive interfaces for existing destination, hotel, person, and video records
 - [ ] Create association review interface
 - [ ] Add source verification workflow
 - [ ] Add publication controls

@@ -5,8 +5,8 @@ import { DestinationCard } from "@/components/destination-card";
 import { EmptyState } from "@/components/empty-state";
 import { HotelCard } from "@/components/hotel-card";
 import { PersonCard } from "@/components/person-card";
-import destinations from "@/data/destinations.json";
 import { getHotels, getNotablePeople } from "@/lib/api";
+import { getDestinationCatalog } from "@/lib/destination-catalog";
 
 export const metadata: Metadata = {
   title: "جست‌وجوی هتل‌یاب",
@@ -23,6 +23,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const query = params.query?.trim() ?? "";
   const normalizedQuery = query.toLocaleLowerCase("fa-IR");
+  const destinations = await getDestinationCatalog();
   const searchResults = query
     ? await Promise.all([
         getHotels({ query, pageSize: 6 }),

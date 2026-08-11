@@ -43,9 +43,47 @@
       ]
     }
   ],
+  "destinations": [
+    {
+      "type": "PROVINCE",
+      "slug": "replace-with-province",
+      "name": "Replace with province",
+      "imageUrl": "/images/provinces/replace-with-province.webp",
+      "displayOrder": 1,
+      "publicationStatus": "DRAFT"
+    },
+    {
+      "type": "CITY",
+      "slug": "replace-with-city",
+      "name": "Replace with city",
+      "parentProvinceSlug": "replace-with-province",
+      "imageUrl": "/images/cities/replace-with-city.webp",
+      "displayOrder": 1,
+      "publicationStatus": "DRAFT"
+    }
+  ],
   "videos": [
     {
-      "id": "replace-with-canonical-video-id"
+      "id": "replace.handle-001",
+      "instagramUsername": "replace.handle",
+      "platform": "INSTAGRAM",
+      "personCategory": "INFLUENCER",
+      "contentType": "POST",
+      "sourceUrl": "https://www.instagram.com/p/replace/",
+      "title": "Replace with video title",
+      "placeName": "Replace with place",
+      "placeType": "CULTURAL",
+      "publishedDate": "1405/01/01",
+      "captionSummary": "Replace with caption summary",
+      "evidenceType": "ORIGINAL_POST",
+      "verificationStatus": "PENDING",
+      "mediaUrl": "/travel-videos/replace.handle/001.mp4",
+      "thumbnailUrl": "/travel-videos/replace.handle/001-thumbnail.webp",
+      "publicationStatus": "DRAFT",
+      "destinationRefs": [
+        { "type": "CITY", "slug": "replace-with-city" }
+      ],
+      "hotelSlugs": ["replace-with-real-hotel"]
     }
   ]
 }

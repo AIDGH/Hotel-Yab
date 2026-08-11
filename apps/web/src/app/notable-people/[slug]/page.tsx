@@ -54,7 +54,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
   const hasVerifiedAssociations = person.associations.some(
     ({ verificationStatus }) => verificationStatus === "VERIFIED",
   );
-  const personTravelVideos = getTravelVideosForInstagramUsername(
+  const personTravelVideos = await getTravelVideosForInstagramUsername(
     person.instagramHandle,
   );
   return (

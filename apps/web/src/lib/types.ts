@@ -102,3 +102,42 @@ export type ApiEnvelope<T> = { data: T };
 
 export type ApiResult<T> =
   { ok: true; value: T } | { ok: false; status?: number; message: string };
+
+export type Destination = {
+  id: string;
+  type: "CITY" | "PROVINCE";
+  slug: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  parentProvinceId: string | null;
+  parentProvince: { slug: string; name: string } | null;
+  isFeatured: boolean;
+  displayOrder: number | null;
+  primarySourceUrl: string | null;
+  sourceType: string | null;
+  notes: string | null;
+  publicationStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+};
+
+export type TravelVideo = {
+  id: string;
+  instagramUsername: string;
+  platform: string;
+  personCategory: string | null;
+  contentType: string;
+  sourceUrl: string;
+  title: string;
+  placeName: string;
+  placeType: string;
+  publishedDate: string | null;
+  captionSummary: string | null;
+  evidenceType: string;
+  verificationStatus: string;
+  notes: string | null;
+  mediaUrl: string;
+  thumbnailUrl: string;
+  publicationStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  destinations: Destination[];
+  hotels: Array<{ id: string; slug: string; name: string }>;
+};

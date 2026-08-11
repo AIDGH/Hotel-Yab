@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
 import { DestinationCard } from "@/components/destination-card";
 import { EmptyState } from "@/components/empty-state";
-import destinations from "@/data/destinations.json";
+import { getDestinationCatalog } from "@/lib/destination-catalog";
 
 export const metadata: Metadata = {
   title: "کشف مقصدها",
@@ -22,6 +22,7 @@ export default async function DestinationsPage({
   searchParams,
 }: DestinationsPageProps) {
   const params = await searchParams;
+  const destinations = await getDestinationCatalog();
 
   const query = params.query?.trim() ?? "";
   const type = params.type ?? "cities";

@@ -128,4 +128,50 @@ describe('validateDataset', () => {
       'references unknown hotel "missing-hotel"',
     );
   });
+
+  it('accepts enriched videos with local media and canonical relations', () => {
+    const dataset = structuredClone(validDataset);
+    Object.assign(dataset.notablePeople[0], {
+      instagramHandle: 'example.person',
+    });
+    Object.assign(dataset, {
+      destinations: [
+        {
+          type: 'PROVINCE',
+          slug: 'example-province',
+          name: 'Example Province',
+          imageUrl: '/images/provinces/example-province.webp',
+        },
+        {
+          type: 'CITY',
+          slug: 'example-city',
+          name: 'Example City',
+          parentProvinceSlug: 'example-province',
+          imageUrl: '/images/cities/example-city.webp',
+        },
+      ],
+      videos: [
+        {
+          id: 'example.person-001',
+          instagramUsername: 'example.person',
+          sourceUrl: 'https://www.instagram.com/p/example/',
+          mediaUrl: '/travel-videos/example.person/001.mp4',
+          thumbnailUrl: '/travel-videos/example.person/001-thumbnail.webp',
+          destinationRefs: [{ type: 'CITY', slug: 'example-city' }],
+          hotelSlugs: ['example-hotel'],
+        },
+      ],
+    });
+
+    expect(validateDataset(dataset)).toMatchObject({
+      destinations: [{ type: 'PROVINCE' }, { type: 'CITY' }],
+      videos: [
+        {
+          id: 'example.person-001',
+          destinationRefs: [{ type: 'CITY', slug: 'example-city' }],
+          hotelSlugs: ['example-hotel'],
+        },
+      ],
+    });
+  });
 });

@@ -89,6 +89,7 @@ Main routes currently include:
 /account
 /account/activity
 /account/library
+/admin/catalog
 ```
 
 Frontend data access is handled through functions such as:
@@ -169,6 +170,7 @@ Core domain concepts currently include:
 - User, User Avatar, User Session, and OTP Challenge
 - Hotel Review
 - Video and Video Comment
+- Destination, VideoDestination, and VideoHotel
 - Moderation decisions linked back to a moderator account
 
 Conceptually:
@@ -215,7 +217,7 @@ Global search is currently federated in the Next.js server route:
 /search?query=...
       ├── getHotels(query) ─────────────> Hotel API / PostgreSQL
       ├── getNotablePeople(query) ──────> Person API / PostgreSQL
-      └── destinations.json ────────────> City/province prototype
+      └── getDestinations() ────────────> Destination API / PostgreSQL
 ```
 
 Results are grouped by canonical entity type. A failure in one API-backed
@@ -260,6 +262,15 @@ The frontend uses this information to render previous/next page navigation while
 
 ## Media
 
+Destination images and travel-video files remain under the existing frontend
+`public` paths for now. PostgreSQL stores only their stable `imageUrl`,
+`mediaUrl`, and `thumbnailUrl`; moving binaries to object storage is a separate
+deployment concern and does not require changing page composition.
+
+The transition JSON files remain available as idempotent import inputs, but
+public destination and travel-video pages now read the API rather than importing
+those JSON files directly.
+
 Hotel-Yab currently supports images for:
 
 - hotels;
@@ -276,40 +287,38 @@ Future content enrichment may include:
 - external source links;
 - additional media related to hotel-person associations.
 
-Travel discovery currently uses normalized frontend prototype data:
+Travel discovery now uses normalized API-backed data:
 
 ```text
 NotablePerson API (exact instagramHandle)
         ↑
 TravelVideo.instagramUsername
         ↓
-VideoDestinations
+VideoDestination (PostgreSQL)
         ↓
-destinations.json (city/province records)
+Destination (PostgreSQL)
 ```
 
-`travel-videos.json` stores video identity, normalized content metadata, media
-URLs, `sourceUrl`, and relationship keys. Person metadata comes from the
-existing notable-person API, while destination labels and links come from
-`destinations.json`. One video may resolve to multiple destinations. Destination
-images are derived from type plus slug instead of being repeated in the private
-workbook, and city/province display-order values are scoped independently.
+`Video` stores identity, normalized content metadata, media URLs, `sourceUrl`,
+and publication/verification state. Person metadata comes from the existing
+notable-person API, while destination labels and links come from `Destination`.
+One video may resolve to multiple destinations. City/province display-order
+values remain scoped independently.
 
 Destination detail pages also resolve hotels through the existing hotel API:
 
 ```text
 City destination.name ──exact city filter──> Hotel API
 
-Province destination.slug
+Province Destination.id
         ↓
-destinations.cities[parentProvinceSlug]
+Destination cities[parentProvinceId]
         ↓
 exact city filters ──deduplicate by hotel.id──> HotelCard
 ```
 
 Hotel records remain canonical in PostgreSQL/API and are not copied into
-`destinations.json`. The province result currently covers only cities present
-in the prototype destination dataset.
+destination records. A province result covers its canonical child cities.
 
 `/explore` reads the same normalized travel-video relationships and composes
 each result from the existing creator header, `TravelVideoCard`, and destination
@@ -421,11 +430,21 @@ The current protected moderation layer supports:
   and video comments/replies, exposed beside public content with an inline
   confirmation step.
 
+The administration layer is split by responsibility:
+
+- `/admin/moderation` is available to `ADMIN` and `MODERATOR` for user content;
+- `/admin/catalog` is restricted to `ADMIN` and creates canonical destination,
+  hotel, notable-person, and travel-video records directly in PostgreSQL;
+- the catalog video form creates many-to-many destination links and optional
+  hotel links while keeping the original source URL;
+- a read-only export endpoint produces a JSON snapshot compatible with the
+  extended import schema.
+
 The administration layer may later expand to:
 
 - reviewing records;
 - verifying associations;
-- managing publication status;
+- editing existing records and managing publication status;
 - reviewing submitted sources.
 
 The first admin role is bootstrapped with the local `user:set-role` command;

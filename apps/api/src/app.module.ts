@@ -13,6 +13,7 @@ import { VideoCommentsModule } from './video-comments/video-comments.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { AccountActivityModule } from './account-activity/account-activity.module';
 import { AccountLibraryModule } from './account-library/account-library.module';
+import { CatalogModule } from './catalog/catalog.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { AccountLibraryModule } from './account-library/account-library.module';
     ModerationModule,
     AccountActivityModule,
     AccountLibraryModule,
+    CatalogModule,
   ],
 })
 export class AppModule {}

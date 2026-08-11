@@ -1,6 +1,7 @@
 import Joi from 'joi';
 import {
   AssociationType,
+  DestinationType,
   NotablePersonCategory,
   PublicationStatus,
   SourceType,
@@ -71,6 +72,39 @@ export type AssociationImportRecord = {
 
 export type VideoImportRecord = {
   id: string;
+  instagramUsername?: string | null;
+  platform?: string | null;
+  personCategory?: string | null;
+  contentType?: string | null;
+  sourceUrl?: string | null;
+  title?: string | null;
+  placeName?: string | null;
+  placeType?: string | null;
+  publishedDate?: string | null;
+  captionSummary?: string | null;
+  evidenceType?: string | null;
+  verificationStatus?: VerificationStatus;
+  notes?: string | null;
+  mediaUrl?: string | null;
+  thumbnailUrl?: string | null;
+  publicationStatus?: PublicationStatus;
+  destinationRefs?: Array<{ type: DestinationType; slug: string }>;
+  hotelSlugs?: string[];
+};
+
+export type DestinationImportRecord = {
+  type: DestinationType;
+  slug: string;
+  name: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  parentProvinceSlug?: string | null;
+  isFeatured?: boolean;
+  displayOrder?: number | null;
+  primarySourceUrl?: string | null;
+  sourceType?: string | null;
+  notes?: string | null;
+  publicationStatus?: PublicationStatus;
 };
 
 export type ImportDataset = {
@@ -78,6 +112,7 @@ export type ImportDataset = {
   notablePeople: NotablePersonImportRecord[];
   sources: SourceImportRecord[];
   associations: AssociationImportRecord[];
+  destinations: DestinationImportRecord[];
   videos: VideoImportRecord[];
 };
 
@@ -86,6 +121,9 @@ const optionalUrl = Joi.string()
   .uri({ scheme: ['http', 'https'] })
   .allow(null);
 const optionalIsoDate = Joi.string().isoDate().allow(null);
+const optionalMediaPath = Joi.string()
+  .pattern(/^(?:\/|https?:\/\/)/)
+  .allow(null);
 
 const datasetSchema = Joi.object<ImportDataset>({
   hotels: Joi.array()
@@ -201,10 +239,74 @@ const datasetSchema = Joi.object<ImportDataset>({
     )
     .unique('referenceKey')
     .required(),
+  destinations: Joi.array()
+    .items(
+      Joi.object<DestinationImportRecord>({
+        type: Joi.string()
+          .valid(...Object.values(DestinationType))
+          .required(),
+        slug: Joi.string().pattern(slugPattern).max(160).required(),
+        name: Joi.string().trim().min(1).max(200).required(),
+        description: optionalText,
+        imageUrl: optionalMediaPath,
+        parentProvinceSlug: Joi.string()
+          .pattern(slugPattern)
+          .max(160)
+          .allow(null),
+        isFeatured: Joi.boolean().default(false),
+        displayOrder: Joi.number().integer().min(1).allow(null),
+        primarySourceUrl: optionalUrl,
+        sourceType: Joi.string().trim().max(60).allow(null),
+        notes: optionalText,
+        publicationStatus: Joi.string().valid(
+          ...Object.values(PublicationStatus),
+        ),
+      }).unknown(false),
+    )
+    .unique(
+      (a: DestinationImportRecord, b: DestinationImportRecord) =>
+        a.type === b.type && a.slug === b.slug,
+    )
+    .default([]),
   videos: Joi.array()
     .items(
       Joi.object<VideoImportRecord>({
         id: Joi.string().trim().min(1).max(160).required(),
+        instagramUsername: Joi.string()
+          .trim()
+          .pattern(/^[A-Za-z0-9._]+$/)
+          .max(30)
+          .allow(null),
+        platform: Joi.string().trim().max(30).allow(null),
+        personCategory: Joi.string().trim().max(40).allow(null),
+        contentType: Joi.string().trim().max(40).allow(null),
+        sourceUrl: optionalUrl,
+        title: Joi.string().trim().max(240).allow(null),
+        placeName: Joi.string().trim().max(200).allow(null),
+        placeType: Joi.string().trim().max(40).allow(null),
+        publishedDate: Joi.string().trim().max(20).allow(null),
+        captionSummary: optionalText,
+        evidenceType: Joi.string().trim().max(40).allow(null),
+        verificationStatus: Joi.string().valid(
+          ...Object.values(VerificationStatus),
+        ),
+        notes: optionalText,
+        mediaUrl: optionalMediaPath,
+        thumbnailUrl: optionalMediaPath,
+        publicationStatus: Joi.string().valid(
+          ...Object.values(PublicationStatus),
+        ),
+        destinationRefs: Joi.array().items(
+          Joi.object({
+            type: Joi.string()
+              .valid(...Object.values(DestinationType))
+              .required(),
+            slug: Joi.string().pattern(slugPattern).max(160).required(),
+          }).unknown(false),
+        ),
+        hotelSlugs: Joi.array().items(
+          Joi.string().pattern(slugPattern).max(160),
+        ),
       }).unknown(false),
     )
     .unique('id')
@@ -228,7 +330,57 @@ export function validateDataset(input: unknown): ImportDataset {
 function validateReferences(dataset: ImportDataset): void {
   const hotelSlugs = new Set(dataset.hotels.map(({ slug }) => slug));
   const personSlugs = new Set(dataset.notablePeople.map(({ slug }) => slug));
+  const personInstagramHandles = new Set(
+    dataset.notablePeople
+      .map(({ instagramHandle }) => instagramHandle?.toLowerCase())
+      .filter((value): value is string => Boolean(value)),
+  );
   const sourceUrls = new Set(dataset.sources.map(({ url }) => url));
+  const destinationKeys = new Set(
+    dataset.destinations.map(({ type, slug }) => `${type}:${slug}`),
+  );
+  const provinceSlugs = new Set(
+    dataset.destinations
+      .filter(({ type }) => type === DestinationType.PROVINCE)
+      .map(({ slug }) => slug),
+  );
+
+  for (const destination of dataset.destinations) {
+    if (
+      destination.type === DestinationType.CITY &&
+      destination.parentProvinceSlug &&
+      !provinceSlugs.has(destination.parentProvinceSlug)
+    ) {
+      throw new Error(
+        `City "${destination.slug}" references unknown province "${destination.parentProvinceSlug}"`,
+      );
+    }
+  }
+
+  for (const video of dataset.videos) {
+    if (
+      video.instagramUsername &&
+      !personInstagramHandles.has(video.instagramUsername.toLowerCase())
+    ) {
+      throw new Error(
+        `Video "${video.id}" references unknown Instagram username "${video.instagramUsername}"`,
+      );
+    }
+    for (const destination of video.destinationRefs ?? []) {
+      if (!destinationKeys.has(`${destination.type}:${destination.slug}`)) {
+        throw new Error(
+          `Video "${video.id}" references unknown destination "${destination.type}:${destination.slug}"`,
+        );
+      }
+    }
+    for (const hotelSlug of video.hotelSlugs ?? []) {
+      if (!hotelSlugs.has(hotelSlug)) {
+        throw new Error(
+          `Video "${video.id}" references unknown hotel "${hotelSlug}"`,
+        );
+      }
+    }
+  }
 
   for (const association of dataset.associations) {
     if (!hotelSlugs.has(association.hotelSlug)) {

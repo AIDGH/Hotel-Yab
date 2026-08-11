@@ -165,7 +165,13 @@ export function AccountShell({
           {user.role === "ADMIN" || user.role === "MODERATOR" ? (
             <Link href="/admin/moderation">
               <span aria-hidden="true">◇</span>
-              پنل مدیریت
+              بررسی محتوا
+            </Link>
+          ) : null}
+          {user.role === "ADMIN" ? (
+            <Link href="/admin/catalog">
+              <span aria-hidden="true">＋</span>
+              مدیریت داده‌ها
             </Link>
           ) : null}
           {user.notablePerson ? (

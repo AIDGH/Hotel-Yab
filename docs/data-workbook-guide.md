@@ -71,8 +71,9 @@ the workbook must be converted and validated before running
 
 ## Destination and Travel Video Workbook
 
-The private `../Data/HotelYab_Destinations_Data.xlsx` workbook is the working
-source for the frontend destination/video prototype. It has three sheets:
+The private `../Data/HotelYab_Destinations_Data.xlsx` workbook remains a bulk
+research source. Runtime destination/video data now lives in PostgreSQL. It has
+three sheets:
 
 - `Destinations`: one city or province per row;
 - `TravelVideos`: one Instagram travel video per row;
@@ -91,22 +92,18 @@ CITY     → /images/cities/<slug>.webp
 1 are both valid. `parent_province_slug` must contain the province slug, such as
 `hormozgan`, not the Persian label `هرمزگان`.
 
-Until an automatic converter exists, a new record requires these updates:
+For routine additions, use `/admin/catalog`:
 
-1. Add or update the destination in the matching `cities` or `provinces` array
-   of `apps/web/src/data/destinations.json`.
-2. Add the video metadata and derived local `mediaUrl`/`thumbnailUrl` to the
-   `videos` array of `apps/web/src/data/travel-videos.json`.
-3. Add one row per related destination to that file's `videoDestinations`
-   array. Do not copy destination metadata into the relationship.
-4. Add only the `videoId` to `apps/api/prisma/data/import.json` and run
-   `pnpm --filter @hotel-yab/api data:import` so comments recognize the video.
-5. Store media as
+1. Store media as
    `apps/web/public/travel-videos/<instagram-username>/<sequence>.mp4` and
    `<sequence>-thumbnail.webp`.
+2. Add any missing destination or notable person first.
+3. Create the video, select all related destinations and optional hotels, and
+   retain the original Instagram `sourceUrl`.
+4. Use «دریافت خروجی JSON» when a complete import-compatible snapshot is
+   needed; do not edit JSON and PostgreSQL independently.
 
-The preferred next workflow is not direct manual JSON editing. Keep a
-pre-populated destination master list in the workbook, reduce the video sheet
-to genuinely variable fields, use dropdowns for destination slugs, and run one
-converter command that validates and generates both frontend JSON files plus
-the canonical backend video-ID list.
+The tracked transition JSON can still be imported idempotently with
+`pnpm --filter @hotel-yab/api data:import-travel`. This is for migration or
+recovery, not the routine add workflow. Future large batches should use a
+dry-run converter/import report rather than returning to manual JSON editing.

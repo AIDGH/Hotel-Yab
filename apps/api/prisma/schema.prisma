@@ -77,6 +77,11 @@ enum CommentReportReason {
   OTHER
 }
 
+enum DestinationType {
+  CITY
+  PROVINCE
+}
+
 model Hotel {
   id                String             @id @default(uuid()) @db.Uuid
   slug              String             @unique @db.VarChar(160)
@@ -96,6 +101,7 @@ model Hotel {
   reviews           HotelReview[]
   likes             UserHotelLike[]
   savedBy           UserSavedHotel[]
+  videos            VideoHotel[]
   createdAt         DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime           @updatedAt @db.Timestamptz(3)
 
@@ -315,10 +321,79 @@ model HotelReview {
 }
 
 model Video {
-  id        String         @id @db.VarChar(160)
-  comments  VideoComment[]
-  createdAt DateTime       @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime       @updatedAt @db.Timestamptz(3)
+  id                 String             @id @db.VarChar(160)
+  instagramUsername  String?            @db.VarChar(30)
+  platform           String?            @db.VarChar(30)
+  personCategory     String?            @db.VarChar(40)
+  contentType        String?            @db.VarChar(40)
+  sourceUrl          String?            @unique @db.Text
+  title              String?            @db.VarChar(240)
+  placeName          String?            @db.VarChar(200)
+  placeType          String?            @db.VarChar(40)
+  publishedDate      String?            @db.VarChar(20)
+  captionSummary     String?            @db.Text
+  evidenceType       String?            @db.VarChar(40)
+  verificationStatus VerificationStatus @default(PENDING)
+  notes              String?            @db.Text
+  mediaUrl           String?            @db.Text
+  thumbnailUrl       String?            @db.Text
+  publicationStatus  PublicationStatus  @default(DRAFT)
+  comments           VideoComment[]
+  destinations       VideoDestination[]
+  hotels             VideoHotel[]
+  createdAt          DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime           @updatedAt @db.Timestamptz(3)
+
+  @@index([instagramUsername])
+  @@index([publicationStatus])
+}
+
+model Destination {
+  id                String             @id @default(uuid()) @db.Uuid
+  type              DestinationType
+  slug              String             @db.VarChar(160)
+  name              String             @db.VarChar(200)
+  description       String?            @db.Text
+  imageUrl          String?            @db.Text
+  parentProvinceId  String?            @db.Uuid
+  parentProvince    Destination?       @relation("ProvinceCities", fields: [parentProvinceId], references: [id], onDelete: SetNull)
+  cities            Destination[]      @relation("ProvinceCities")
+  isFeatured        Boolean            @default(false)
+  displayOrder      Int?
+  primarySourceUrl  String?            @db.Text
+  sourceType        String?            @db.VarChar(60)
+  notes             String?            @db.Text
+  publicationStatus PublicationStatus  @default(DRAFT)
+  videos            VideoDestination[]
+  createdAt         DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime           @updatedAt @db.Timestamptz(3)
+
+  @@unique([type, slug])
+  @@unique([type, displayOrder])
+  @@index([parentProvinceId])
+  @@index([publicationStatus, type, displayOrder])
+}
+
+model VideoDestination {
+  videoId       String      @db.VarChar(160)
+  destinationId String      @db.Uuid
+  video         Video       @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@id([videoId, destinationId])
+  @@index([destinationId])
+}
+
+model VideoHotel {
+  videoId   String   @db.VarChar(160)
+  hotelId   String   @db.Uuid
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@id([videoId, hotelId])
+  @@index([hotelId])
 }
 
 model VideoComment {

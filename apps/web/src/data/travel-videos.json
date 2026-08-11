@@ -118,6 +118,11 @@
       "destinationSlug": "isfahan"
     },
     {
+      "videoId": "morteza.kowsari-003",
+      "destinationType": "CITY",
+      "destinationSlug": "abuzeydabad"
+    },
+    {
       "videoId": "morteza.kowsari-004",
       "destinationType": "CITY",
       "destinationSlug": "qeshm"

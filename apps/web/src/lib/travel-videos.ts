@@ -1,7 +1,9 @@
-import destinations from "@/data/destinations.json";
-import travelVideoData from "@/data/travel-videos.json";
+import { getTravelVideos } from "@/lib/api";
+import type { Destination, TravelVideo as ApiTravelVideo } from "@/lib/types";
 
-export type TravelVideo = (typeof travelVideoData.videos)[number];
+export type TravelVideo = Omit<ApiTravelVideo, "id" | "destinations" | "hotels"> & {
+  videoId: string;
+};
 
 export type ResolvedTravelDestination = {
   destinationType: "CITY" | "PROVINCE";
@@ -20,93 +22,53 @@ function normalizeInstagramUsername(value: string): string {
   return value.trim().replace(/^@/, "").toLocaleLowerCase("en-US");
 }
 
-function resolveDestination(
-  link: (typeof travelVideoData.videoDestinations)[number],
-): ResolvedTravelDestination | null {
-  if (link.destinationType === "CITY") {
-    const destination = destinations.cities.find(
-      (item) => item.slug === link.destinationSlug,
-    );
-
-    return destination
-      ? {
-          destinationType: "CITY",
-          routeType: "cities",
-          slug: destination.slug,
-          name: destination.name,
-          href: `/destinations/cities/${destination.slug}`,
-        }
-      : null;
-  }
-
-  if (link.destinationType === "PROVINCE") {
-    const destination = destinations.provinces.find(
-      (item) => item.slug === link.destinationSlug,
-    );
-
-    return destination
-      ? {
-          destinationType: "PROVINCE",
-          routeType: "provinces",
-          slug: destination.slug,
-          name: destination.name,
-          href: `/destinations/provinces/${destination.slug}`,
-        }
-      : null;
-  }
-
-  return null;
+function resolveDestination(destination: Destination): ResolvedTravelDestination {
+  const routeType = destination.type === "CITY" ? "cities" : "provinces";
+  return {
+    destinationType: destination.type,
+    routeType,
+    slug: destination.slug,
+    name: destination.name,
+    href: `/destinations/${routeType}/${destination.slug}`,
+  };
 }
 
-function resolveVideoDestinations(
-  videoId: string,
-): ResolvedTravelDestination[] {
-  return travelVideoData.videoDestinations
-    .filter((item) => item.videoId === videoId)
-    .map(resolveDestination)
-    .filter(
-      (destination): destination is ResolvedTravelDestination =>
-        destination !== null,
-    );
+export async function getAllTravelVideos(): Promise<PersonTravelVideo[]> {
+  const result = await getTravelVideos();
+  if (!result.ok) return [];
+
+  return result.value.data.map(({ id, destinations, hotels, ...video }) => {
+    void hotels;
+    return {
+      video: { ...video, videoId: id },
+      destinations: destinations.map(resolveDestination),
+    };
+  });
 }
 
-export function getAllTravelVideos(): PersonTravelVideo[] {
-  return travelVideoData.videos.map((video) => ({
-    video,
-    destinations: resolveVideoDestinations(video.videoId),
-  }));
-}
-
-export function getTravelVideosForDestination(
+export async function getTravelVideosForDestination(
   destinationType: "CITY" | "PROVINCE",
   destinationSlug: string,
-): TravelVideo[] {
-  const matchingVideoIds = new Set(
-    travelVideoData.videoDestinations
-      .filter(
-        (item) =>
-          item.destinationType === destinationType &&
-          item.destinationSlug === destinationSlug,
-      )
-      .map((item) => item.videoId),
-  );
-
-  return travelVideoData.videos.filter((video) =>
-    matchingVideoIds.has(video.videoId),
-  );
+): Promise<TravelVideo[]> {
+  const videos = await getAllTravelVideos();
+  return videos
+    .filter(({ destinations }) =>
+      destinations.some(
+        (destination) =>
+          destination.destinationType === destinationType &&
+          destination.slug === destinationSlug,
+      ),
+    )
+    .map(({ video }) => video);
 }
 
-export function getTravelVideosForInstagramUsername(
+export async function getTravelVideosForInstagramUsername(
   instagramUsername: string | null,
-): PersonTravelVideo[] {
+): Promise<PersonTravelVideo[]> {
   if (!instagramUsername) return [];
-
   const normalizedUsername = normalizeInstagramUsername(instagramUsername);
-
-  return getAllTravelVideos()
-    .filter(
-      ({ video }) =>
-        normalizeInstagramUsername(video.instagramUsername) ===
-        normalizedUsername,
-    );
+  return (await getAllTravelVideos()).filter(
+    ({ video }) =>
+      normalizeInstagramUsername(video.instagramUsername) === normalizedUsername,
+  );
 }
