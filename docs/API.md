@@ -623,6 +623,10 @@ These endpoints return:
 - verified relationship information.
 - `ratingSummary` containing the user-review average and count of published
   reviews. It is independent from `starRating`.
+- `videos`, containing only published videos linked through `VideoHotel`.
+  The frontend matches each video's normalized `instagramUsername` to the
+  association person's `instagramHandle` before rendering it in that person's
+  hotel-association card.
 
 ### Notable Person Detail
 

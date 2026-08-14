@@ -76,6 +76,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Added the administrator-only `/admin/catalog` interface for creating destinations, hotels, notable people, and multi-linked travel videos using existing `public` media paths.
 - Added a complete catalog JSON export plus extended idempotent import validation for destinations, enriched videos, and their destination/hotel references.
 - Added `data:import-travel` to migrate the existing destination/video transition JSON without moving media files.
+- Added published `VideoHotel` media to hotel-detail API responses and render each video inside the matching creator's hotel-association card.
 
 ### Changed
 

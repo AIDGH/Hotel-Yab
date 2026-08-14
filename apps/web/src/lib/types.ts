@@ -73,6 +73,7 @@ export type HotelDetail = Omit<
     averageRating: number | null;
     reviewCount: number;
   };
+  videos: Array<Omit<TravelVideo, "destinations" | "hotels">>;
   associations: Array<
     PublicAssociation & {
       notablePerson: Omit<

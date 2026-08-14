@@ -159,6 +159,24 @@ describe('Hotel-Yab API (e2e)', () => {
         publicationStatus: PublicationStatus.PUBLISHED,
       },
     });
+    await prisma.video.update({
+      where: { id: fixtureVideoId },
+      data: {
+        instagramUsername: visiblePerson.instagramHandle,
+        platform: 'INSTAGRAM',
+        contentType: 'POST',
+        sourceUrl: `${fixtureSourceUrlPrefix}travel-video`,
+        title: 'E2E hotel travel video',
+        placeName: 'Test Hotel',
+        placeType: 'HOTEL',
+        evidenceType: 'ORIGINAL_POST',
+        verificationStatus: VerificationStatus.VERIFIED,
+        mediaUrl: '/travel-videos/e2e/001.mp4',
+        thumbnailUrl: '/travel-videos/e2e/001-thumbnail.webp',
+        publicationStatus: PublicationStatus.PUBLISHED,
+        hotels: { create: { hotelId: visibleHotel.id } },
+      },
+    });
     const visibleSource = await prisma.source.create({
       data: {
         url: `${fixtureSourceUrlPrefix}verified-source`,
@@ -418,6 +436,27 @@ describe('Hotel-Yab API (e2e)', () => {
             averageRating: null,
             reviewCount: 0,
           },
+          videos: [
+            {
+              id: fixtureVideoId,
+              instagramUsername: 'e2e_visible_athlete',
+              platform: 'INSTAGRAM',
+              personCategory: null,
+              contentType: 'POST',
+              sourceUrl: `${fixtureSourceUrlPrefix}travel-video`,
+              title: 'E2E hotel travel video',
+              placeName: 'Test Hotel',
+              placeType: 'HOTEL',
+              publishedDate: null,
+              captionSummary: null,
+              evidenceType: 'ORIGINAL_POST',
+              verificationStatus: 'VERIFIED',
+              notes: null,
+              mediaUrl: '/travel-videos/e2e/001.mp4',
+              thumbnailUrl: '/travel-videos/e2e/001-thumbnail.webp',
+              publicationStatus: 'PUBLISHED',
+            },
+          ],
           associations: [
             {
               id: visibleAssociationId,
@@ -582,6 +621,7 @@ describe('Hotel-Yab API (e2e)', () => {
             averageRating: null,
             reviewCount: 0,
           },
+          videos: [],
           associations: [
             {
               id: hiddenPendingAssociationId,

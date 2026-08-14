@@ -10,6 +10,7 @@ import { MediaTile } from "@/components/media-tile";
 import { PersonDisplayName } from "@/components/person-display-name";
 import { PersonInstagramHandle } from "@/components/person-instagram-handle";
 import { SourceList } from "@/components/source-list";
+import { TravelVideoCard } from "@/components/travel-video-card";
 import { getHotel } from "@/lib/api";
 import {
   associationLabel,
@@ -150,54 +151,85 @@ export default async function HotelPage({ params }: HotelPageProps) {
             <h2>چه کسانی با این هتل ارتباط داشته‌اند؟</h2>
             {hasAssociations ? (
               <div className="association-list">
-                {hotel.associations.map((association) => (
-                  <article className="association-card" key={association.id}>
-                    <div className="association-person">
-                      <MediaTile
-                        imageUrl={association.notablePerson.imageUrl}
-                        label={association.notablePerson.displayName}
-                        variant="person"
-                      />
-                      <div>
-                        <span>{associationLabel(association.type)}</span>
-                        <h3>
-                          <Link
-                            href={`/notable-people/${association.notablePerson.slug}`}
-                          >
-                            <PersonDisplayName
-                              name={association.notablePerson.displayName}
+                {hotel.associations.map((association) => {
+                  const personInstagramHandle = normalizeInstagramHandle(
+                    association.notablePerson.instagramHandle,
+                  );
+                  const associationVideos = personInstagramHandle
+                    ? hotel.videos.filter(
+                        (video) =>
+                          normalizeInstagramHandle(video.instagramUsername) ===
+                          personInstagramHandle,
+                      )
+                    : [];
+
+                  return (
+                    <article className="association-card" key={association.id}>
+                      <div className="association-person">
+                        <MediaTile
+                          imageUrl={association.notablePerson.imageUrl}
+                          label={association.notablePerson.displayName}
+                          variant="person"
+                        />
+                        <div>
+                          <span>{associationLabel(association.type)}</span>
+                          <h3>
+                            <Link
+                              href={`/notable-people/${association.notablePerson.slug}`}
+                            >
+                              <PersonDisplayName
+                                name={association.notablePerson.displayName}
+                              />
+                            </Link>
+                          </h3>
+                          {association.notablePerson.instagramHandle ? (
+                            <PersonInstagramHandle
+                              handle={association.notablePerson.instagramHandle}
                             />
-                          </Link>
-                        </h3>
-                        {association.notablePerson.instagramHandle ? (
-                          <PersonInstagramHandle
-                            handle={association.notablePerson.instagramHandle}
-                          />
-                        ) : null}
-                        <p>{association.summary}</p>
+                          ) : null}
+                          <p>{association.summary}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="verification-row">
-                      <span
-                        className={
-                          association.verificationStatus === "VERIFIED"
-                            ? ""
-                            : "verification-pending"
-                        }
-                      >
-                        {association.verificationStatus === "VERIFIED"
-                          ? "✓ تأییدشده"
-                          : "◇ در حال تکمیل"}
-                      </span>
-                      <small>
-                        {association.verifiedAt
-                          ? `بررسی در ${formatDate(association.verifiedAt)}`
-                          : "هنوز تأیید نهایی نشده"}
-                      </small>
-                    </div>
-                    <SourceList sources={association.sources} />
-                  </article>
-                ))}
+                      <div className="verification-row">
+                        <span
+                          className={
+                            association.verificationStatus === "VERIFIED"
+                              ? ""
+                              : "verification-pending"
+                          }
+                        >
+                          {association.verificationStatus === "VERIFIED"
+                            ? "✓ تأییدشده"
+                            : "◇ در حال تکمیل"}
+                        </span>
+                        <small>
+                          {association.verifiedAt
+                            ? `بررسی در ${formatDate(association.verifiedAt)}`
+                            : "هنوز تأیید نهایی نشده"}
+                        </small>
+                      </div>
+                      {associationVideos.length > 0 ? (
+                        <div className="association-video-list">
+                          {associationVideos.map((video) => (
+                            <TravelVideoCard
+                              key={video.id}
+                              videoId={video.id}
+                              title={video.title}
+                              mediaUrl={video.mediaUrl}
+                              thumbnailUrl={video.thumbnailUrl}
+                              sourceUrl={video.sourceUrl}
+                              instagramUsername={video.instagramUsername}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                      {association.sources.length > 0 ||
+                      associationVideos.length === 0 ? (
+                        <SourceList sources={association.sources} />
+                      ) : null}
+                    </article>
+                  );
+                })}
               </div>
             ) : (
               <EmptyState
@@ -231,4 +263,11 @@ export default async function HotelPage({ params }: HotelPageProps) {
       </div>
     </main>
   );
+}
+
+function normalizeInstagramHandle(value: string | null): string {
+  return (value ?? "")
+    .trim()
+    .replace(/^@/, "")
+    .toLocaleLowerCase("en-US");
 }

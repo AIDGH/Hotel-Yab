@@ -5,10 +5,13 @@ import {
   type FormEvent,
   type MouseEvent,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
 import { VideoComments } from "./video-comments";
+
+const TRAVEL_VIDEO_PLAY_EVENT = "hotel-yab:travel-video-play";
 
 type TravelVideoCardProps = {
   videoId: string;
@@ -38,6 +41,7 @@ export function TravelVideoCard({
   instagramUsername,
 }: TravelVideoCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const playbackId = useId();
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -117,13 +121,34 @@ export function TravelVideoCard({
   }
 
   useEffect(() => {
-    const video = videoRef.current;
+    function handleOtherVideoPlay(event: Event) {
+      const customEvent = event as CustomEvent<{
+        playbackId: string;
+      }>;
 
-    if (!video) return;
+      if (customEvent.detail.playbackId === playbackId) {
+        return;
+      }
 
-    setDuration(Number.isFinite(video.duration) ? video.duration : 0);
-    setCurrentTime(video.currentTime);
-  }, []);
+      const video = videoRef.current;
+
+      if (video && !video.paused) {
+        video.pause();
+      }
+    }
+
+    window.addEventListener(
+      TRAVEL_VIDEO_PLAY_EVENT,
+      handleOtherVideoPlay,
+    );
+
+    return () => {
+      window.removeEventListener(
+        TRAVEL_VIDEO_PLAY_EVENT,
+        handleOtherVideoPlay,
+      );
+    };
+  }, [playbackId]);
 
   return (
     <article className="travel-video-card">
@@ -137,7 +162,15 @@ export function TravelVideoCard({
           playsInline
           preload="metadata"
           poster={thumbnailUrl}
-          onPlay={() => setIsPlaying(true)}
+          onPlay={() => {
+            setIsPlaying(true);
+
+            window.dispatchEvent(
+              new CustomEvent(TRAVEL_VIDEO_PLAY_EVENT, {
+                detail: { playbackId },
+              }),
+            );
+          }}
           onPause={() => setIsPlaying(false)}
           onEnded={() => setIsPlaying(false)}
           onLoadedMetadata={syncVideoDuration}

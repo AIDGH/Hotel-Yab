@@ -179,6 +179,35 @@ export class HotelsService {
             },
           },
         },
+        videos: {
+          where: {
+            video: { publicationStatus: PublicationStatus.PUBLISHED },
+          },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            video: {
+              select: {
+                id: true,
+                instagramUsername: true,
+                platform: true,
+                personCategory: true,
+                contentType: true,
+                sourceUrl: true,
+                title: true,
+                placeName: true,
+                placeType: true,
+                publishedDate: true,
+                captionSummary: true,
+                evidenceType: true,
+                verificationStatus: true,
+                notes: true,
+                mediaUrl: true,
+                thumbnailUrl: true,
+                publicationStatus: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -216,6 +245,7 @@ export class HotelsService {
             })),
           }),
         ),
+        videos: hotel.videos.map(({ video }) => video),
       },
     };
   }

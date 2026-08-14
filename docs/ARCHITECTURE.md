@@ -462,6 +462,8 @@ Responsible for:
 - rendering;
 - navigation;
 - frontend API calls;
+- composing published hotel-linked videos into the matching notable-person
+  association card by normalized Instagram handle;
 - collapsed comment loading, report forms, and moderation/admin controls.
 
 Must not contain:

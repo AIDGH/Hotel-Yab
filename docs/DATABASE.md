@@ -224,6 +224,10 @@ independent.
 `VideoDestination` connects one video to any number of cities/provinces.
 `VideoHotel` optionally connects a video to hotels. Composite primary keys
 prevent duplicate links, and both relations cascade with their canonical rows.
+Public hotel detail reads published videos through `VideoHotel`; the relation
+does not duplicate or replace `HotelAssociation`. Presentation under a specific
+person uses the canonical `Video.instagramUsername` and
+`NotablePerson.instagramHandle` match.
 
 ## VideoComment
 
