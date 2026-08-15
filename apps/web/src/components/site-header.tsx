@@ -16,9 +16,7 @@ const navigation = [
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { user, loading, openAuth, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
 
   return (
     <header className="site-header">
@@ -46,94 +44,7 @@ export function SiteHeader() {
           </Link>
         </nav>
 
-        <div className="header-account">
-          {loading ? (
-            <span className="account-loading" aria-label="در حال بررسی حساب" />
-          ) : user ? (
-            <div className="account-menu-wrap">
-              <button
-                className="account-trigger"
-                type="button"
-                aria-expanded={accountOpen}
-                onClick={() => setAccountOpen((value) => !value)}
-              >
-                <span className="account-avatar">
-                  {user.avatarUrl ? (
-                    <Image
-                      src={user.avatarUrl}
-                      alt=""
-                      width={32}
-                      height={32}
-                      unoptimized
-                    />
-                  ) : (
-                    (user.firstName ?? user.username ?? "ک").slice(0, 1)
-                  )}
-                </span>
-                <span>{user.displayName ?? "حساب من"}</span>
-                <small>⌄</small>
-              </button>
-              {accountOpen ? (
-                <div className="account-dropdown">
-                  <Link href="/account" onClick={() => setAccountOpen(false)}>
-                    حساب من
-                  </Link>
-                  <Link
-                    href="/account/activity"
-                    onClick={() => setAccountOpen(false)}
-                  >
-                    فعالیت‌های من
-                  </Link>
-                  <Link
-                    href="/account/library"
-                    onClick={() => setAccountOpen(false)}
-                  >
-                    پسندیده‌ها و ذخیره‌ها
-                  </Link>
-                  {user.role === "ADMIN" || user.role === "MODERATOR" ? (
-                    <Link
-                      href="/admin/moderation"
-                      onClick={() => setAccountOpen(false)}
-                    >
-                      بررسی محتوا
-                    </Link>
-                  ) : null}
-                  {user.role === "ADMIN" ? (
-                    <Link
-                      href="/admin/catalog"
-                      onClick={() => setAccountOpen(false)}
-                    >
-                      مدیریت داده‌ها
-                    </Link>
-                  ) : null}
-                  {user.notablePerson ? (
-                    <Link href={`/notable-people/${user.notablePerson.slug}`}>
-                      پروفایل چهرهٔ من
-                    </Link>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAccountOpen(false);
-                      void logout();
-                    }}
-                  >
-                    خروج
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <button
-              className="button button-small account-login-button"
-              type="button"
-              onClick={openAuth}
-            >
-              <span aria-hidden="true">♙</span>
-              ورود یا عضویت
-            </button>
-          )}
-        </div>
+        <HeaderAccount key={pathname} />
 
         <button
           className="mobile-menu-button"
@@ -148,5 +59,104 @@ export function SiteHeader() {
         </button>
       </div>
     </header>
+  );
+}
+
+function HeaderAccount() {
+  const { user, loading, openAuth, logout } = useAuth();
+  const [accountOpen, setAccountOpen] = useState(false);
+
+  return (
+    <div className="header-account">
+      {loading ? (
+        <span className="account-loading" aria-label="در حال بررسی حساب" />
+      ) : user ? (
+        <div className="account-menu-wrap">
+          <button
+            className="account-trigger"
+            type="button"
+            aria-expanded={accountOpen}
+            onClick={() => setAccountOpen((value) => !value)}
+          >
+            <span className="account-avatar">
+              {user.avatarUrl ? (
+                <Image
+                  src={user.avatarUrl}
+                  alt=""
+                  width={32}
+                  height={32}
+                  unoptimized
+                />
+              ) : (
+                (user.firstName ?? user.username ?? "ک").slice(0, 1)
+              )}
+            </span>
+            <span>{user.displayName ?? "حساب من"}</span>
+            <small>⌄</small>
+          </button>
+          {accountOpen ? (
+            <div className="account-dropdown">
+              <Link href="/account" onClick={() => setAccountOpen(false)}>
+                حساب من
+              </Link>
+              <Link
+                href="/account/activity"
+                onClick={() => setAccountOpen(false)}
+              >
+                فعالیت‌های من
+              </Link>
+              <Link
+                href="/account/library"
+                onClick={() => setAccountOpen(false)}
+              >
+                پسندیده‌ها و ذخیره‌ها
+              </Link>
+              {user.role === "ADMIN" || user.role === "MODERATOR" ? (
+                <Link
+                  href="/admin/moderation"
+                  onClick={() => setAccountOpen(false)}
+                >
+                  بررسی محتوا
+                </Link>
+              ) : null}
+              {user.role === "ADMIN" ? (
+                <Link
+                  href="/admin/catalog"
+                  onClick={() => setAccountOpen(false)}
+                >
+                  مدیریت داده‌ها
+                </Link>
+              ) : null}
+              {user.notablePerson ? (
+                <Link
+                  href={`/notable-people/${user.notablePerson.slug}`}
+                  onClick={() => setAccountOpen(false)}
+                >
+                  پروفایل چهرهٔ من
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => {
+                  setAccountOpen(false);
+                  void logout();
+                }}
+              >
+                خروج
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <button
+          className="button button-small account-login-button"
+          type="button"
+          onClick={openAuth}
+        >
+          <span aria-hidden="true">♙</span>
+          ورود یا عضویت
+        </button>
+      )}
+    </div>
   );
 }

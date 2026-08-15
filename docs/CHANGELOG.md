@@ -133,6 +133,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ### Fixed
 
+- Closed the Header account menu automatically after client-side route changes.
 - Fixed the footer destination link to use `/destinations` instead of the removed `/cities` route.
 - Fixed Iranian `+98` mobile numbers inside Persian OTP copy by isolating the number as LTR content.
 - Fixed duplicate email/username/Instagram/mobile errors appearing only after the user reached the OTP verification step.

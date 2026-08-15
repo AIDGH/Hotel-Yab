@@ -61,7 +61,7 @@ Main responsibilities:
 - hotel and person cards;
 - RTL Persian interface;
 - displaying images and public metadata;
-- maintaining client authentication state and the account modal;
+- maintaining client authentication state and the account modal, including closing the account menu after route changes;
 - rendering the responsive account sidebar, optional avatar controls, and compact profile form;
 - rendering hotel reviews and collapsed-on-demand video comments;
 - rendering the authenticated user's review/comment activity and ownership actions;
