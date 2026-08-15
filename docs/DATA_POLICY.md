@@ -354,6 +354,11 @@ video media paths follow the stable `<instagram-username>/<sequence>` naming
 convention. A video row is not considered media-complete until both MP4 and
 thumbnail files exist.
 
+Content images, thumbnails, and videos under the frontend `public` media
+directories are local/deployment assets and must not be committed to Git.
+Source URLs, attribution, stable media paths, and verification metadata remain
+versioned or stored in PostgreSQL as appropriate.
+
 ---
 
 ## User-Submitted Data

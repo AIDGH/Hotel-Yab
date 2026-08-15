@@ -265,7 +265,9 @@ The frontend uses this information to render previous/next page navigation while
 Destination images and travel-video files remain under the existing frontend
 `public` paths for now. PostgreSQL stores only their stable `imageUrl`,
 `mediaUrl`, and `thumbnailUrl`; moving binaries to object storage is a separate
-deployment concern and does not require changing page composition.
+deployment concern and does not require changing page composition. These local
+content binaries are excluded from Git; a development or deployment environment
+must provision them separately until production object storage is introduced.
 
 The transition JSON files remain available as idempotent import inputs, but
 public destination and travel-video pages now read the API rather than importing

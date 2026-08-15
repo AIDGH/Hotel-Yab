@@ -341,7 +341,9 @@ The database stores references to media rather than the binary image itself.
 
 Destination and travel-video media currently keep their existing `/images/...`
 and `/travel-videos/...` paths under the frontend `public` directory. Only
-`imageUrl`, `mediaUrl`, and `thumbnailUrl` are stored in PostgreSQL.
+`imageUrl`, `mediaUrl`, and `thumbnailUrl` are stored in PostgreSQL. The local
+image, thumbnail, and video binaries are ignored by Git and are not part of the
+repository or database.
 
 Media storage strategy may change as the product evolves.
 

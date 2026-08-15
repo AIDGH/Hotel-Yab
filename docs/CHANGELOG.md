@@ -136,6 +136,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ### Fixed
 
+- Removed an accidentally tracked hotel video and thumbnail from the current repository tree, and ignored all local public content-media directories to prevent future commits.
 - Closed the Header account menu automatically after client-side route changes.
 - Fixed the footer destination link to use `/destinations` instead of the removed `/cities` route.
 - Fixed Iranian `+98` mobile numbers inside Persian OTP copy by isolating the number as LTR content.

@@ -44,6 +44,7 @@ apps/api/prisma/data/import.json
 __pycache__/
 *.py[cod]
 
-# Images and Videos
-apps/web/public/travel-videos/
-apps/web/public/Images/
+# Local images and videos (metadata paths stay in PostgreSQL; binaries stay off Git)
+/apps/web/public/images/
+/apps/web/public/travel-videos/
+/apps/web/public/hotel-videos/

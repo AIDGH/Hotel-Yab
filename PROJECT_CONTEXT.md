@@ -1058,6 +1058,7 @@ docs/TODO.md
 
 - media upload UI وجود ندارد.
 - storage production هنوز انتخاب نشده است.
+- فایل‌های عکس، کاور و ویدیو فعلاً فقط داخل `apps/web/public/{images,travel-videos,hotel-videos}` به‌صورت محلی نگهداری و از Git خارج می‌شوند؛ PostgreSQL فقط مسیر آن‌ها را نگه می‌دارد.
 - برخی تصاویر هنوز missing یا placeholder هستند.
 - پنل Catalog فعلاً create-only است؛ ویرایش/آرشیو رکوردهای موجود هنوز UI ندارد.
 - داده ویدیو/مقصد هنوز فایل‌محور است؛ فقط اطلاعات شخص از API اصلی resolve می‌شود.
@@ -1109,7 +1110,7 @@ git status --short --branch
 - `data/` خصوصی است.
 - envها private هستند.
 - `apps/api/prisma/data/import.json` private است.
-- assetهای عمومی داخل `apps/web/public` باید در Git قرار بگیرند.
+- فونت‌ها و assetهای کدی رابط می‌توانند در Git باشند، اما عکس‌ها، کاورها و ویدیوهای محتوایی `apps/web/public` نباید Track یا Commit شوند.
 - داده یا تغییر موجود کاربر بدون هماهنگی حذف نشود.
 
 ---
