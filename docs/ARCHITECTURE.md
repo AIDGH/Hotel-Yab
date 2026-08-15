@@ -437,8 +437,9 @@ The administration layer is split by responsibility:
   hotel, notable-person, and categorized `TRAVEL`/`HOTEL` video records directly
   in PostgreSQL;
 - the catalog video form provides searchable click-to-toggle multi-selection,
-  generates editable media-path suggestions from stable slugs, and creates the
-  selected many-to-many destination/hotel links while keeping the original
+  generates editable media-path suggestions from stable slugs, offers
+  free-typing datalist suggestions for place/creator categories, and creates
+  the selected many-to-many destination/hotel links while keeping the original
   source URL;
 - selecting a hotel for a published, non-rejected video also creates a pending
   person–hotel association when that pair does not already exist, inside the

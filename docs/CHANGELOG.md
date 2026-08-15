@@ -78,6 +78,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Added `data:import-travel` to migrate the existing destination/video transition JSON without moving media files.
 - Added published `VideoHotel` media to hotel-detail API responses and render each video inside the matching creator's hotel-association card.
 - Added explicit `TRAVEL`/`HOTEL` video categories, slug-based editable media-path suggestions, searchable click-to-toggle destination/hotel selection, and automatic pending person–hotel associations for newly linked catalog videos.
+- Added free-typing suggestion lists for creator category and place type in the admin video form.
 
 ### Changed
 

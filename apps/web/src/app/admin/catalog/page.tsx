@@ -285,7 +285,13 @@ function VideoForm({ catalog, disabled, onSubmit }: { catalog: CatalogData | nul
       <label>سازنده<select name="instagramUsername" required value={instagramUsername} onChange={(event) => setInstagramUsername(event.target.value)}><option value="" disabled>انتخاب چهره</option>{catalog?.notablePeople.filter((person) => person.instagramHandle).map((person) => <option value={person.instagramHandle ?? ""} key={person.id}>{person.displayName} · @{person.instagramHandle}</option>)}</select></label>
       <label>عنوان<input name="title" required /></label><label>نام مکان<input name="placeName" required /></label>
       <label>پلتفرم<input name="platform" dir="ltr" defaultValue="INSTAGRAM" required /></label><label>نوع محتوا<input name="contentType" dir="ltr" defaultValue="POST" required /></label>
-      <label>نوع مکان<input name="placeType" dir="ltr" defaultValue="CULTURAL" required /></label><label>دسته سازنده<input name="personCategory" dir="ltr" defaultValue="INFLUENCER" /></label>
+      <label>نوع مکان<input name="placeType" dir="ltr" list="catalog-place-type-options" defaultValue="CULTURAL" required /><small>از پیشنهادها انتخاب کنید یا مقدار دلخواه بنویسید.</small></label><label>دسته سازنده<input name="personCategory" dir="ltr" list="catalog-person-category-options" defaultValue="INFLUENCER" /><small>از پیشنهادها انتخاب کنید یا مقدار دلخواه بنویسید.</small></label>
+      <datalist id="catalog-place-type-options">
+        <option value="CULTURAL">فرهنگی</option><option value="NATURE">طبیعت</option><option value="HOTEL">هتل</option><option value="HISTORICAL">تاریخی</option><option value="RELIGIOUS">مذهبی</option><option value="URBAN">شهری</option><option value="RURAL">روستایی</option><option value="BEACH">ساحل</option><option value="MOUNTAIN">کوهستان</option><option value="DESERT">کویر</option><option value="FOOD">غذا</option><option value="EVENT">رویداد</option><option value="OTHER">سایر</option>
+      </datalist>
+      <datalist id="catalog-person-category-options">
+        <option value="INFLUENCER">اینفلوئنسر</option><option value="TRAVEL_BLOGGER">بلاگر سفر</option><option value="CONTENT_CREATOR">تولیدکننده محتوا</option><option value="PHOTOGRAPHER">عکاس</option><option value="JOURNALIST">روزنامه‌نگار</option><option value="ACTOR">بازیگر</option><option value="ATHLETE">ورزشکار</option><option value="MUSICIAN">موسیقی‌دان</option><option value="PUBLIC_FIGURE">چهره عمومی</option><option value="OTHER">سایر</option>
+      </datalist>
       <label>تاریخ انتشار<input name="publishedDate" dir="ltr" placeholder="1404/8/22" /></label><label>وضعیت بررسی<select name="verificationStatus" defaultValue="VERIFIED"><option value="PENDING">در انتظار</option><option value="VERIFIED">تأییدشده</option><option value="REJECTED">ردشده</option></select></label>
       <label className="catalog-field-wide">لینک پست اصلی<input name="sourceUrl" type="url" dir="ltr" required /></label>
       <SearchableMultiSelect
