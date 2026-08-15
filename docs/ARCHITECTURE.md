@@ -438,9 +438,10 @@ The administration layer is split by responsibility:
   in PostgreSQL;
 - the catalog video form provides searchable click-to-toggle multi-selection,
   generates editable media-path suggestions from stable slugs, offers
-  free-typing datalist suggestions for place/creator categories, and creates
-  the selected many-to-many destination/hotel links while keeping the original
-  source URL;
+  initially empty free-typing datalist suggestions for content/place/creator
+  categories, provides searchable single-selection for the existing creator,
+  and creates the selected many-to-many destination/hotel links while keeping
+  the original source URL;
 - selecting a hotel for a published, non-rejected video also creates a pending
   person–hotel association when that pair does not already exist, inside the
   same video-creation transaction;

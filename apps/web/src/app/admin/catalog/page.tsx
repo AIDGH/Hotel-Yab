@@ -223,6 +223,7 @@ function VideoForm({ catalog, disabled, onSubmit }: { catalog: CatalogData | nul
   const [videoCategory, setVideoCategory] = useState<"TRAVEL" | "HOTEL">("TRAVEL");
   const [videoId, setVideoId] = useState("");
   const [instagramUsername, setInstagramUsername] = useState("");
+  const [creatorError, setCreatorError] = useState<string | null>(null);
   const [destinationIds, setDestinationIds] = useState<string[]>([]);
   const [hotelIds, setHotelIds] = useState<string[]>([]);
   const [mediaUrlOverride, setMediaUrlOverride] = useState<string | null>(null);
@@ -264,6 +265,7 @@ function VideoForm({ catalog, disabled, onSubmit }: { catalog: CatalogData | nul
     setVideoCategory("TRAVEL");
     setVideoId("");
     setInstagramUsername("");
+    setCreatorError(null);
     setDestinationIds([]);
     setHotelIds([]);
     setMediaUrlOverride(null);
@@ -272,6 +274,11 @@ function VideoForm({ catalog, disabled, onSubmit }: { catalog: CatalogData | nul
 
   return (
     <CatalogForm title="ویدیوی جدید" description="نوع ویدیو مسیر رسانه و محل نمایش آینده را مشخص می‌کند؛ مسیر پیشنهادی همچنان قابل ویرایش است." disabled={disabled} onSubmit={async (event, data) => {
+      if (!instagramUsername) {
+        setCreatorError("یک سازنده را از فهرست انتخاب کنید.");
+        return;
+      }
+
       const succeeded = await onSubmit("videos", {
       id: videoId, videoCategory, instagramUsername, platform: text(data, "platform"), personCategory: optional(data, "personCategory"), contentType: text(data, "contentType"),
       sourceUrl: text(data, "sourceUrl"), title: text(data, "title"), placeName: text(data, "placeName"), placeType: text(data, "placeType"), publishedDate: optional(data, "publishedDate"),
@@ -282,10 +289,23 @@ function VideoForm({ catalog, disabled, onSubmit }: { catalog: CatalogData | nul
     }}>
       <label>نوع ویدیو<select name="videoCategory" value={videoCategory} onChange={(event) => setVideoCategory(event.target.value as "TRAVEL" | "HOTEL")}><option value="TRAVEL">ویدیوی سفر</option><option value="HOTEL">ویدیوی هتل</option></select></label>
       <label>شناسه ویدیو<input name="id" dir="ltr" required placeholder="username-001" value={videoId} onChange={(event) => setVideoId(event.target.value)} /></label>
-      <label>سازنده<select name="instagramUsername" required value={instagramUsername} onChange={(event) => setInstagramUsername(event.target.value)}><option value="" disabled>انتخاب چهره</option>{catalog?.notablePeople.filter((person) => person.instagramHandle).map((person) => <option value={person.instagramHandle ?? ""} key={person.id}>{person.displayName} · @{person.instagramHandle}</option>)}</select></label>
+      <SearchableSingleSelect
+        label="سازنده"
+        searchPlaceholder="جست‌وجوی نام یا آیدی اینستاگرام"
+        items={(catalog?.notablePeople ?? []).filter((person) => person.instagramHandle).map((person) => ({ id: person.id, value: person.instagramHandle ?? "", label: `${person.displayName} · @${person.instagramHandle}` }))}
+        selectedValue={instagramUsername}
+        error={creatorError}
+        onChange={(value) => {
+          setInstagramUsername(value);
+          setCreatorError(null);
+        }}
+      />
       <label>عنوان<input name="title" required /></label><label>نام مکان<input name="placeName" required /></label>
-      <label>پلتفرم<input name="platform" dir="ltr" defaultValue="INSTAGRAM" required /></label><label>نوع محتوا<input name="contentType" dir="ltr" defaultValue="POST" required /></label>
-      <label>نوع مکان<input name="placeType" dir="ltr" list="catalog-place-type-options" defaultValue="CULTURAL" required /><small>از پیشنهادها انتخاب کنید یا مقدار دلخواه بنویسید.</small></label><label>دسته سازنده<input name="personCategory" dir="ltr" list="catalog-person-category-options" defaultValue="INFLUENCER" /><small>از پیشنهادها انتخاب کنید یا مقدار دلخواه بنویسید.</small></label>
+      <label>پلتفرم<input name="platform" dir="ltr" defaultValue="INSTAGRAM" required /></label><label>نوع محتوا<input name="contentType" dir="ltr" list="catalog-content-type-options" placeholder="انتخاب یا ورود دستی" required /><small>از پیشنهادها انتخاب کنید یا مقدار دلخواه بنویسید.</small></label>
+      <label>نوع مکان<input name="placeType" dir="ltr" list="catalog-place-type-options" placeholder="انتخاب یا ورود دستی" required /><small>از پیشنهادها انتخاب کنید یا مقدار دلخواه بنویسید.</small></label><label>دسته سازنده<input name="personCategory" dir="ltr" list="catalog-person-category-options" placeholder="انتخاب یا ورود دستی" /><small>از پیشنهادها انتخاب کنید یا مقدار دلخواه بنویسید.</small></label>
+      <datalist id="catalog-content-type-options">
+        <option value="POST">پست</option><option value="REEL">ریلز</option><option value="STORY">استوری</option><option value="HIGHLIGHT">هایلایت</option><option value="LIVE">لایو</option><option value="CAROUSEL">پست چنداسلایدی</option><option value="IGTV">IGTV</option><option value="OTHER">سایر</option>
+      </datalist>
       <datalist id="catalog-place-type-options">
         <option value="CULTURAL">فرهنگی</option><option value="NATURE">طبیعت</option><option value="HOTEL">هتل</option><option value="HISTORICAL">تاریخی</option><option value="RELIGIOUS">مذهبی</option><option value="URBAN">شهری</option><option value="RURAL">روستایی</option><option value="BEACH">ساحل</option><option value="MOUNTAIN">کوهستان</option><option value="DESERT">کویر</option><option value="FOOD">غذا</option><option value="EVENT">رویداد</option><option value="OTHER">سایر</option>
       </datalist>
@@ -318,6 +338,40 @@ function VideoForm({ catalog, disabled, onSubmit }: { catalog: CatalogData | nul
 }
 
 type MultiSelectItem = { id: string; label: string };
+
+type SingleSelectItem = MultiSelectItem & { value: string };
+
+function SearchableSingleSelect({ label, searchPlaceholder, items, selectedValue, error, onChange }: { label: string; searchPlaceholder: string; items: SingleSelectItem[]; selectedValue: string; error: string | null; onChange: (value: string) => void }) {
+  const [query, setQuery] = useState("");
+  const normalizedQuery = normalizeSearch(query);
+  const visibleItems = items.filter((item) =>
+    normalizeSearch(item.label).includes(normalizedQuery),
+  );
+  const selectedItem = items.find((item) => item.value === selectedValue);
+
+  return (
+    <div className="catalog-field-wide catalog-multi-field">
+      <span>{label}</span>
+      <input type="search" value={query} placeholder={searchPlaceholder} aria-label={searchPlaceholder} onChange={(event) => setQuery(event.target.value)} />
+      {selectedItem ? (
+        <div className="catalog-selected-items" aria-label="سازنده انتخاب‌شده">
+          <button type="button" onClick={() => onChange("")}>{selectedItem.label}<span aria-hidden="true">×</span></button>
+        </div>
+      ) : <small>هنوز سازنده‌ای انتخاب نشده است.</small>}
+      {error ? <small className="catalog-field-error" role="alert">{error}</small> : null}
+      <div className="catalog-option-list" role="listbox" aria-multiselectable="false">
+        {visibleItems.length > 0 ? visibleItems.map((item) => {
+          const selected = item.value === selectedValue;
+          return (
+            <button type="button" role="option" aria-selected={selected} className={selected ? "is-selected" : ""} key={item.id} onClick={() => { onChange(item.value); setQuery(""); }}>
+              <span>{item.label}</span><strong>{selected ? "✓ انتخاب‌شده" : "انتخاب"}</strong>
+            </button>
+          );
+        }) : <small className="catalog-option-empty">چهره‌ای پیدا نشد.</small>}
+      </div>
+    </div>
+  );
+}
 
 function SearchableMultiSelect({ label, searchPlaceholder, items, selectedIds, onChange }: { label: string; searchPlaceholder: string; items: MultiSelectItem[]; selectedIds: string[]; onChange: (ids: string[]) => void }) {
   const [query, setQuery] = useState("");

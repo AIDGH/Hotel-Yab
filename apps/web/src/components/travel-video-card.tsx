@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   type CSSProperties,
   type FormEvent,
@@ -48,6 +49,7 @@ export function TravelVideoCard({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [showPausedThumbnail, setShowPausedThumbnail] = useState(false);
 
   const progressPercent = duration > 0
     ? Math.min((currentTime / duration) * 100, 100)
@@ -60,6 +62,7 @@ export function TravelVideoCard({
 
     try {
       if (video.paused) {
+        setShowPausedThumbnail(false);
         await video.play();
       } else {
         video.pause();
@@ -134,6 +137,7 @@ export function TravelVideoCard({
 
       if (video && !video.paused) {
         video.pause();
+        setShowPausedThumbnail(true);
       }
     }
 
@@ -164,6 +168,7 @@ export function TravelVideoCard({
           poster={thumbnailUrl}
           onPlay={() => {
             setIsPlaying(true);
+            setShowPausedThumbnail(false);
 
             window.dispatchEvent(
               new CustomEvent(TRAVEL_VIDEO_PLAY_EVENT, {
@@ -184,6 +189,18 @@ export function TravelVideoCard({
             type="video/mp4"
           />
         </video>
+
+        {showPausedThumbnail ? (
+          <Image
+            className="travel-video-paused-thumbnail"
+            src={thumbnailUrl}
+            alt=""
+            fill
+            sizes="(max-width: 760px) 100vw, 340px"
+            unoptimized
+            aria-hidden="true"
+          />
+        ) : null}
 
         {!isPlaying && (
           <button

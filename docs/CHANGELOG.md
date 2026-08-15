@@ -79,6 +79,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Added published `VideoHotel` media to hotel-detail API responses and render each video inside the matching creator's hotel-association card.
 - Added explicit `TRAVEL`/`HOTEL` video categories, slug-based editable media-path suggestions, searchable click-to-toggle destination/hotel selection, and automatic pending person–hotel associations for newly linked catalog videos.
 - Added free-typing suggestion lists for creator category and place type in the admin video form.
+- Added free-typing content-type suggestions (`POST`, `REEL`, `STORY`, `HIGHLIGHT`, and others) plus searchable single-selection for video creators in the admin catalog.
 
 ### Changed
 
@@ -107,6 +108,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Kept destination search fixed at three-sevenths of the field area; the remaining four-sevenths belongs to destination type in province mode and splits evenly between type and province in city mode.
 - Changed destination video composition to place compact creator metadata above each video, and notable-person destination links in a compact footer below each video.
 - Added an in-player `1×/2×` speed toggle and a draggable Reels-style seek bar to travel videos.
+- Changed automatic cross-video pausing to show the paused video's thumbnail while preserving its playback position for later continuation.
 - Kept the public discovery experience accessible without requiring login.
 - Kept user-submitted reviews and comments private until they are explicitly published by moderation.
 - Allowed optional email and Instagram profile fields to be cleared after registration.
@@ -130,6 +132,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Reworked the account page into a wider two-column laptop layout with compact single-column fields and a stacked mobile layout.
 - Reduced optional hotel-review text minimum from 10 to 3 characters.
 - Allowed authenticated users to comment before completing first and last name, using «کاربر هتل‌یاب» as the public fallback label.
+- Left the admin video form's content type, place type, and creator category empty initially instead of preselecting metadata values.
 
 ### Fixed
 
