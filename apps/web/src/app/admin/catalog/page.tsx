@@ -61,11 +61,13 @@ export default function CatalogAdminPage() {
       form.reset();
       setFeedback({ tone: "success", text: "اطلاعات با موفقیت در PostgreSQL ثبت شد." });
       await loadCatalog();
+      return true;
     } catch (caught) {
       setFeedback({
         tone: "error",
         text: caught instanceof Error ? caught.message : "ثبت اطلاعات انجام نشد.",
       });
+      return false;
     } finally {
       setSubmitting(false);
     }
@@ -151,7 +153,7 @@ export default function CatalogAdminPage() {
   );
 }
 
-type SubmitHandler = (endpoint: string, payload: Record<string, unknown>, form: HTMLFormElement) => Promise<void>;
+type SubmitHandler = (endpoint: string, payload: Record<string, unknown>, form: HTMLFormElement) => Promise<boolean>;
 
 function DestinationForm({ catalog, disabled, onSubmit }: { catalog: CatalogData | null; disabled: boolean; onSubmit: SubmitHandler }) {
   const [type, setType] = useState<"CITY" | "PROVINCE">("CITY");
@@ -218,28 +220,139 @@ function PersonForm({ disabled, onSubmit }: { disabled: boolean; onSubmit: Submi
 }
 
 function VideoForm({ catalog, disabled, onSubmit }: { catalog: CatalogData | null; disabled: boolean; onSubmit: SubmitHandler }) {
+  const [videoCategory, setVideoCategory] = useState<"TRAVEL" | "HOTEL">("TRAVEL");
+  const [videoId, setVideoId] = useState("");
+  const [instagramUsername, setInstagramUsername] = useState("");
+  const [destinationIds, setDestinationIds] = useState<string[]>([]);
+  const [hotelIds, setHotelIds] = useState<string[]>([]);
+  const [mediaUrlOverride, setMediaUrlOverride] = useState<string | null>(null);
+  const [thumbnailUrlOverride, setThumbnailUrlOverride] = useState<string | null>(null);
+
+  const personSlug = catalog?.notablePeople.find(
+    (person) => person.instagramHandle === instagramUsername,
+  )?.slug;
+  const existingPersonMediaFolder = catalog?.videos
+    .find(
+      (video) =>
+        video.videoCategory === videoCategory &&
+        video.instagramUsername === instagramUsername,
+    )
+    ?.mediaUrl.match(/^\/(?:travel-videos|hotel-videos)\/([^/]+)\//)?.[1];
+  const personMediaFolder = existingPersonMediaFolder ?? personSlug;
+  const selectedHotels = (catalog?.hotels ?? []).filter((hotel) =>
+    hotelIds.includes(hotel.id),
+  );
+  const sequence = videoSequence(videoId);
+  const hotelFilePrefix = selectedHotels.length === 1
+    ? selectedHotels[0].slug
+    : selectedHotels.length > 1
+      ? "multi-hotel"
+      : "hotel";
+  const suggestedStem = personMediaFolder && sequence
+    ? videoCategory === "TRAVEL"
+      ? `/travel-videos/${personMediaFolder}/${sequence}`
+      : `/hotel-videos/${personMediaFolder}/${hotelFilePrefix}-${sequence}`
+    : "";
+  const suggestedMediaUrl = suggestedStem ? `${suggestedStem}.mp4` : "";
+  const suggestedThumbnailUrl = suggestedStem
+    ? `${suggestedStem}-thumbnail.webp`
+    : "";
+  const mediaUrl = mediaUrlOverride ?? suggestedMediaUrl;
+  const thumbnailUrl = thumbnailUrlOverride ?? suggestedThumbnailUrl;
+
+  function resetVideoFormState() {
+    setVideoCategory("TRAVEL");
+    setVideoId("");
+    setInstagramUsername("");
+    setDestinationIds([]);
+    setHotelIds([]);
+    setMediaUrlOverride(null);
+    setThumbnailUrlOverride(null);
+  }
+
   return (
-    <CatalogForm title="ویدیوی جدید" description="یک ویدیو می‌تواند به چند مقصد و چند هتل متصل شود؛ لینک پست اصلی همیشه نگه داشته می‌شود." disabled={disabled} onSubmit={(event, data) => onSubmit("videos", {
-      id: text(data, "id"), instagramUsername: text(data, "instagramUsername"), platform: text(data, "platform"), personCategory: optional(data, "personCategory"), contentType: text(data, "contentType"),
+    <CatalogForm title="ویدیوی جدید" description="نوع ویدیو مسیر رسانه و محل نمایش آینده را مشخص می‌کند؛ مسیر پیشنهادی همچنان قابل ویرایش است." disabled={disabled} onSubmit={async (event, data) => {
+      const succeeded = await onSubmit("videos", {
+      id: videoId, videoCategory, instagramUsername, platform: text(data, "platform"), personCategory: optional(data, "personCategory"), contentType: text(data, "contentType"),
       sourceUrl: text(data, "sourceUrl"), title: text(data, "title"), placeName: text(data, "placeName"), placeType: text(data, "placeType"), publishedDate: optional(data, "publishedDate"),
       captionSummary: optional(data, "captionSummary"), evidenceType: text(data, "evidenceType"), verificationStatus: text(data, "verificationStatus"), notes: optional(data, "notes"),
-      mediaUrl: text(data, "mediaUrl"), thumbnailUrl: text(data, "thumbnailUrl"), publicationStatus: text(data, "publicationStatus"), destinationIds: data.getAll("destinationIds").map(String), hotelIds: data.getAll("hotelIds").map(String),
-    }, event.currentTarget)}>
-      <label>شناسه ویدیو<input name="id" dir="ltr" required placeholder="username-001" /></label>
-      <label>سازنده<select name="instagramUsername" required defaultValue=""><option value="" disabled>انتخاب چهره</option>{catalog?.notablePeople.filter((person) => person.instagramHandle).map((person) => <option value={person.instagramHandle ?? ""} key={person.id}>{person.displayName} · @{person.instagramHandle}</option>)}</select></label>
+      mediaUrl, thumbnailUrl, publicationStatus: text(data, "publicationStatus"), destinationIds, hotelIds,
+      }, event.currentTarget);
+      if (succeeded) resetVideoFormState();
+    }}>
+      <label>نوع ویدیو<select name="videoCategory" value={videoCategory} onChange={(event) => setVideoCategory(event.target.value as "TRAVEL" | "HOTEL")}><option value="TRAVEL">ویدیوی سفر</option><option value="HOTEL">ویدیوی هتل</option></select></label>
+      <label>شناسه ویدیو<input name="id" dir="ltr" required placeholder="username-001" value={videoId} onChange={(event) => setVideoId(event.target.value)} /></label>
+      <label>سازنده<select name="instagramUsername" required value={instagramUsername} onChange={(event) => setInstagramUsername(event.target.value)}><option value="" disabled>انتخاب چهره</option>{catalog?.notablePeople.filter((person) => person.instagramHandle).map((person) => <option value={person.instagramHandle ?? ""} key={person.id}>{person.displayName} · @{person.instagramHandle}</option>)}</select></label>
       <label>عنوان<input name="title" required /></label><label>نام مکان<input name="placeName" required /></label>
       <label>پلتفرم<input name="platform" dir="ltr" defaultValue="INSTAGRAM" required /></label><label>نوع محتوا<input name="contentType" dir="ltr" defaultValue="POST" required /></label>
       <label>نوع مکان<input name="placeType" dir="ltr" defaultValue="CULTURAL" required /></label><label>دسته سازنده<input name="personCategory" dir="ltr" defaultValue="INFLUENCER" /></label>
       <label>تاریخ انتشار<input name="publishedDate" dir="ltr" placeholder="1404/8/22" /></label><label>وضعیت بررسی<select name="verificationStatus" defaultValue="VERIFIED"><option value="PENDING">در انتظار</option><option value="VERIFIED">تأییدشده</option><option value="REJECTED">ردشده</option></select></label>
       <label className="catalog-field-wide">لینک پست اصلی<input name="sourceUrl" type="url" dir="ltr" required /></label>
-      <label className="catalog-field-wide">مسیر ویدیو<input name="mediaUrl" dir="ltr" required placeholder="/travel-videos/username/001.mp4" /></label>
-      <label className="catalog-field-wide">مسیر کاور<input name="thumbnailUrl" dir="ltr" required placeholder="/travel-videos/username/001-thumbnail.webp" /></label>
-      <label className="catalog-field-wide">مقصدها<select name="destinationIds" multiple required size={Math.min(8, Math.max(4, catalog?.destinations.length ?? 4))}>{catalog?.destinations.map((item) => <option value={item.id} key={item.id}>{item.type === "CITY" ? "شهر" : "استان"} {item.name}</option>)}</select><small>برای انتخاب چند مورد در مک Command و در ویندوز Ctrl را نگه دارید.</small></label>
-      <label className="catalog-field-wide">هتل‌های مرتبط (اختیاری)<select name="hotelIds" multiple size={Math.min(6, Math.max(3, catalog?.hotels.length ?? 3))}>{catalog?.hotels.map((hotel) => <option value={hotel.id} key={hotel.id}>{hotel.name} · {hotel.city}</option>)}</select></label>
+      <SearchableMultiSelect
+        label={`مقصدها${videoCategory === "TRAVEL" ? " (حداقل یک مورد)" : " (اختیاری)"}`}
+        searchPlaceholder="جست‌وجوی شهر یا استان"
+        items={(catalog?.destinations ?? []).map((item) => ({ id: item.id, label: `${item.type === "CITY" ? "شهر" : "استان"} ${item.name}` }))}
+        selectedIds={destinationIds}
+        onChange={setDestinationIds}
+      />
+      <SearchableMultiSelect
+        label={`هتل‌های مرتبط${videoCategory === "HOTEL" ? " (حداقل یک مورد)" : " (اختیاری)"}`}
+        searchPlaceholder="جست‌وجوی نام هتل یا شهر"
+        items={(catalog?.hotels ?? []).map((hotel) => ({ id: hotel.id, label: `${hotel.name} · ${hotel.city}` }))}
+        selectedIds={hotelIds}
+        onChange={setHotelIds}
+      />
+      <label className="catalog-field-wide">مسیر ویدیو<input name="mediaUrl" dir="ltr" required value={mediaUrl} placeholder="پس از انتخاب سازنده و شناسه پیشنهاد می‌شود" onChange={(event) => setMediaUrlOverride(event.target.value === suggestedMediaUrl ? null : event.target.value)} /><small>مسیر پیشنهادی خودکار است؛ در صورت نیاز می‌توانید آن را تغییر دهید.</small></label>
+      <label className="catalog-field-wide">مسیر کاور<input name="thumbnailUrl" dir="ltr" required value={thumbnailUrl} placeholder="پس از انتخاب سازنده و شناسه پیشنهاد می‌شود" onChange={(event) => setThumbnailUrlOverride(event.target.value === suggestedThumbnailUrl ? null : event.target.value)} /></label>
       <label className="catalog-field-wide">خلاصه کپشن<textarea name="captionSummary" rows={3} /></label>
       <label>نوع مدرک<input name="evidenceType" dir="ltr" defaultValue="ORIGINAL_POST" required /></label><label>وضعیت انتشار<PublicationSelect /></label>
       <label className="catalog-field-wide">یادداشت داخلی<textarea name="notes" rows={2} /></label>
     </CatalogForm>
+  );
+}
+
+type MultiSelectItem = { id: string; label: string };
+
+function SearchableMultiSelect({ label, searchPlaceholder, items, selectedIds, onChange }: { label: string; searchPlaceholder: string; items: MultiSelectItem[]; selectedIds: string[]; onChange: (ids: string[]) => void }) {
+  const [query, setQuery] = useState("");
+  const normalizedQuery = normalizeSearch(query);
+  const visibleItems = items.filter((item) =>
+    normalizeSearch(item.label).includes(normalizedQuery),
+  );
+  const selectedItems = selectedIds
+    .map((id) => items.find((item) => item.id === id))
+    .filter((item): item is MultiSelectItem => Boolean(item));
+
+  function toggle(id: string) {
+    onChange(
+      selectedIds.includes(id)
+        ? selectedIds.filter((selectedId) => selectedId !== id)
+        : [...selectedIds, id],
+    );
+  }
+
+  return (
+    <div className="catalog-field-wide catalog-multi-field">
+      <span>{label}</span>
+      <input type="search" value={query} placeholder={searchPlaceholder} onChange={(event) => setQuery(event.target.value)} />
+      {selectedItems.length > 0 ? (
+        <div className="catalog-selected-items" aria-label="موارد انتخاب‌شده">
+          {selectedItems.map((item) => (
+            <button type="button" key={item.id} onClick={() => toggle(item.id)}>{item.label}<span aria-hidden="true">×</span></button>
+          ))}
+        </div>
+      ) : <small>هنوز موردی انتخاب نشده است.</small>}
+      <div className="catalog-option-list" role="listbox" aria-multiselectable="true">
+        {visibleItems.length > 0 ? visibleItems.map((item) => {
+          const selected = selectedIds.includes(item.id);
+          return (
+            <button type="button" role="option" aria-selected={selected} className={selected ? "is-selected" : ""} key={item.id} onClick={() => toggle(item.id)}>
+              <span>{item.label}</span><strong>{selected ? "✓ انتخاب‌شده" : "انتخاب"}</strong>
+            </button>
+          );
+        }) : <small className="catalog-option-empty">موردی پیدا نشد.</small>}
+      </div>
+    </div>
   );
 }
 
@@ -262,3 +375,17 @@ function CatalogSummary({ section, catalog }: { section: CatalogSection; catalog
 function text(data: FormData, key: string) { return String(data.get(key) ?? "").trim(); }
 function optional(data: FormData, key: string) { const value = text(data, key); return value || null; }
 function optionalNumber(data: FormData, key: string) { const value = text(data, key); return value ? Number(value) : undefined; }
+
+function videoSequence(videoId: string): string {
+  const match = videoId.trim().match(/(?:^|-)(\d+)$/);
+  return match ? match[1].padStart(3, "0") : "";
+}
+
+function normalizeSearch(value: string): string {
+  return value
+    .toLocaleLowerCase("fa-IR")
+    .replace(/[يى]/g, "ی")
+    .replace(/ك/g, "ک")
+    .replace(/\u200c/g, " ")
+    .trim();
+}

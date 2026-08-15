@@ -310,6 +310,11 @@ Useful identifiers include:
 - existing external identifiers.
 
 Duplicate associations between the same hotel and person should also be avoided.
+When an administrator links a new published, non-rejected video to a hotel, the
+system may create the missing person–hotel association automatically, but it
+must start as `PENDING`. Draft, archived, and rejected video records cannot
+expose a new public association. Video verification alone must not silently
+promote the association to `VERIFIED`; normal source review rules still apply.
 
 Destination duplicate checks use `(type, slug)` and type-scoped display order.
 Video duplicate checks use canonical ID and original `sourceUrl`; join-table

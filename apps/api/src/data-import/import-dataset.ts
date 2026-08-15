@@ -165,6 +165,9 @@ export async function importDataset(
 
     for (const video of dataset.videos) {
       const videoData = {
+        ...(video.videoCategory !== undefined
+          ? { videoCategory: video.videoCategory }
+          : {}),
         ...(video.instagramUsername !== undefined
           ? { instagramUsername: video.instagramUsername }
           : {}),

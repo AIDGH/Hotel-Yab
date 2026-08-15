@@ -434,9 +434,15 @@ The administration layer is split by responsibility:
 
 - `/admin/moderation` is available to `ADMIN` and `MODERATOR` for user content;
 - `/admin/catalog` is restricted to `ADMIN` and creates canonical destination,
-  hotel, notable-person, and travel-video records directly in PostgreSQL;
-- the catalog video form creates many-to-many destination links and optional
-  hotel links while keeping the original source URL;
+  hotel, notable-person, and categorized `TRAVEL`/`HOTEL` video records directly
+  in PostgreSQL;
+- the catalog video form provides searchable click-to-toggle multi-selection,
+  generates editable media-path suggestions from stable slugs, and creates the
+  selected many-to-many destination/hotel links while keeping the original
+  source URL;
+- selecting a hotel for a published, non-rejected video also creates a pending
+  person–hotel association when that pair does not already exist, inside the
+  same video-creation transaction;
 - a read-only export endpoint produces a JSON snapshot compatible with the
   extended import schema.
 

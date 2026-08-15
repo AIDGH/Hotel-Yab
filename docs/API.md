@@ -164,9 +164,9 @@ Returns one published destination. `type` is `cities` or `provinces`.
 
 ## GET /travel-videos
 
-Returns published canonical videos with `sourceUrl`, media/thumbnail paths,
-destination records, and optional linked hotels. Person profile data remains
-resolved by exact normalized Instagram username.
+Returns published canonical videos with explicit `videoCategory`, `sourceUrl`,
+media/thumbnail paths, destination records, and optional linked hotels. Person
+profile data remains resolved by exact normalized Instagram username.
 
 ---
 
@@ -522,9 +522,17 @@ Creates a NotablePerson after slug and normalized Instagram duplicate checks.
 
 ## POST /admin/catalog/videos
 
-Creates a complete Video, at least one `VideoDestination`, and optional
-`VideoHotel` links in one transaction. The Instagram username must resolve to
-an existing notable person and the original public `sourceUrl` is required.
+Creates a complete `TRAVEL` or `HOTEL` Video and its selected relations in one
+transaction. `TRAVEL` requires at least one `VideoDestination`; `HOTEL`
+requires at least one `VideoHotel`. The Instagram username must resolve to an
+existing notable person and the original public `sourceUrl` is required.
+
+For every selected hotel without an existing association to that person, a
+published, non-rejected video causes the same transaction to create a `VISITED`
+`HotelAssociation` with `PENDING` verification. Draft, archived, or rejected
+videos do not expose a new public relationship. The pending state makes the
+person visible without falsely claiming verification; the linked published
+video is rendered in that association card.
 
 ## GET /admin/catalog/export
 

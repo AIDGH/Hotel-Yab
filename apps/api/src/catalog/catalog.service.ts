@@ -5,7 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
-import { DestinationType, PublicationStatus } from '../generated/prisma/enums';
+import {
+  AssociationType,
+  DestinationType,
+  PublicationStatus,
+  VerificationStatus,
+  VideoCategory,
+} from '../generated/prisma/enums';
 import { PrismaService } from '../database/prisma.service';
 import { CreateDestinationDto } from './dto/create-destination.dto';
 import { CreateHotelDto } from './dto/create-hotel.dto';
@@ -31,6 +37,7 @@ const destinationSelect = {
 
 const videoSelect = {
   id: true,
+  videoCategory: true,
   instagramUsername: true,
   platform: true,
   personCategory: true,
@@ -202,7 +209,7 @@ export class CatalogService {
       where: {
         instagramHandle: { equals: dto.instagramUsername, mode: 'insensitive' },
       },
-      select: { id: true },
+      select: { id: true, slug: true, displayName: true },
     });
     if (!person) {
       throw new BadRequestException(
@@ -211,50 +218,107 @@ export class CatalogService {
     }
 
     const uniqueDestinationIds = [...new Set(dto.destinationIds)];
-    const uniqueHotelIds = [...new Set(dto.hotelIds ?? [])];
-    const [destinationCount, hotelCount] = await this.prisma.$transaction([
+    const uniqueHotelIds = [...new Set(dto.hotelIds)];
+    if (
+      dto.videoCategory === VideoCategory.TRAVEL &&
+      uniqueDestinationIds.length === 0
+    ) {
+      throw new BadRequestException('برای ویدیوی سفر حداقل یک مقصد لازم است');
+    }
+    if (
+      dto.videoCategory === VideoCategory.HOTEL &&
+      uniqueHotelIds.length === 0
+    ) {
+      throw new BadRequestException('برای ویدیوی هتل حداقل یک هتل لازم است');
+    }
+
+    const [destinationCount, hotels] = await this.prisma.$transaction([
       this.prisma.destination.count({
         where: { id: { in: uniqueDestinationIds } },
       }),
-      this.prisma.hotel.count({ where: { id: { in: uniqueHotelIds } } }),
+      this.prisma.hotel.findMany({
+        where: { id: { in: uniqueHotelIds } },
+        select: { id: true, slug: true, name: true },
+      }),
     ]);
     if (destinationCount !== uniqueDestinationIds.length) {
       throw new BadRequestException('یک یا چند مقصد معتبر نیستند');
     }
-    if (hotelCount !== uniqueHotelIds.length) {
+    if (hotels.length !== uniqueHotelIds.length) {
       throw new BadRequestException('یک یا چند هتل معتبر نیستند');
     }
 
     try {
-      const video = await this.prisma.video.create({
-        data: {
-          id: dto.id,
-          instagramUsername: dto.instagramUsername,
-          platform: dto.platform,
-          personCategory: dto.personCategory ?? null,
-          contentType: dto.contentType,
-          sourceUrl: dto.sourceUrl,
-          title: dto.title.trim(),
-          placeName: dto.placeName.trim(),
-          placeType: dto.placeType,
-          publishedDate: dto.publishedDate ?? null,
-          captionSummary: dto.captionSummary ?? null,
-          evidenceType: dto.evidenceType,
-          verificationStatus: dto.verificationStatus,
-          notes: dto.notes ?? null,
-          mediaUrl: dto.mediaUrl,
-          thumbnailUrl: dto.thumbnailUrl,
-          publicationStatus: dto.publicationStatus,
-          destinations: {
-            create: uniqueDestinationIds.map((destinationId) => ({
-              destinationId,
-            })),
+      const video = await this.prisma.$transaction(async (transaction) => {
+        const createdVideo = await transaction.video.create({
+          data: {
+            id: dto.id,
+            videoCategory: dto.videoCategory,
+            instagramUsername: dto.instagramUsername,
+            platform: dto.platform,
+            personCategory: dto.personCategory ?? null,
+            contentType: dto.contentType,
+            sourceUrl: dto.sourceUrl,
+            title: dto.title.trim(),
+            placeName: dto.placeName.trim(),
+            placeType: dto.placeType,
+            publishedDate: dto.publishedDate ?? null,
+            captionSummary: dto.captionSummary ?? null,
+            evidenceType: dto.evidenceType,
+            verificationStatus: dto.verificationStatus,
+            notes: dto.notes ?? null,
+            mediaUrl: dto.mediaUrl,
+            thumbnailUrl: dto.thumbnailUrl,
+            publicationStatus: dto.publicationStatus,
+            destinations: {
+              create: uniqueDestinationIds.map((destinationId) => ({
+                destinationId,
+              })),
+            },
+            hotels: {
+              create: uniqueHotelIds.map((hotelId) => ({ hotelId })),
+            },
           },
-          hotels: {
-            create: uniqueHotelIds.map((hotelId) => ({ hotelId })),
-          },
-        },
-        select: videoSelect,
+          select: videoSelect,
+        });
+
+        if (
+          uniqueHotelIds.length > 0 &&
+          dto.publicationStatus === PublicationStatus.PUBLISHED &&
+          dto.verificationStatus !== VerificationStatus.REJECTED
+        ) {
+          const existingAssociations =
+            await transaction.hotelAssociation.findMany({
+              where: {
+                notablePersonId: person.id,
+                hotelId: { in: uniqueHotelIds },
+              },
+              select: { hotelId: true },
+            });
+          const existingHotelIds = new Set(
+            existingAssociations.map(({ hotelId }) => hotelId),
+          );
+
+          for (const hotel of hotels) {
+            if (existingHotelIds.has(hotel.id)) continue;
+            await transaction.hotelAssociation.create({
+              data: {
+                referenceKey: associationReferenceKey(
+                  dto.id,
+                  person.slug,
+                  hotel.slug,
+                ),
+                hotelId: hotel.id,
+                notablePersonId: person.id,
+                type: AssociationType.VISITED,
+                summary: `ارتباط ${person.displayName} با ${hotel.name} از طریق ویدیوی «${dto.title.trim()}» ثبت شده و در انتظار تکمیل بررسی است.`,
+                verificationStatus: VerificationStatus.PENDING,
+              },
+            });
+          }
+        }
+
+        return createdVideo;
       });
       return { data: flattenVideo(video) };
     } catch (error) {
@@ -390,6 +454,7 @@ export class CatalogService {
       })),
       videos: videos.map((video) => ({
         id: video.id,
+        videoCategory: video.videoCategory,
         instagramUsername: video.instagramUsername,
         platform: video.platform,
         personCategory: video.personCategory,
@@ -438,4 +503,16 @@ function flattenVideo<
     destinations: destinations.map(({ destination }) => destination),
     hotels: hotels.map(({ hotel }) => hotel),
   };
+}
+
+function associationReferenceKey(
+  videoId: string,
+  personSlug: string,
+  hotelSlug: string,
+): string {
+  return `video-${personSlug}-${hotelSlug}-${videoId}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 200);
 }

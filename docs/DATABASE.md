@@ -209,7 +209,8 @@ decision and when. `moderationNote` is internal and is never returned publicly.
 
 `Video` is the canonical database record used by discovery and interactive
 features. It stores the normalized Instagram username, original `sourceUrl`,
-display metadata, media paths, verification status, and publication status.
+explicit `videoCategory` (`TRAVEL` or `HOTEL`), display metadata, media paths,
+verification status, and publication status.
 `VideoComment` uses the same stable ID, so comments cannot attach to an
 arbitrary unknown video. Person profile fields are still resolved from
 `NotablePerson` and are not copied into the video.
@@ -228,6 +229,12 @@ Public hotel detail reads published videos through `VideoHotel`; the relation
 does not duplicate or replace `HotelAssociation`. Presentation under a specific
 person uses the canonical `Video.instagramUsername` and
 `NotablePerson.instagramHandle` match.
+
+Admin creation treats selected hotel links on published, non-rejected videos
+as relationship evidence-in-progress: if the person–hotel pair has no
+`HotelAssociation`, it creates one as `VISITED` and `PENDING` in the same
+transaction. Existing associations are preserved and never duplicated by this
+workflow.
 
 ## VideoComment
 

@@ -6,6 +6,7 @@ import {
   PublicationStatus,
   SourceType,
   VerificationStatus,
+  VideoCategory,
 } from '../generated/prisma/enums';
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -72,6 +73,7 @@ export type AssociationImportRecord = {
 
 export type VideoImportRecord = {
   id: string;
+  videoCategory?: VideoCategory;
   instagramUsername?: string | null;
   platform?: string | null;
   personCategory?: string | null;
@@ -272,6 +274,7 @@ const datasetSchema = Joi.object<ImportDataset>({
     .items(
       Joi.object<VideoImportRecord>({
         id: Joi.string().trim().min(1).max(160).required(),
+        videoCategory: Joi.string().valid(...Object.values(VideoCategory)),
         instagramUsername: Joi.string()
           .trim()
           .pattern(/^[A-Za-z0-9._]+$/)

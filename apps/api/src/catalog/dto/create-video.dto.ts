@@ -1,5 +1,4 @@
 import {
-  ArrayNotEmpty,
   IsArray,
   IsEnum,
   IsOptional,
@@ -12,6 +11,7 @@ import {
 } from 'class-validator';
 import {
   PublicationStatus,
+  VideoCategory,
   VerificationStatus,
 } from '../../generated/prisma/enums';
 import {
@@ -23,6 +23,7 @@ import {
 
 export class CreateVideoDto {
   @IsString() @MinLength(1) @MaxLength(160) id!: string;
+  @IsEnum(VideoCategory) videoCategory!: VideoCategory;
   @NormalizeInstagram()
   @Matches(instagramPattern)
   @MaxLength(30)
@@ -46,11 +47,9 @@ export class CreateVideoDto {
   @Matches(mediaPathPattern) thumbnailUrl!: string;
   @IsEnum(PublicationStatus) publicationStatus!: PublicationStatus;
   @IsArray()
-  @ArrayNotEmpty()
   @IsUUID(undefined, { each: true })
   destinationIds!: string[];
-  @IsOptional()
   @IsArray()
   @IsUUID(undefined, { each: true })
-  hotelIds?: string[];
+  hotelIds!: string[];
 }

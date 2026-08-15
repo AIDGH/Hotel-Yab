@@ -64,7 +64,8 @@
   ],
   "videos": [
     {
-      "id": "replace.handle-001",
+      "id": "replace-with-real-person-001",
+      "videoCategory": "TRAVEL",
       "instagramUsername": "replace.handle",
       "platform": "INSTAGRAM",
       "personCategory": "INFLUENCER",
@@ -77,8 +78,8 @@
       "captionSummary": "Replace with caption summary",
       "evidenceType": "ORIGINAL_POST",
       "verificationStatus": "PENDING",
-      "mediaUrl": "/travel-videos/replace.handle/001.mp4",
-      "thumbnailUrl": "/travel-videos/replace.handle/001-thumbnail.webp",
+      "mediaUrl": "/travel-videos/replace-with-real-person/001.mp4",
+      "thumbnailUrl": "/travel-videos/replace-with-real-person/001-thumbnail.webp",
       "publicationStatus": "DRAFT",
       "destinationRefs": [
         { "type": "CITY", "slug": "replace-with-city" }

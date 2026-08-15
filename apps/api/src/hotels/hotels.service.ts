@@ -188,6 +188,7 @@ export class HotelsService {
             video: {
               select: {
                 id: true,
+                videoCategory: true,
                 instagramUsername: true,
                 platform: true,
                 personCategory: true,

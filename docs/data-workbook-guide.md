@@ -95,11 +95,15 @@ CITY     → /images/cities/<slug>.webp
 For routine additions, use `/admin/catalog`:
 
 1. Store media as
-   `apps/web/public/travel-videos/<instagram-username>/<sequence>.mp4` and
-   `<sequence>-thumbnail.webp`.
+   `apps/web/public/travel-videos/<person-slug>/<sequence>.mp4` for `TRAVEL`, or
+   `apps/web/public/hotel-videos/<person-slug>/<hotel-slug>-<sequence>.mp4` for
+   single-hotel `HOTEL` media. Use `multi-hotel` instead of one hotel slug when
+   a video belongs to several hotels; thumbnails use the same stem plus
+   `-thumbnail.webp`.
 2. Add any missing destination or notable person first.
-3. Create the video, select all related destinations and optional hotels, and
-   retain the original Instagram `sourceUrl`.
+3. Choose `TRAVEL` or `HOTEL`, create the video, search and toggle all related
+   destinations/hotels, review the automatically suggested editable media
+   paths, and retain the original Instagram `sourceUrl`.
 4. Use «دریافت خروجی JSON» when a complete import-compatible snapshot is
    needed; do not edit JSON and PostgreSQL independently.
 

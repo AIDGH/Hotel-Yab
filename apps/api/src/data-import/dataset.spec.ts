@@ -153,6 +153,7 @@ describe('validateDataset', () => {
       videos: [
         {
           id: 'example.person-001',
+          videoCategory: 'TRAVEL',
           instagramUsername: 'example.person',
           sourceUrl: 'https://www.instagram.com/p/example/',
           mediaUrl: '/travel-videos/example.person/001.mp4',
@@ -168,6 +169,7 @@ describe('validateDataset', () => {
       videos: [
         {
           id: 'example.person-001',
+          videoCategory: 'TRAVEL',
           destinationRefs: [{ type: 'CITY', slug: 'example-city' }],
           hotelSlugs: ['example-hotel'],
         },

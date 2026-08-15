@@ -7,6 +7,7 @@ import {
   DestinationType,
   PublicationStatus,
   VerificationStatus,
+  VideoCategory,
 } from '../src/generated/prisma/enums';
 
 type DestinationInput = {
@@ -181,6 +182,7 @@ function destinationData(input: DestinationInput, type: DestinationType) {
 function videoData(input: TravelVideoInput) {
   return {
     id: input.videoId,
+    videoCategory: VideoCategory.TRAVEL,
     instagramUsername: input.instagramUsername.replace(/^@/, '').toLowerCase(),
     platform: input.platform,
     personCategory: input.personCategory,

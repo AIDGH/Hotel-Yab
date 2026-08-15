@@ -1378,6 +1378,86 @@ img {
   font-weight: 500;
 }
 
+.catalog-multi-field {
+  display: grid;
+  gap: 9px;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.catalog-selected-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.catalog-selected-items button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border: 1px solid rgba(83, 92, 255, 0.25);
+  border-radius: 999px;
+  color: var(--brand-dark);
+  background: rgba(83, 92, 255, 0.08);
+  font: inherit;
+  cursor: pointer;
+}
+
+.catalog-selected-items button span {
+  font-size: 1rem;
+}
+
+.catalog-option-list {
+  display: grid;
+  max-height: 260px;
+  gap: 6px;
+  overflow-y: auto;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface-soft);
+}
+
+.catalog-option-list > button {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 11px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--ink-soft);
+  background: #fff;
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+}
+
+.catalog-option-list > button strong {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.catalog-option-list > button:hover,
+.catalog-option-list > button.is-selected {
+  border-color: rgba(83, 92, 255, 0.32);
+  background: rgba(83, 92, 255, 0.09);
+}
+
+.catalog-option-list > button.is-selected strong {
+  color: var(--brand-dark);
+}
+
+.catalog-option-empty {
+  padding: 14px;
+  text-align: center;
+}
+
 .catalog-field-wide {
   grid-column: 1 / -1;
 }

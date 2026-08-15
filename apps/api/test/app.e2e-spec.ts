@@ -18,6 +18,7 @@ import {
   SourceType,
   UserRole,
   VerificationStatus,
+  VideoCategory,
 } from './../src/generated/prisma/enums';
 
 const fixtureSlugs = [
@@ -34,6 +35,7 @@ const fixtureSourceUrlPrefix = 'https://example.com/hotel-yab-e2e/';
 const fixtureMobile = '+989120000001';
 const reporterFixtureMobile = '+989120000002';
 const fixtureVideoId = 'e2e-travel-video';
+const fixtureCatalogVideoId = 'e2e-catalog-hotel-video';
 const importFixture: ImportDataset = {
   videos: [],
   destinations: [],
@@ -121,7 +123,9 @@ describe('Hotel-Yab API (e2e)', () => {
     await prisma.otpChallenge.deleteMany({
       where: { mobile: { in: [fixtureMobile, reporterFixtureMobile] } },
     });
-    await prisma.video.deleteMany({ where: { id: fixtureVideoId } });
+    await prisma.video.deleteMany({
+      where: { id: { in: [fixtureVideoId, fixtureCatalogVideoId] } },
+    });
     await prisma.hotel.deleteMany({
       where: { slug: { in: fixtureSlugs } },
     });
@@ -439,6 +443,7 @@ describe('Hotel-Yab API (e2e)', () => {
           videos: [
             {
               id: fixtureVideoId,
+              videoCategory: 'TRAVEL',
               instagramUsername: 'e2e_visible_athlete',
               platform: 'INSTAGRAM',
               personCategory: null,
@@ -980,6 +985,51 @@ describe('Hotel-Yab API (e2e)', () => {
       where: { mobile: fixtureMobile },
       data: { role: UserRole.ADMIN },
     });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/catalog/videos')
+      .set('Cookie', sessionCookie)
+      .send({
+        id: fixtureCatalogVideoId,
+        videoCategory: VideoCategory.HOTEL,
+        instagramUsername: 'e2e_visible_athlete',
+        platform: 'INSTAGRAM',
+        personCategory: 'ATHLETE',
+        contentType: 'POST',
+        sourceUrl: `${fixtureSourceUrlPrefix}catalog-hotel-video`,
+        title: 'E2E catalog hotel video',
+        placeName: 'E2E Hidden Pending Hotel',
+        placeType: 'HOTEL',
+        evidenceType: 'ORIGINAL_POST',
+        verificationStatus: VerificationStatus.VERIFIED,
+        mediaUrl:
+          '/hotel-videos/e2e-visible-athlete/e2e-hidden-pending-hotel-001.mp4',
+        thumbnailUrl:
+          '/hotel-videos/e2e-visible-athlete/e2e-hidden-pending-hotel-001-thumbnail.webp',
+        publicationStatus: PublicationStatus.PUBLISHED,
+        destinationIds: [],
+        hotelIds: [hiddenPendingHotelId],
+      })
+      .expect(201)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          data: {
+            id: fixtureCatalogVideoId,
+            videoCategory: 'HOTEL',
+            hotels: [{ id: hiddenPendingHotelId }],
+          },
+        });
+      });
+
+    await expect(
+      prisma.hotelAssociation.findFirst({
+        where: {
+          hotelId: hiddenPendingHotelId,
+          notablePersonId: visiblePersonId,
+        },
+        select: { verificationStatus: true },
+      }),
+    ).resolves.toEqual({ verificationStatus: VerificationStatus.PENDING });
 
     await request(app.getHttpServer())
       .get('/api/v1/admin/moderation/queue?status=PENDING')

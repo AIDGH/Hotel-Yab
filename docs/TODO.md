@@ -157,6 +157,8 @@ The contribution-moderation slice and first create-only catalog slice are implem
 - [x] Add a safe local command to bootstrap an admin/moderator role
 - [x] Create administrator-only add forms for destinations, hotels, notable people, and travel videos
 - [x] Add multi-destination and optional hotel links while creating a video
+- [x] Add searchable click-to-toggle destination/hotel multi-selection and editable media-path suggestions
+- [x] Create a pending person–hotel association when a catalog video introduces a new pair
 - [x] Add an import-compatible catalog JSON export
 - [ ] Add edit/archive interfaces for existing destination, hotel, person, and video records
 - [ ] Create association review interface

@@ -612,6 +612,23 @@ while keeping staff notes private preserves the moderation boundary.
 
 **Status:** Active; implemented without a database migration.
 
+## 35. Keep Travel and Hotel Videos Explicitly Categorized
+
+**Decision:** Every canonical `Video` has a `videoCategory` of `TRAVEL` or
+`HOTEL`. Media remains organized in separate `/travel-videos/<person-slug>/`
+and `/hotel-videos/<person-slug>/` roots, but product filtering must use the
+database category rather than infer semantics from a file path. The admin form
+generates an editable path suggestion. Linking a published, non-rejected hotel
+video creates a missing person–hotel association as pending, never verified.
+
+**Reason:** Hotel videos and destination travel videos can have different
+discovery rules. Explicit categorization preserves that boundary even if a
+video has several destination/hotel relations, while stable slug-based paths
+keep local media manageable. Pending automatic associations make linked media
+visible without manufacturing a verified claim.
+
+**Status:** Active; migration `20260815120000_add_video_category`.
+
 ## 34. Make PostgreSQL the Runtime Source for Destinations and Travel Videos
 
 **Decision:** Canonical destination metadata, complete travel-video metadata,

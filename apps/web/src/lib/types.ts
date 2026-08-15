@@ -123,6 +123,7 @@ export type Destination = {
 
 export type TravelVideo = {
   id: string;
+  videoCategory: "TRAVEL" | "HOTEL";
   instagramUsername: string;
   platform: string;
   personCategory: string | null;

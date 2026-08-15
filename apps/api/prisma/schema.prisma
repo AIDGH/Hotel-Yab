@@ -82,6 +82,11 @@ enum DestinationType {
   PROVINCE
 }
 
+enum VideoCategory {
+  TRAVEL
+  HOTEL
+}
+
 model Hotel {
   id                String             @id @default(uuid()) @db.Uuid
   slug              String             @unique @db.VarChar(160)
@@ -322,6 +327,7 @@ model HotelReview {
 
 model Video {
   id                 String             @id @db.VarChar(160)
+  videoCategory      VideoCategory      @default(TRAVEL)
   instagramUsername  String?            @db.VarChar(30)
   platform           String?            @db.VarChar(30)
   personCategory     String?            @db.VarChar(40)
@@ -345,6 +351,7 @@ model Video {
   updatedAt          DateTime           @updatedAt @db.Timestamptz(3)
 
   @@index([instagramUsername])
+  @@index([videoCategory, publicationStatus])
   @@index([publicationStatus])
 }
 
