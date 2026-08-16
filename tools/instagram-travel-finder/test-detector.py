@@ -66,6 +66,67 @@ TEST_CASES = [
         "expected_cities": {"marivan"},
         "expected_provinces": {"kurdistan"},
     },
+    {
+        "caption": "امروز کلی راه رفتیم ولی اسم مقصد رو ننوشتم",
+        "location": "Shiraz, Iran",
+        "expected_cities": set(),
+        "expected_provinces": set(),
+    },
+    {
+        "caption": "یه روز خیلی خوب داشتیم",
+        "location": "Bandar Abbas, Iran",
+        "expected_cities": set(),
+        "expected_provinces": set(),
+    },
+    {
+        "caption": (
+            "ویلدان یه دوست قدیمیه. "
+            "هر چند وقت یک جای دنیا همو میبینیم. "
+            "پاریس، تهران، استانبول."
+        ),
+        "location": "Paris, France",
+        "expected_cities": set(),
+        "expected_provinces": set(),
+    },
+    {
+        "caption": (
+            "اجرای هفتم سفر گروهی به آسیای میانه. "
+            "#تور_آسیای_میانه #سمرقند"
+        ),
+        "location": "Samarkand",
+        "expected_cities": set(),
+        "expected_provinces": set(),
+    },
+    {
+        "caption": (
+            "فردا میرم دنبال پاسپورت جدیدم، "
+            "تا جون داری سفر برو و کشف کن"
+        ),
+        "location": "Tehran, Iran",
+        "expected_cities": set(),
+        "expected_provinces": set(),
+    },
+    {
+        "caption": (
+            "تور روسیه\n"
+            "با پرواز ماهان: تهران–سن‌پترزبورگ\n"
+            "مسکو–تهران"
+        ),
+        "location": "",
+        "expected_cities": set(),
+        "expected_provinces": set(),
+    },
+    {
+        "caption": (
+            "من عاشق ایرانگردی و سفر "
+            "با ایران‌دوستان هستم. "
+            "#ایرانگردی #خراسان"
+        ),
+        "location": "",
+        "expected_cities": set(),
+        "expected_provinces": set(),
+        "expected_is_iran_travel": True,
+    },
 ]
 
 
@@ -73,7 +134,10 @@ def run_tests():
     passed = 0
 
     for index, test in enumerate(TEST_CASES, start=1):
-        result = detect_locations(test["caption"])
+        result = detect_locations(
+            test["caption"],
+            test.get("location"),
+        )
 
         actual_cities = {
             city["slug"]
@@ -100,6 +164,7 @@ def run_tests():
                 "Expected cities:",
                 test["expected_cities"],
             )
+
             print(
                 "Actual cities:",
                 actual_cities,
@@ -109,6 +174,12 @@ def run_tests():
                 "Expected provinces:",
                 test["expected_provinces"],
             )
+
+            print(
+                "Expected is Iran travel:",
+                test["expected_is_iran_travel"],
+            )
+
             print(
                 "Actual provinces:",
                 actual_provinces,

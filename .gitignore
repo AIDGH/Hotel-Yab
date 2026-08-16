@@ -52,3 +52,7 @@ __pycache__/
 tools/instagram-follower-tracker/.browser-profile/
 tools/instagram-follower-tracker/.browser-profile/
 tools/instagram-follower-tracker/output/
+
+tools/instagram-travel-finder/output/
+tools/instagram-travel-finder/query.json
+tools/instagram-travel-finder/query.rtf
