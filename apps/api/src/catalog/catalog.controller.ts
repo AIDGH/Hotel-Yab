@@ -1,12 +1,17 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
+  Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AdminGuard } from '../auth/admin.guard';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
@@ -54,6 +59,60 @@ export class CatalogController {
   @Post('videos')
   createVideo(@Body() dto: CreateVideoDto) {
     return this.catalogService.createVideo(dto);
+  }
+
+  @Patch('destinations/:id')
+  updateDestination(
+    @Param('id') id: string,
+    @Body() dto: CreateDestinationDto,
+  ) {
+    return this.catalogService.updateDestination(id, dto);
+  }
+
+  @Patch('hotels/:id')
+  updateHotel(@Param('id') id: string, @Body() dto: CreateHotelDto) {
+    return this.catalogService.updateHotel(id, dto);
+  }
+
+  @Patch('notable-people/:id')
+  updateNotablePerson(
+    @Param('id') id: string,
+    @Body() dto: CreateNotablePersonDto,
+  ) {
+    return this.catalogService.updateNotablePerson(id, dto);
+  }
+
+  @Post('media')
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 15_000_000 } }),
+  )
+  uploadMedia(
+    @Body('kind') kind: string,
+    @Body('slug') slug: string,
+    @UploadedFile()
+    file: { buffer: Buffer; mimetype: string; size: number } | undefined,
+  ) {
+    return this.catalogService.uploadMedia(kind, slug, file);
+  }
+
+  @Delete('destinations/:id')
+  deleteDestination(@Param('id') id: string) {
+    return this.catalogService.deleteDestination(id);
+  }
+
+  @Delete('hotels/:id')
+  deleteHotel(@Param('id') id: string) {
+    return this.catalogService.deleteHotel(id);
+  }
+
+  @Delete('notable-people/:id')
+  deleteNotablePerson(@Param('id') id: string) {
+    return this.catalogService.deleteNotablePerson(id);
+  }
+
+  @Delete('videos/:id')
+  deleteVideo(@Param('id') id: string) {
+    return this.catalogService.deleteVideo(id);
   }
 }
 

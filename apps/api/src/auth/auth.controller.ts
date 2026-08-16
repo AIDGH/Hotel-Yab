@@ -116,7 +116,7 @@ export class AuthController {
   @Post('me/avatar')
   @UseGuards(SessionAuthGuard)
   @UseInterceptors(
-    FileInterceptor('avatar', { limits: { fileSize: 1_000_000 } }),
+    FileInterceptor('avatar', { limits: { fileSize: 15_000_000 } }),
   )
   updateAvatar(
     @Req() request: AuthenticatedRequest,

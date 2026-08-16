@@ -18,6 +18,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { Request, Response } from 'express';
+import sharp from 'sharp';
 import { EnvironmentVariables } from '../config/environment';
 import { PrismaService } from '../database/prisma.service';
 import { UserStatus } from '../generated/prisma/enums';
@@ -30,8 +31,7 @@ const SESSION_COOKIE = 'hotel_yab_session';
 const MAX_OTP_ATTEMPTS = 5;
 const SCRYPT_KEY_LENGTH = 64;
 const SCRYPT_COST = 16_384;
-const MAX_AVATAR_BYTES = 1_000_000;
-const AVATAR_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const MAX_AVATAR_INPUT_BYTES = 15_000_000;
 
 type RequestMetadata = { userAgent?: string; ipAddress?: string };
 type AvatarUpload = {
@@ -216,27 +216,42 @@ export class AuthService {
   }
 
   async updateAvatar(userId: string, file: AvatarUpload | undefined) {
-    if (!file) throw new BadRequestException('Choose an avatar image');
-    if (file.size > MAX_AVATAR_BYTES) {
-      throw new BadRequestException('The avatar image must be at most 1 MB');
+    if (!file) throw new BadRequestException('یک تصویر انتخاب کنید');
+    if (file.size > MAX_AVATAR_INPUT_BYTES) {
+      throw new BadRequestException('حجم تصویر نباید بیشتر از ۱۵ مگابایت باشد');
     }
-    if (
-      !AVATAR_MIME_TYPES.has(file.mimetype) ||
-      !matchesAvatarSignature(file.buffer, file.mimetype)
-    ) {
-      throw new BadRequestException('The avatar image format is invalid');
+
+    let avatarBuffer: Buffer;
+    try {
+      avatarBuffer = await sharp(file.buffer, {
+        failOn: 'error',
+        limitInputPixels: 80_000_000,
+      })
+        .rotate()
+        .resize({
+          width: 1024,
+          height: 1024,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .webp({ quality: 86, effort: 4 })
+        .toBuffer();
+    } catch {
+      throw new BadRequestException(
+        'این تصویر قابل پردازش نیست؛ یک فایل تصویری سالم انتخاب کنید',
+      );
     }
 
     await this.prisma.userAvatar.upsert({
       where: { userId },
       create: {
         userId,
-        data: Uint8Array.from(file.buffer),
-        mimeType: file.mimetype,
+        data: Uint8Array.from(avatarBuffer),
+        mimeType: 'image/webp',
       },
       update: {
-        data: Uint8Array.from(file.buffer),
-        mimeType: file.mimetype,
+        data: Uint8Array.from(avatarBuffer),
+        mimeType: 'image/webp',
       },
     });
     return this.getCurrentUser(userId);
@@ -580,29 +595,4 @@ function toPublicUser(user: {
         }
       : null,
   };
-}
-
-function matchesAvatarSignature(buffer: Buffer, mimeType: string): boolean {
-  if (mimeType === 'image/jpeg') {
-    return (
-      buffer.length >= 3 &&
-      buffer[0] === 0xff &&
-      buffer[1] === 0xd8 &&
-      buffer[2] === 0xff
-    );
-  }
-  if (mimeType === 'image/png') {
-    const signature = Buffer.from([
-      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-    ]);
-    return (
-      buffer.length >= signature.length &&
-      buffer.subarray(0, 8).equals(signature)
-    );
-  }
-  return (
-    buffer.length >= 12 &&
-    buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
-    buffer.subarray(8, 12).toString('ascii') === 'WEBP'
-  );
 }

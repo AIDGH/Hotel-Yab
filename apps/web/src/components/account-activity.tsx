@@ -33,6 +33,8 @@ type AccountActivityData = {
 };
 
 export function AccountActivity() {
+  const [visibleReviewCount, setVisibleReviewCount] = useState(4);
+  const [visibleCommentCount, setVisibleCommentCount] = useState(4);
   const [activity, setActivity] = useState<AccountActivityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -155,8 +157,10 @@ export function AccountActivity() {
             title="نظرهای هتل"
             count={activity.hotelReviews.length}
             emptyText="هنوز برای هتلی امتیاز یا نظر ثبت نکرده‌اید."
+            hasMore={visibleReviewCount < activity.hotelReviews.length}
+            onShowMore={() => setVisibleReviewCount((count) => count + 4)}
           >
-            {activity.hotelReviews.map((review) => (
+            {activity.hotelReviews.slice(0, visibleReviewCount).map((review) => (
               <article className="account-activity-item" key={review.id}>
                 <div className="account-activity-item-heading">
                   <div>
@@ -194,8 +198,10 @@ export function AccountActivity() {
             title="دیدگاه‌های ویدیو"
             count={activity.videoComments.length}
             emptyText="هنوز برای ویدیویی دیدگاه ثبت نکرده‌اید."
+            hasMore={visibleCommentCount < activity.videoComments.length}
+            onShowMore={() => setVisibleCommentCount((count) => count + 4)}
           >
-            {activity.videoComments.map((comment) => {
+            {activity.videoComments.slice(0, visibleCommentCount).map((comment) => {
               const metadata = videoMetadataById.get(comment.videoId);
               return (
                 <article className="account-activity-item" key={comment.id}>
@@ -246,11 +252,15 @@ function ActivityGroup({
   count,
   emptyText,
   children,
+  hasMore = false,
+  onShowMore,
 }: {
   title: string;
   count: number;
   emptyText: string;
   children: ReactNode;
+  hasMore?: boolean;
+  onShowMore?: () => void;
 }) {
   return (
     <section className="account-activity-group">
@@ -259,7 +269,10 @@ function ActivityGroup({
         <span>{count.toLocaleString("fa-IR")}</span>
       </div>
       {count > 0 ? (
-        <div className="account-activity-list">{children}</div>
+        <div className="account-activity-list">
+          {children}
+          {hasMore ? <button className="account-activity-more" type="button" onClick={onShowMore}>نمایش بیشتر</button> : null}
+        </div>
       ) : (
         <p className="account-activity-empty">{emptyText}</p>
       )}

@@ -743,17 +743,16 @@ describe('Hotel-Yab API (e2e)', () => {
       .set('Cookie', sessionCookie)
       .expect(404);
 
-    const avatarBytes = Buffer.concat([
-      Buffer.from('RIFF', 'ascii'),
-      Buffer.from([4, 0, 0, 0]),
-      Buffer.from('WEBP', 'ascii'),
-    ]);
+    const avatarBytes = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64',
+    );
     await request(app.getHttpServer())
       .post('/api/v1/auth/me/avatar')
       .set('Cookie', sessionCookie)
       .attach('avatar', avatarBytes, {
-        filename: 'avatar.webp',
-        contentType: 'image/webp',
+        filename: 'avatar.png',
+        contentType: 'image/png',
       })
       .expect(201)
       .expect((response) => {

@@ -4,6 +4,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import {
+  access,
+  lstat,
+  mkdir,
+  rename,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
+import { dirname, resolve, sep } from 'node:path';
+import sharp from 'sharp';
 import { Prisma } from '../generated/prisma/client';
 import {
   AssociationType,
@@ -62,6 +73,37 @@ const videoSelect = {
   },
 } satisfies Prisma.VideoSelect;
 
+const hotelAdminSelect = {
+  id: true,
+  slug: true,
+  name: true,
+  description: true,
+  countryCode: true,
+  city: true,
+  address: true,
+  latitude: true,
+  longitude: true,
+  websiteUrl: true,
+  imageUrl: true,
+  logoUrl: true,
+  starRating: true,
+  publicationStatus: true,
+} satisfies Prisma.HotelSelect;
+
+const notablePersonAdminSelect = {
+  id: true,
+  slug: true,
+  displayName: true,
+  instagramHandle: true,
+  primaryCategory: true,
+  occupation: true,
+  followerCount: true,
+  biography: true,
+  countryCode: true,
+  imageUrl: true,
+  publicationStatus: true,
+} satisfies Prisma.NotablePersonSelect;
+
 @Injectable()
 export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
@@ -75,24 +117,11 @@ export class CatalogService {
         }),
         this.prisma.hotel.findMany({
           orderBy: { name: 'asc' },
-          select: {
-            id: true,
-            slug: true,
-            name: true,
-            city: true,
-            publicationStatus: true,
-          },
+          select: hotelAdminSelect,
         }),
         this.prisma.notablePerson.findMany({
           orderBy: { displayName: 'asc' },
-          select: {
-            id: true,
-            slug: true,
-            displayName: true,
-            instagramHandle: true,
-            primaryCategory: true,
-            publicationStatus: true,
-          },
+          select: notablePersonAdminSelect,
         }),
         this.prisma.video.findMany({
           orderBy: { createdAt: 'desc' },
@@ -111,36 +140,44 @@ export class CatalogService {
   }
 
   async createDestination(dto: CreateDestinationDto) {
-    if (dto.type === DestinationType.CITY && !dto.parentProvinceId) {
-      throw new BadRequestException('برای شهر باید استان والد انتخاب شود');
-    }
-    if (dto.type === DestinationType.PROVINCE && dto.parentProvinceId) {
-      throw new BadRequestException('استان نمی‌تواند استان والد داشته باشد');
-    }
-    if (dto.parentProvinceId) {
-      const province = await this.prisma.destination.findFirst({
-        where: { id: dto.parentProvinceId, type: DestinationType.PROVINCE },
-        select: { id: true },
-      });
-      if (!province) throw new BadRequestException('استان والد معتبر نیست');
-    }
+    await this.requireDestinationRules(dto);
 
     try {
-      const destination = await this.prisma.destination.create({
-        data: {
-          ...dto,
-          name: dto.name.trim(),
-          description: dto.description ?? null,
-          imageUrl: dto.imageUrl ?? null,
-          parentProvinceId: dto.parentProvinceId ?? null,
-          isFeatured: dto.isFeatured ?? false,
-          displayOrder: dto.displayOrder ?? null,
-          primarySourceUrl: dto.primarySourceUrl ?? null,
-          sourceType: dto.sourceType ?? null,
-          notes: dto.notes ?? null,
+      const destination = await this.prisma.$transaction(
+        async (transaction) => {
+          const { displayOrder, ...data } = dto;
+          const created = await transaction.destination.create({
+            data: {
+              ...data,
+              name: dto.name.trim(),
+              description: dto.description ?? null,
+              imageUrl: dto.imageUrl ?? null,
+              parentProvinceId: dto.parentProvinceId ?? null,
+              isFeatured: dto.isFeatured ?? false,
+              displayOrder: null,
+              primarySourceUrl: dto.primarySourceUrl ?? null,
+              sourceType: dto.sourceType ?? null,
+              notes: dto.notes ?? null,
+            },
+            select: { id: true },
+          });
+          const orderedIds = await this.destinationIdsInOrder(
+            transaction,
+            dto.type,
+            created.id,
+          );
+          orderedIds.splice(
+            this.destinationPosition(displayOrder, orderedIds.length) - 1,
+            0,
+            created.id,
+          );
+          await this.applyDestinationOrder(transaction, dto.type, orderedIds);
+          return transaction.destination.findUniqueOrThrow({
+            where: { id: created.id },
+            select: destinationSelect,
+          });
         },
-        select: destinationSelect,
-      });
+      );
       return { data: destination };
     } catch (error) {
       this.handleUniqueConflict(
@@ -202,6 +239,257 @@ export class CatalogService {
     } catch (error) {
       this.handleUniqueConflict(error, 'اسلاگ این چهره قبلاً ثبت شده است');
     }
+  }
+
+  async updateDestination(id: string, dto: CreateDestinationDto) {
+    await this.requireDestinationRules(dto);
+    const existing = await this.prisma.destination.findUnique({
+      where: { id },
+      select: { id: true, type: true, _count: { select: { cities: true } } },
+    });
+    if (!existing) throw new NotFoundException('مقصد پیدا نشد');
+    if (
+      existing.type === DestinationType.PROVINCE &&
+      dto.type !== DestinationType.PROVINCE &&
+      existing._count.cities > 0
+    ) {
+      throw new BadRequestException(
+        'استان دارای شهر را نمی‌توان به شهر تبدیل کرد',
+      );
+    }
+
+    try {
+      const destination = await this.prisma.$transaction(
+        async (transaction) => {
+          const { displayOrder, ...data } = dto;
+          await transaction.destination.update({
+            where: { id },
+            data: {
+              ...data,
+              name: dto.name.trim(),
+              description: dto.description ?? null,
+              imageUrl: dto.imageUrl ?? null,
+              parentProvinceId: dto.parentProvinceId ?? null,
+              isFeatured: dto.isFeatured ?? false,
+              displayOrder: null,
+              primarySourceUrl: dto.primarySourceUrl ?? null,
+              sourceType: dto.sourceType ?? null,
+              notes: dto.notes ?? null,
+            },
+          });
+          if (existing.type !== dto.type) {
+            const previousIds = await this.destinationIdsInOrder(
+              transaction,
+              existing.type,
+              id,
+            );
+            await this.applyDestinationOrder(
+              transaction,
+              existing.type,
+              previousIds,
+            );
+          }
+          const orderedIds = await this.destinationIdsInOrder(
+            transaction,
+            dto.type,
+            id,
+          );
+          orderedIds.splice(
+            this.destinationPosition(displayOrder, orderedIds.length) - 1,
+            0,
+            id,
+          );
+          await this.applyDestinationOrder(transaction, dto.type, orderedIds);
+          return transaction.destination.findUniqueOrThrow({
+            where: { id },
+            select: destinationSelect,
+          });
+        },
+      );
+      return { data: destination };
+    } catch (error) {
+      this.handleUniqueConflict(
+        error,
+        'اسلاگ یا ترتیب نمایش این مقصد تکراری است',
+      );
+    }
+  }
+
+  async updateHotel(id: string, dto: CreateHotelDto) {
+    const existing = await this.prisma.hotel.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException('هتل پیدا نشد');
+
+    try {
+      const hotel = await this.prisma.hotel.update({
+        where: { id },
+        data: {
+          ...dto,
+          name: dto.name.trim(),
+          city: dto.city.trim(),
+          description: dto.description ?? null,
+          address: dto.address ?? null,
+          latitude: dto.latitude ?? null,
+          longitude: dto.longitude ?? null,
+          websiteUrl: dto.websiteUrl ?? null,
+          imageUrl: dto.imageUrl ?? null,
+          logoUrl: dto.logoUrl ?? null,
+          starRating: dto.starRating ?? null,
+        },
+        select: hotelAdminSelect,
+      });
+      return { data: hotel };
+    } catch (error) {
+      this.handleUniqueConflict(error, 'اسلاگ این هتل قبلاً ثبت شده است');
+    }
+  }
+
+  async updateNotablePerson(id: string, dto: CreateNotablePersonDto) {
+    const existing = await this.prisma.notablePerson.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException('چهره پیدا نشد');
+
+    if (dto.instagramHandle) {
+      const duplicate = await this.prisma.notablePerson.findFirst({
+        where: {
+          id: { not: id },
+          instagramHandle: { equals: dto.instagramHandle, mode: 'insensitive' },
+        },
+        select: { id: true },
+      });
+      if (duplicate) throw new ConflictException('آیدی اینستاگرام تکراری است');
+    }
+
+    try {
+      const person = await this.prisma.notablePerson.update({
+        where: { id },
+        data: {
+          ...dto,
+          displayName: dto.displayName.trim(),
+          instagramHandle: dto.instagramHandle ?? null,
+          occupation: dto.occupation ?? null,
+          followerCount: dto.followerCount ?? null,
+          biography: dto.biography ?? null,
+          countryCode: dto.countryCode ?? null,
+          imageUrl: dto.imageUrl ?? null,
+        },
+        select: notablePersonAdminSelect,
+      });
+      return { data: person };
+    } catch (error) {
+      this.handleUniqueConflict(error, 'اسلاگ این چهره قبلاً ثبت شده است');
+    }
+  }
+
+  async uploadMedia(
+    kind: string,
+    slug: string,
+    file: { buffer: Buffer; mimetype: string; size: number } | undefined,
+  ) {
+    if (!file) throw new BadRequestException('یک فایل برای آپلود انتخاب کنید');
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+      throw new BadRequestException('ابتدا Slug معتبر را وارد کنید');
+    }
+    const mediaPaths: Record<string, string> = {
+      HOTEL_IMAGE: `images/hotels/${slug}.webp`,
+      HOTEL_LOGO: `images/hotels/${slug}-logo.webp`,
+      PERSON_IMAGE: `images/people/${slug}.webp`,
+      CITY_IMAGE: `images/cities/${slug}.webp`,
+      PROVINCE_IMAGE: `images/provinces/${slug}.webp`,
+    };
+    const relativePath = mediaPaths[kind];
+    if (!relativePath) throw new BadRequestException('نوع رسانه معتبر نیست');
+
+    const publicRootCandidates = [
+      resolve(process.cwd(), '../web/public'),
+      resolve(process.cwd(), 'apps/web/public'),
+    ];
+    let publicRoot: string | null = null;
+    for (const candidate of publicRootCandidates) {
+      if (
+        await access(candidate)
+          .then(() => true)
+          .catch(() => false)
+      ) {
+        publicRoot = candidate;
+        break;
+      }
+    }
+    if (!publicRoot) {
+      throw new BadRequestException('پوشه public وب پیدا نشد');
+    }
+    const targetPath = resolve(publicRoot, relativePath);
+    if (!targetPath.startsWith(`${publicRoot}${sep}`)) {
+      throw new BadRequestException('مسیر رسانه معتبر نیست');
+    }
+    await mkdir(dirname(targetPath), { recursive: true });
+    const existing = await lstat(targetPath).catch(() => null);
+    if (existing?.isSymbolicLink()) {
+      throw new BadRequestException('مسیر رسانه به پیوند نمادین اشاره می‌کند');
+    }
+
+    let webpBuffer: Buffer;
+    try {
+      webpBuffer = await sharp(file.buffer, {
+        failOn: 'error',
+        limitInputPixels: 80_000_000,
+      })
+        .rotate()
+        .webp({ quality: 88, effort: 4 })
+        .toBuffer();
+    } catch {
+      throw new BadRequestException(
+        'این تصویر قابل پردازش نیست؛ یک فایل PNG، JPG، WebP یا HEIC سالم انتخاب کنید',
+      );
+    }
+
+    const temporaryPath = `${targetPath}.${randomUUID()}.tmp`;
+    try {
+      await writeFile(temporaryPath, webpBuffer, { flag: 'wx' });
+      await rename(temporaryPath, targetPath);
+    } finally {
+      await unlink(temporaryPath).catch(() => undefined);
+    }
+    return { data: { path: `/${relativePath}` } };
+  }
+
+  async deleteDestination(id: string) {
+    const destination = await this.prisma.destination.findUnique({
+      where: { id },
+      select: { id: true, _count: { select: { cities: true } } },
+    });
+    if (!destination) throw new NotFoundException('مقصد پیدا نشد');
+    if (destination._count.cities > 0) {
+      throw new BadRequestException(
+        'ابتدا شهرهای این استان را حذف یا منتقل کنید',
+      );
+    }
+    await this.prisma.destination.delete({ where: { id } });
+    return { data: { success: true } };
+  }
+
+  async deleteHotel(id: string) {
+    const result = await this.prisma.hotel.deleteMany({ where: { id } });
+    if (result.count === 0) throw new NotFoundException('هتل پیدا نشد');
+    return { data: { success: true } };
+  }
+
+  async deleteNotablePerson(id: string) {
+    const result = await this.prisma.notablePerson.deleteMany({
+      where: { id },
+    });
+    if (result.count === 0) throw new NotFoundException('چهره پیدا نشد');
+    return { data: { success: true } };
+  }
+
+  async deleteVideo(id: string) {
+    const result = await this.prisma.video.deleteMany({ where: { id } });
+    if (result.count === 0) throw new NotFoundException('ویدیو پیدا نشد');
+    return { data: { success: true } };
   }
 
   async createVideo(dto: CreateVideoDto) {
@@ -488,6 +776,65 @@ export class CatalogService {
       throw new ConflictException(message);
     }
     throw error;
+  }
+
+  private async requireDestinationRules(dto: CreateDestinationDto) {
+    if (dto.type === DestinationType.CITY && !dto.parentProvinceId) {
+      throw new BadRequestException('برای شهر باید استان والد انتخاب شود');
+    }
+    if (dto.type === DestinationType.PROVINCE && dto.parentProvinceId) {
+      throw new BadRequestException('استان نمی‌تواند استان والد داشته باشد');
+    }
+    if (dto.parentProvinceId) {
+      const province = await this.prisma.destination.findFirst({
+        where: { id: dto.parentProvinceId, type: DestinationType.PROVINCE },
+        select: { id: true },
+      });
+      if (!province) throw new BadRequestException('استان والد معتبر نیست');
+    }
+  }
+
+  private destinationPosition(
+    requested: number | undefined,
+    itemCount: number,
+  ) {
+    return Math.min(Math.max(requested ?? itemCount + 1, 1), itemCount + 1);
+  }
+
+  private async destinationIdsInOrder(
+    transaction: Prisma.TransactionClient,
+    type: DestinationType,
+    excludedId?: string,
+  ) {
+    const destinations = await transaction.destination.findMany({
+      where: { type, ...(excludedId ? { id: { not: excludedId } } : {}) },
+      select: { id: true, name: true, displayOrder: true },
+    });
+    return destinations
+      .sort(
+        (left, right) =>
+          (left.displayOrder ?? Number.MAX_SAFE_INTEGER) -
+            (right.displayOrder ?? Number.MAX_SAFE_INTEGER) ||
+          left.name.localeCompare(right.name, 'fa'),
+      )
+      .map(({ id }) => id);
+  }
+
+  private async applyDestinationOrder(
+    transaction: Prisma.TransactionClient,
+    type: DestinationType,
+    orderedIds: string[],
+  ) {
+    await transaction.destination.updateMany({
+      where: { type },
+      data: { displayOrder: null },
+    });
+    for (const [index, destinationId] of orderedIds.entries()) {
+      await transaction.destination.update({
+        where: { id: destinationId },
+        data: { displayOrder: index + 1 },
+      });
+    }
   }
 }
 

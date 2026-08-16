@@ -927,7 +927,7 @@ img {
 
 .destination-card-body > p {
   display: -webkit-box;
-  min-height: 52px;
+  min-height: 45px;
   margin-top: 8px;
   overflow: hidden;
   color: var(--muted);
@@ -1604,6 +1604,15 @@ img {
   font-size: 0.82rem;
   font-weight: 800;
   cursor: pointer;
+}
+
+.account-trigger small {
+  display: inline-grid;
+  min-width: 18px;
+  place-items: center;
+  font-size: 1.35rem;
+  line-height: 1;
+  transform: translateY(-3px);
 }
 
 .account-avatar {
@@ -2382,6 +2391,16 @@ img {
   cursor: pointer;
 }
 
+.account-section-nav a > span,
+.account-section-nav button > span {
+  display: inline-grid;
+  width: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
 .account-section-nav a:hover,
 .account-section-nav button:hover,
 .account-section-nav .account-section-active {
@@ -2609,6 +2628,220 @@ img {
 .account-activity-list {
   display: grid;
   gap: 12px;
+}
+
+.account-activity-more {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--primary);
+  font: inherit;
+  font-weight: 700;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+}
+
+.account-activity-more:hover {
+  background: var(--surface-soft);
+}
+
+.catalog-edit-empty {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  color: var(--muted);
+}
+
+.catalog-delete {
+  width: 100%;
+  margin-top: 1rem;
+  border: 1px solid #dc2626;
+  border-radius: 12px;
+  background: #fff1f2;
+  color: #b91c1c;
+  font: inherit;
+  font-weight: 800;
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+}
+
+.catalog-delete:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.catalog-media-field {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.catalog-media-upload {
+  width: fit-content;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: var(--primary);
+  font: inherit;
+  font-weight: 800;
+  padding: 0.6rem 0.85rem;
+  cursor: pointer;
+}
+
+.catalog-media-upload:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.catalog-upload-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(15 23 42 / 55%);
+  backdrop-filter: blur(4px);
+}
+
+.catalog-upload-dialog {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: 0 24px 70px rgb(15 23 42 / 25%);
+}
+
+.catalog-upload-dialog header,
+.catalog-upload-dialog footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.catalog-upload-dialog header {
+  margin-bottom: 16px;
+}
+
+.catalog-upload-dialog header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.catalog-upload-dialog header small {
+  overflow-wrap: anywhere;
+}
+
+.catalog-upload-dialog header > button {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.catalog-upload-dropzone {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 280px;
+  margin-bottom: 12px;
+  padding: 24px;
+  border: 2px dashed #a5b4fc;
+  border-radius: 16px;
+  background: #f8faff;
+  color: var(--muted);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.catalog-upload-dropzone:hover,
+.catalog-upload-dropzone.is-dragging {
+  border-color: var(--primary);
+  background: #eef2ff;
+  transform: translateY(-1px);
+}
+
+.catalog-upload-dropzone strong {
+  color: var(--ink);
+}
+
+.catalog-upload-dropzone img {
+  width: min(100%, 360px);
+  max-height: 190px;
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+.catalog-upload-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #e0e7ff;
+  color: var(--primary);
+  font-size: 1.8rem;
+}
+
+.catalog-upload-file-input {
+  display: none;
+}
+
+.catalog-upload-dialog footer {
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.catalog-upload-dialog footer .button {
+  width: auto;
+}
+
+.catalog-field-success {
+  color: #15803d !important;
+}
+
+.catalog-order-manager {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.catalog-order-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.catalog-order-preview span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  padding: 0.35rem 0.65rem;
+  color: var(--muted);
+}
+
+.catalog-order-preview span.is-selected {
+  border-color: var(--primary);
+  background: #eef2ff;
+  color: var(--primary);
+  font-weight: 800;
 }
 
 .account-activity-item {
