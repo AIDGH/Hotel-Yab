@@ -48,3 +48,7 @@ __pycache__/
 /apps/web/public/images/
 /apps/web/public/travel-videos/
 /apps/web/public/hotel-videos/
+
+tools/instagram-follower-tracker/.browser-profile/
+tools/instagram-follower-tracker/.browser-profile/
+tools/instagram-follower-tracker/output/
