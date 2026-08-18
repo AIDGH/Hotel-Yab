@@ -58,7 +58,69 @@ def color(
         f"{Color.RESET}"
     )
 
+def api_post_json(
+    path: str,
+    payload: dict,
+):
+    if not ADMIN_COOKIE:
+        raise RuntimeError(
+            "HOTELYAB_ADMIN_COOKIE is not set."
+        )
 
+    body = json.dumps(
+        payload
+    ).encode(
+        "utf-8"
+    )
+
+    request = Request(
+        f"{API_BASE}{path}",
+        data=body,
+        method="POST",
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Cookie": ADMIN_COOKIE,
+        },
+    )
+
+    try:
+        with urlopen(
+            request,
+            timeout=60,
+        ) as response:
+            return json.loads(
+                response
+                .read()
+                .decode("utf-8")
+            )
+
+    except HTTPError as exc:
+        response_body = (
+            exc.read()
+            .decode(
+                "utf-8",
+                errors="replace",
+            )
+        )
+
+        raise RuntimeError(
+            (
+                "Hotel-Yab API "
+                f"HTTP {exc.code}: "
+                f"{response_body[:1000]}"
+            )
+        ) from exc
+
+    except URLError as exc:
+        raise RuntimeError(
+            (
+                "Could not connect "
+                "to Hotel-Yab API: "
+                f"{exc}"
+            )
+        ) from exc
+    
 def api_get_json(
     path: str,
 ):
@@ -777,6 +839,15 @@ async def run():
         action="store_true",
     )
 
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help=(
+            "Save successful follower "
+            "counts to Hotel-Yab"
+        ),
+    )
+
     args = parser.parse_args()
 
     people = load_people()
@@ -834,6 +905,36 @@ async def run():
         results
     )
 
+    applied = None
+
+    if args.apply:
+        successful_results = [
+            item
+            for item in results
+            if (
+                item["status"] == "success"
+                and item["followerCount"] is not None
+                and item["id"]
+            )
+        ]
+
+        if successful_results:
+            payload = {
+                "updates": [
+                    {
+                        "notablePersonId": item["id"],
+                        "followerCount": item["followerCount"],
+                        "capturedAt": item["checkedAt"],
+                    }
+                    for item in successful_results
+                ]
+            }
+
+            applied = api_post_json(
+                "/admin/catalog/followers",
+                payload,
+            )
+
     success = sum(
         item["status"]
         == "success"
@@ -884,17 +985,35 @@ async def run():
     print(
         output_path
     )
-
-    print()
-    print(
-        color(
-            (
-                "No Hotel-Yab database "
-                "changes were made."
-            ),
-            Color.GRAY,
+    if args.apply:
+        applied_data = (
+            applied.get("data", {})
+            if applied
+            else {}
         )
-    )
+
+        print()
+        print(
+            color(
+                (
+                    "💾 Applied : "
+                    f"{applied_data.get('updatedPeople', 0)}"
+                ),
+                Color.GREEN,
+            )
+        )
+    print()
+    if not args.apply:
+        print()
+        print(
+            color(
+                (
+                    "No Hotel-Yab database "
+                    "changes were made."
+                ),
+                Color.GRAY,
+            )
+        )
 
 
 def main():

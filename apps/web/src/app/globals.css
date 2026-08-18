@@ -892,7 +892,7 @@ img {
 .hotel-card-body > p,
 .person-card-copy > p {
   display: -webkit-box;
-  min-height: 52px;
+  min-height: 50px;
   margin-top: 8px;
   overflow: hidden;
   color: var(--muted);

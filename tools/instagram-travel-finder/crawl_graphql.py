@@ -1,72 +1,630 @@
-import json
 import sys
 import time
+
+from collector import parse_graphql_response
+from graphql_client import fetch_profile_page
+
+import json
 from pathlib import Path
-
-from collector import (
-    parse_graphql_response,
-)
-from graphql_client import (
-    fetch_profile_page,
-)
+from http.client import IncompleteRead
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 
-BASE_DIR = (
-    Path(__file__).resolve().parent
-)
-
-OUTPUT_DIR = (
-    BASE_DIR
-    / "output"
-)
-
-STRENGTH_ORDER = {
-    "HIGH": 3,
-    "MEDIUM": 2,
-    "LOW": 1,
-    "NONE": 0,
-}
+BASE_DIR = Path(__file__).resolve().parent
+OUTPUT_DIR = BASE_DIR / "output"
 
 
-def get_output_dir() -> Path:
+def thumbnail_file(
+    username: str,
+    shortcode: str,
+) -> Path:
+    folder = (
+        OUTPUT_DIR
+        / username
+        / "thumbnails"
+    )
+
+    folder.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    return (
+        folder
+        / f"{shortcode}.jpg"
+    )
+
+
+def relative_output_path(
+    path: Path,
+) -> str:
+    try:
+        return str(
+            path.relative_to(
+                BASE_DIR
+            )
+        )
+    except ValueError:
+        return str(
+            path
+        )
+
+
+def download_thumbnail(
+    username: str,
+    post: dict,
+) -> str:
+    shortcode = str(
+        post.get(
+            "shortcode",
+            "",
+        )
+        or ""
+    ).strip()
+
+    source_url = str(
+        post.get(
+            "thumbnail_source_url",
+            "",
+        )
+        or ""
+    ).strip()
+
+    if (
+        not shortcode
+        or not source_url
+    ):
+        return ""
+
+    target = thumbnail_file(
+        username,
+        shortcode,
+    )
+
+    if (
+        target.exists()
+        and target.stat().st_size
+        > 0
+    ):
+        return relative_output_path(
+            target
+        )
+
+    temporary = target.with_suffix(
+        ".jpg.part"
+    )
+
+    for attempt in range(
+        1,
+        4,
+    ):
+        request = Request(
+            source_url,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 "
+                    "(Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) "
+                    "Chrome/143.0 Safari/537.36"
+                ),
+                "Referer": (
+                    "https://www.instagram.com/"
+                ),
+            },
+        )
+
+        try:
+            with urlopen(
+                request,
+                timeout=30,
+            ) as response:
+                content = response.read()
+
+            if not content:
+                raise RuntimeError(
+                    "empty thumbnail response"
+                )
+
+            temporary.write_bytes(
+                content
+            )
+
+            temporary.replace(
+                target
+            )
+
+            print(
+                "Thumbnail saved:",
+                relative_output_path(
+                    target
+                ),
+            )
+
+            return relative_output_path(
+                target
+            )
+
+        except IncompleteRead as exc:
+            if temporary.exists():
+                temporary.unlink()
+
+            if attempt < 3:
+                print(
+                    "Thumbnail response incomplete, retrying:",
+                    shortcode,
+                    f"({attempt}/3)",
+                )
+
+                time.sleep(
+                    1.5
+                )
+
+                continue
+
+            print(
+                "Thumbnail download skipped after incomplete response:",
+                shortcode,
+                "|",
+                exc,
+            )
+
+            return ""
+
+        except (
+            HTTPError,
+            URLError,
+            OSError,
+            RuntimeError,
+        ) as exc:
+            if temporary.exists():
+                temporary.unlink()
+
+            if (
+                attempt < 3
+                and not isinstance(
+                    exc,
+                    HTTPError,
+                )
+            ):
+                print(
+                    "Thumbnail download retry:",
+                    shortcode,
+                    f"({attempt}/3)",
+                    "|",
+                    exc,
+                )
+
+                time.sleep(
+                    1.5
+                )
+
+                continue
+
+            print(
+                "Thumbnail download skipped:",
+                shortcode,
+                "|",
+                exc,
+            )
+
+            return ""
+
+
+def fetch_page_safely(
+    username: str,
+    after: str | None,
+):
+    for count, wait in [
+        (6, 5),
+        (3, 10),
+        (1, 15),
+    ]:
+        try:
+            return fetch_profile_page(
+                username,
+                after=after,
+                count=count,
+            )
+
+        except RuntimeError as exc:
+            if "response was incomplete" not in str(exc):
+                raise
+
+            print(
+                f"Response incomplete with {count} posts."
+            )
+
+            time.sleep(wait)
+
+    return None
+
+def crawl_profile(
+    username: str,
+    max_pages: int = 4,
+    delay_seconds: int = 5,
+):
+    all_posts = []
+
+    checkpoint = load_checkpoint(username)
+
+    if checkpoint:
+        after = checkpoint["after"]
+        start_page = checkpoint["next_page"]
+        processed_posts = checkpoint[
+            "processed_posts"
+        ]
+
+        print(
+            f"Resuming from page {start_page}..."
+        )
+    else:
+        after = None
+        start_page = 1
+        processed_posts = 0
+
+    for page_number in range(
+        start_page,
+        max_pages + 1,
+    ):
+        print(f"Fetching page {page_number}...")
+
+        payload = fetch_page_safely(
+            username,
+            after,
+        )
+
+        if payload is None:
+            print(
+                "Could not fetch this page. "
+                "Stopping crawl safely."
+            )
+            break
+
+        result = parse_graphql_response(
+            payload
+        )
+
+        posts = result["posts"]
+        all_posts.extend(posts)
+
+        processed_posts += len(posts)
+
+        save_matches(
+            username,
+            posts,
+        )
+
+        save_checkpoint(
+            username,
+            result["end_cursor"],
+            page_number + 1,
+            processed_posts,
+        )
+
+        matches = [
+            post
+            for post in posts
+            if post["is_iran_travel"]
+        ]
+
+        print(
+            f"Page {page_number}: "
+            f"{len(posts)} posts, "
+            f"{len(matches)} Iran matches"
+        )
+
+        for post in matches:
+            print(
+                "  ",
+                post["post_url"],
+                "|",
+                post["matched_cities"],
+                "|",
+                post["matched_provinces"],
+            )
+
+        if not result["has_next_page"]:
+                print("Reached end of profile.")
+
+                path = checkpoint_file(username)
+
+                if path.exists():
+                    path.unlink()
+
+                break
+
+        after = result["end_cursor"]
+
+        if not after:
+            print("No end cursor returned.")
+            break
+
+        if page_number < max_pages:
+            time.sleep(delay_seconds)
+
+    return all_posts
+
+
+def checkpoint_file(username: str) -> Path:
+    output_dir = (
+        Path(__file__).resolve().parent
+        / "output"
+    )
+
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    return (
+        output_dir
+        / f"{username}.checkpoint.json"
+    )
+
+
+def save_checkpoint(
+    username: str,
+    after: str | None,
+    next_page: int,
+    processed_posts: int,
+):
+    path = checkpoint_file(username)
+
+    with path.open(
+        "w",
+        encoding="utf-8",
+    ) as file:
+        json.dump(
+            {
+                "after": after,
+                "next_page": next_page,
+                "processed_posts": processed_posts,
+            },
+            file,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+
+def load_checkpoint(username: str):
+    path = checkpoint_file(username)
+
+    if not path.exists():
+        return None
+
+    with path.open(
+        "r",
+        encoding="utf-8",
+    ) as file:
+        return json.load(file)
+    
+def save_matches(
+    username: str,
+    posts: list[dict],
+):
+    matches = [
+        post
+        for post in posts
+        if post[
+            "is_iran_travel"
+        ]
+    ]
+
     OUTPUT_DIR.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    return OUTPUT_DIR
-
-
-def checkpoint_file(
-    username: str,
-) -> Path:
-    return (
-        get_output_dir()
-        / (
-            f"{username}"
-            ".checkpoint.json"
-        )
-    )
-
-
-def matches_file(
-    username: str,
-) -> Path:
-    return (
-        get_output_dir()
+    output_file = (
+        OUTPUT_DIR
         / f"{username}.json"
     )
 
+    existing = []
 
-def write_json(
-    path: Path,
-    data,
-):
-    temp_path = path.with_suffix(
-        path.suffix + ".tmp"
+    if output_file.exists():
+        with output_file.open(
+            "r",
+            encoding="utf-8",
+        ) as file:
+            existing = json.load(
+                file
+            )
+
+    by_shortcode = {
+        item[
+            "shortcode"
+        ]: item
+        for item in existing
+        if item.get(
+            "shortcode"
+        )
+    }
+
+    for post in matches:
+        shortcode = post[
+            "shortcode"
+        ]
+
+        previous = dict(
+            by_shortcode.get(
+                shortcode,
+                {},
+            )
+        )
+
+        local_thumbnail = (
+            download_thumbnail(
+                username,
+                post,
+            )
+        )
+
+        if (
+            not local_thumbnail
+            and previous.get(
+                "thumbnail_local_path"
+            )
+        ):
+            local_thumbnail = (
+                previous[
+                    "thumbnail_local_path"
+                ]
+            )
+
+        record = dict(
+            previous
+        )
+
+        record.update(
+            {
+                "instagram_username": (
+                    post[
+                        "username"
+                    ]
+                ),
+                "source_url": (
+                    post[
+                        "post_url"
+                    ]
+                ),
+                "shortcode": shortcode,
+                "published_at": (
+                    post[
+                        "published_at"
+                    ]
+                ),
+                "caption": (
+                    post[
+                        "caption"
+                    ]
+                ),
+                "instagram_location": (
+                    post[
+                        "location"
+                    ]
+                ),
+                "product_type": (
+                    post.get(
+                        "product_type",
+                        "",
+                    )
+                ),
+                "media_type": (
+                    post.get(
+                        "media_type",
+                        "",
+                    )
+                ),
+                "signal_strength": (
+                    post.get(
+                        "signal_strength",
+                        "",
+                    )
+                ),
+                "signal_score": (
+                    post.get(
+                        "signal_score",
+                        0,
+                    )
+                ),
+                "candidate_signals": (
+                    post.get(
+                        "candidate_signals",
+                        [],
+                    )
+                ),
+                "is_hotel_priority": (
+                    post.get(
+                        "is_hotel_priority",
+                        False,
+                    )
+                ),
+                "priority": (
+                    post.get(
+                        "priority",
+                        "",
+                    )
+                ),
+                "matched_cities": (
+                    post[
+                        "matched_cities"
+                    ]
+                ),
+                "matched_city_slugs": (
+                    post[
+                        "matched_city_slugs"
+                    ]
+                ),
+                "matched_provinces": (
+                    post[
+                        "matched_provinces"
+                    ]
+                ),
+                "matched_province_slugs": (
+                    post[
+                        "matched_province_slugs"
+                    ]
+                ),
+                "video_download_url": (
+                    post.get(
+                        "video_download_url",
+                        "",
+                    )
+                ),
+                "video_width": (
+                    post.get(
+                        "video_width"
+                    )
+                ),
+                "video_height": (
+                    post.get(
+                        "video_height"
+                    )
+                ),
+                "thumbnail_source_url": (
+                    post.get(
+                        "thumbnail_source_url",
+                        "",
+                    )
+                ),
+                "thumbnail_width": (
+                    post.get(
+                        "thumbnail_width"
+                    )
+                ),
+                "thumbnail_height": (
+                    post.get(
+                        "thumbnail_height"
+                    )
+                ),
+                "thumbnail_local_path": (
+                    local_thumbnail
+                ),
+            }
+        )
+
+        record.setdefault(
+            "review_status",
+            "pending",
+        )
+
+        record.setdefault(
+            "notes",
+            "",
+        )
+
+        by_shortcode[
+            shortcode
+        ] = record
+
+    data = list(
+        by_shortcode.values()
     )
 
-    with temp_path.open(
+    with output_file.open(
         "w",
         encoding="utf-8",
     ) as file:
@@ -77,569 +635,21 @@ def write_json(
             indent=2,
         )
 
-    temp_path.replace(path)
-
-
-def save_checkpoint(
-    username: str,
-    after: str,
-    next_page: int,
-    processed_posts: int,
-):
-    write_json(
-        checkpoint_file(
-            username
-        ),
-        {
-            "after": after,
-            "next_page": next_page,
-            "processed_posts": (
-                processed_posts
-            ),
-        },
-    )
-
-
-def load_checkpoint(
-    username: str,
-):
-    path = checkpoint_file(
-        username
-    )
-
-    if not path.exists():
-        return None
-
-    with path.open(
-        "r",
-        encoding="utf-8",
-    ) as file:
-        checkpoint = (
-            json.load(file)
-        )
-
-    if not checkpoint.get(
-        "after"
-    ):
-        return None
-
-    return checkpoint
-
-
-def remove_checkpoint(
-    username: str,
-):
-    path = checkpoint_file(
-        username
-    )
-
-    if path.exists():
-        path.unlink()
-
-
-def load_saved_matches(
-    username: str,
-) -> list[dict]:
-    path = matches_file(
-        username
-    )
-
-    if not path.exists():
-        return []
-
-    with path.open(
-        "r",
-        encoding="utf-8",
-    ) as file:
-        return json.load(file)
-
-
-def candidate_sort_key(
-    item: dict,
-):
-    hotel_priority = (
+    thumbnail_count = sum(
         1
+        for item in data
         if item.get(
-            "is_hotel_priority",
-            False,
+            "thumbnail_local_path"
         )
-        else 0
-    )
-
-    strength = item.get(
-        "signal_strength",
-        "NONE",
-    )
-
-    score = item.get(
-        "signal_score",
-        0,
-    )
-
-    published_at = item.get(
-        "published_at",
-        "",
-    )
-
-    return (
-        hotel_priority,
-        STRENGTH_ORDER.get(
-            strength,
-            0,
-        ),
-        score,
-        published_at,
-    )
-
-def is_saved_candidate(
-    post: dict,
-) -> bool:
-    return bool(
-        post.get(
-            "is_hotel_priority",
-            False,
-        )
-        or post.get(
-            "is_iran_travel",
-            False,
-        )
-    )
-
-def save_matches(
-    username: str,
-    posts: list[dict],
-):
-    matches = [
-        post
-        for post in posts
-        if is_saved_candidate(
-            post
-        )
-    ]
-
-    existing = (
-        load_saved_matches(
-            username
-        )
-    )
-
-    by_shortcode = {
-        item["shortcode"]: item
-        for item in existing
-    }
-
-    for post in matches:
-        previous = (
-            by_shortcode.get(
-                post["shortcode"],
-                {},
-            )
-        )
-
-        by_shortcode[
-            post["shortcode"]
-        ] = {
-            "instagram_username": (
-                post["username"]
-            ),
-            "source_url": (
-                post["post_url"]
-            ),
-            "shortcode": (
-                post["shortcode"]
-            ),
-            "published_at": (
-                post["published_at"]
-            ),
-            "signal_strength": (
-                post[
-                    "signal_strength"
-                ]
-            ),
-            "signal_score": (
-                post[
-                    "signal_score"
-                ]
-            ),
-            "candidate_signals": (
-                post[
-                    "candidate_signals"
-                ]
-            ),
-            "caption": (
-                post["caption"]
-            ),
-            "instagram_location": (
-                post["location"]
-            ),
-            "matched_cities": (
-                post[
-                    "matched_cities"
-                ]
-            ),
-            "matched_city_slugs": (
-                post[
-                    "matched_city_slugs"
-                ]
-            ),
-            "matched_provinces": (
-                post[
-                    "matched_provinces"
-                ]
-            ),
-            "matched_province_slugs": (
-                post[
-                    "matched_province_slugs"
-                ]
-            ),
-            "is_hotel_priority": (
-                post.get(
-                    "is_hotel_priority",
-                    False,
-                )
-            ),
-            "priority": (
-                "HOTEL"
-                if post.get(
-                    "is_hotel_priority",
-                    False,
-                )
-                else post[
-                    "signal_strength"
-                ]
-            ),
-            "review_status": (
-                previous.get(
-                    "review_status",
-                    "pending",
-                )
-            ),
-            "notes": (
-                previous.get(
-                    "notes",
-                    "",
-                )
-            ),
-        }
-
-    data = list(
-        by_shortcode.values()
-    )
-
-    data.sort(
-        key=candidate_sort_key,
-        reverse=True,
-    )
-
-    write_json(
-        matches_file(username),
-        data,
-    )
-
-    high_count = sum(
-        item.get(
-            "signal_strength"
-        ) == "HIGH"
-        for item in data
-    )
-
-    medium_count = sum(
-        item.get(
-            "signal_strength"
-        ) == "MEDIUM"
-        for item in data
-    )
-
-    low_count = sum(
-        item.get(
-            "signal_strength"
-        ) == "LOW"
-        for item in data
     )
 
     print(
-        "Saved candidates: "
-        f"{len(data)} "
-        f"(HIGH {high_count}, "
-        f"MEDIUM {medium_count}, "
-        f"LOW {low_count})"
+        f"Saved matches: {len(data)}"
     )
 
-
-def fetch_page_safely(
-    username: str,
-    after: str | None,
-):
-    attempts = [
-        (6, 5),
-        (3, 10),
-        (1, 15),
-    ]
-
-    for (
-        count,
-        wait_seconds,
-    ) in attempts:
-        try:
-            return (
-                fetch_profile_page(
-                    username,
-                    after=after,
-                    count=count,
-                )
-            )
-
-        except RuntimeError as exc:
-            message = str(exc)
-
-            transient = (
-                (
-                    "response was incomplete"
-                    in message
-                )
-                or (
-                    "Instagram request failed:"
-                    in message
-                )
-            )
-
-            if not transient:
-                raise
-
-            print(
-                "Temporary error with "
-                f"{count} posts."
-            )
-
-            time.sleep(
-                wait_seconds
-            )
-
-    return None
-
-
-def crawl_profile(
-    username: str,
-    delay_seconds: int = 5,
-    retry_delay_seconds: int = 30,
-):
-    all_posts = []
-
-    checkpoint = (
-        load_checkpoint(
-            username
-        )
-    )
-
-    if checkpoint:
-        after = checkpoint[
-            "after"
-        ]
-
-        page_number = checkpoint[
-            "next_page"
-        ]
-
-        processed_posts = (
-            checkpoint[
-                "processed_posts"
-            ]
-        )
-
-        print(
-            "Resuming from page "
-            f"{page_number}..."
-        )
-
-    else:
-        after = None
-        page_number = 1
-        processed_posts = 0
-
-    try:
-        while True:
-            print(
-                "Fetching page "
-                f"{page_number}..."
-            )
-
-            payload = (
-                fetch_page_safely(
-                    username,
-                    after,
-                )
-            )
-
-            if payload is None:
-                print(
-                    "Instagram is "
-                    "temporarily unavailable."
-                )
-
-                print(
-                    "Retrying the same "
-                    f"page in "
-                    f"{retry_delay_seconds}"
-                    " seconds..."
-                )
-
-                time.sleep(
-                    retry_delay_seconds
-                )
-
-                continue
-
-            result = (
-                parse_graphql_response(
-                    payload
-                )
-            )
-
-            posts = result[
-                "posts"
-            ]
-
-            has_next_page = result[
-                "has_next_page"
-            ]
-
-            next_after = result[
-                "end_cursor"
-            ]
-
-            if (
-                has_next_page
-                and not next_after
-            ):
-                save_matches(
-                    username,
-                    posts,
-                )
-
-                print(
-                    "No end cursor "
-                    "returned."
-                )
-
-                print(
-                    "Retrying the same "
-                    f"page in "
-                    f"{retry_delay_seconds}"
-                    " seconds..."
-                )
-
-                time.sleep(
-                    retry_delay_seconds
-                )
-
-                continue
-
-            all_posts.extend(
-                posts
-            )
-
-            processed_posts += len(
-                posts
-            )
-
-            matches = [
-                post
-                for post in posts
-                if is_saved_candidate(
-                    post
-                )
-            ]
-
-            save_matches(
-                username,
-                posts,
-            )
-
-            print(
-                f"Page {page_number}: "
-                f"{len(posts)} posts, "
-                f"{len(matches)} "
-                "Iran candidates"
-            )
-
-            for post in matches:
-                print(
-                    "  ",
-                    (
-                        post.get(
-                            "priority",
-                            post[
-                                "signal_strength"
-                            ],
-                        )
-                    ),
-                    (
-                        post[
-                            "signal_score"
-                        ]
-                    ),
-                    "|",
-                    post["post_url"],
-                    "|",
-                    (
-                        post[
-                            "matched_cities"
-                        ]
-                    ),
-                    "|",
-                    (
-                        post[
-                            "matched_provinces"
-                        ]
-                    ),
-                )
-
-            if not has_next_page:
-                print(
-                    "Reached end "
-                    "of profile."
-                )
-
-                remove_checkpoint(
-                    username
-                )
-
-                break
-
-            after = next_after
-
-            page_number += 1
-
-            save_checkpoint(
-                username,
-                after,
-                page_number,
-                processed_posts,
-            )
-
-            time.sleep(
-                delay_seconds
-            )
-
-    except KeyboardInterrupt:
-        print(
-            "\nCrawler stopped "
-            "by user."
-        )
-
-        print(
-            "Checkpoint is safe."
-        )
-
-        print(
-            "Next run will resume "
-            f"from page "
-            f"{page_number}."
-        )
-
-    return (
-        all_posts,
-        processed_posts,
+    print(
+        "Cached thumbnails:",
+        thumbnail_count,
     )
 
 
@@ -650,52 +660,19 @@ if __name__ == "__main__":
         else "morteza.kowsari"
     )
 
-    (
-        posts,
-        processed_posts,
-    ) = crawl_profile(
-        username
-    )
+    posts = crawl_profile(username)
 
-    matches_this_run = [
+    matches = [
         post
         for post in posts
-        if post[
-            "is_iran_travel"
-        ]
+        if post["is_iran_travel"]
     ]
 
-    saved_matches = (
-        load_saved_matches(
-            username
-        )
-    )
+    print("\n--- SUMMARY ---")
+    print("Total posts:", len(posts))
+    print("Iran matches:", len(matches))
 
-    print(
-        "\n--- SUMMARY ---"
-    )
-
-    print(
-        "Posts this run:",
-        len(posts),
-    )
-
-    print(
-        "Total processed:",
-        processed_posts,
-    )
-
-    print(
-        "Candidates this run:",
-        len(matches_this_run),
-    )
-
-    print(
-        "Saved candidates:",
-        len(saved_matches),
-    )
-
-    print(
-        "Output:",
-        matches_file(username),
+    save_matches(
+        username,
+        posts,
     )

@@ -21,6 +21,7 @@ import { CreateDestinationDto } from './dto/create-destination.dto';
 import { CreateHotelDto } from './dto/create-hotel.dto';
 import { CreateNotablePersonDto } from './dto/create-notable-person.dto';
 import { CreateVideoDto } from './dto/create-video.dto';
+import { ApplyFollowerUpdatesDto } from './dto/apply-follower-updates.dto';
 
 @Controller('admin/catalog')
 @ApiTags('Admin Catalog')
@@ -54,6 +55,14 @@ export class CatalogController {
   @Post('notable-people')
   createNotablePerson(@Body() dto: CreateNotablePersonDto) {
     return this.catalogService.createNotablePerson(dto);
+  }
+
+  @Post('followers')
+  @ApiOperation({
+    summary: 'Apply Instagram follower counts and daily snapshots',
+  })
+  applyFollowerUpdates(@Body() dto: ApplyFollowerUpdatesDto) {
+    return this.catalogService.applyFollowerUpdates(dto);
   }
 
   @Post('videos')

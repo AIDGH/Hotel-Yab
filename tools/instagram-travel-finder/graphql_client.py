@@ -1,38 +1,337 @@
 import json
 import os
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+import shlex
 import time
 from http.client import IncompleteRead
+from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.parse import parse_qsl, urlencode
+from urllib.request import Request, urlopen
 
 
+BASE_DIR = Path(__file__).resolve().parent
+DEFAULT_CURL_FILE = BASE_DIR / "query.curl"
 GRAPHQL_URL = "https://www.instagram.com/graphql/query"
 
-APP_ID = "936619743392459"
 
-FRIENDLY_NAME = (
-    "PolarisProfilePostsTabContentQuery_connection"
-)
+def resolve_curl_file() -> Path:
+    configured = os.environ.get(
+        "IG_CURL_FILE",
+        "",
+    ).strip()
 
-ROOT_FIELD = (
-    "xdt_api__v1__feed__user_timeline_graphql_connection"
-)
+    path = (
+        Path(configured).expanduser()
+        if configured
+        else DEFAULT_CURL_FILE
+    )
 
-
-def cookie_value(
-    cookie_header: str,
-    name: str,
-) -> str:
-    for part in cookie_header.split(";"):
-        key, separator, value = (
-            part.strip().partition("=")
+    if not path.exists():
+        raise RuntimeError(
+            "Instagram cURL capture is missing. "
+            f"Save Chrome 'Copy as cURL' output to: {path}"
         )
 
-        if separator and key == name:
-            return value
+    return path
 
-    return ""
+
+def parse_curl_capture(
+    curl_text: str,
+) -> tuple[str, dict[str, str], str]:
+    curl_index = curl_text.find(
+        "curl "
+    )
+
+    if curl_index == -1:
+        raise RuntimeError(
+            "Instagram capture does not contain a cURL command."
+        )
+
+    curl_text = curl_text[
+        curl_index:
+    ]
+
+    tokens = shlex.split(
+        curl_text,
+        posix=True,
+    )
+
+    if not tokens:
+        raise RuntimeError(
+            "Instagram cURL capture is empty."
+        )
+
+    url = ""
+    headers: dict[str, str] = {}
+    cookie = ""
+    body = ""
+
+    index = 1
+
+    while index < len(tokens):
+        token = tokens[index]
+
+        if token in {
+            "-H",
+            "--header",
+        }:
+            index += 1
+
+            if index >= len(tokens):
+                break
+
+            header = tokens[index]
+
+            if ":" in header:
+                name, value = header.split(
+                    ":",
+                    1,
+                )
+
+                headers[
+                    name.strip()
+                ] = value.strip()
+
+        elif token in {
+            "-b",
+            "--cookie",
+        }:
+            index += 1
+
+            if index < len(tokens):
+                cookie = tokens[index]
+
+        elif token in {
+            "--data-raw",
+            "--data",
+            "--data-binary",
+            "-d",
+        }:
+            index += 1
+
+            if index < len(tokens):
+                body = tokens[index]
+
+        elif token.startswith(
+            "--data-raw="
+        ):
+            body = token.split(
+                "=",
+                1,
+            )[1]
+
+        elif token.startswith(
+            "--data="
+        ):
+            body = token.split(
+                "=",
+                1,
+            )[1]
+
+        elif token.startswith(
+            "http://"
+        ) or token.startswith(
+            "https://"
+        ):
+            url = token
+
+        index += 1
+
+    if not url:
+        url = GRAPHQL_URL
+
+    if not body:
+        raise RuntimeError(
+            "Instagram cURL capture has no request body."
+        )
+
+    if cookie:
+        headers[
+            "Cookie"
+        ] = cookie
+
+    return (
+        url,
+        headers,
+        body,
+    )
+
+
+def update_request_body(
+    raw_body: str,
+    after: str | None,
+) -> bytes:
+    pairs = parse_qsl(
+        raw_body,
+        keep_blank_values=True,
+    )
+
+    form = dict(
+        pairs
+    )
+
+    variables_raw = form.get(
+        "variables",
+        "",
+    )
+
+    if not variables_raw:
+        raise RuntimeError(
+            "Instagram cURL capture has no variables field."
+        )
+
+    try:
+        variables = json.loads(
+            variables_raw
+        )
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            "Instagram cURL variables are not valid JSON."
+        ) from exc
+
+    variables[
+        "after"
+    ] = after
+
+    form[
+        "variables"
+    ] = json.dumps(
+        variables,
+        ensure_ascii=False,
+        separators=(
+            ",",
+            ":",
+        ),
+    )
+
+    doc_id_override = os.environ.get(
+        "IG_DOC_ID",
+        "",
+    ).strip()
+
+    if doc_id_override:
+        form[
+            "doc_id"
+        ] = doc_id_override
+
+    return urlencode(
+        form,
+    ).encode(
+        "utf-8"
+    )
+
+
+def build_request(
+    after: str | None,
+) -> Request:
+    curl_file = resolve_curl_file()
+
+    curl_text = curl_file.read_text(
+        encoding="utf-8",
+    )
+
+    url, headers, raw_body = (
+        parse_curl_capture(
+            curl_text
+        )
+    )
+
+    cookie_override = os.environ.get(
+        "IG_COOKIE",
+        "",
+    ).strip()
+
+    if cookie_override:
+        headers[
+            "Cookie"
+        ] = cookie_override
+
+    headers.pop(
+        "content-length",
+        None,
+    )
+
+    headers.pop(
+        "Content-Length",
+        None,
+    )
+
+    body = update_request_body(
+        raw_body,
+        after,
+    )
+
+    return Request(
+        url,
+        data=body,
+        headers=headers,
+        method="POST",
+    )
+
+
+def decode_json_response(
+    response_body: str,
+    status: int,
+    content_type: str,
+) -> dict:
+    text = response_body.lstrip()
+
+    if text.startswith(
+        "for (;;);"
+    ):
+        text = text[
+            len(
+                "for (;;);"
+            ):
+        ].lstrip()
+
+    if not text:
+        raise RuntimeError(
+            "Instagram returned an empty response "
+            f"(HTTP {status}, Content-Type: {content_type or 'unknown'})."
+        )
+
+    try:
+        payload = json.loads(
+            text
+        )
+    except json.JSONDecodeError as exc:
+        preview = (
+            text[:300]
+            .replace(
+                "\n",
+                " ",
+            )
+            .replace(
+                "\r",
+                " ",
+            )
+        )
+
+        raise RuntimeError(
+            "Instagram returned a non-JSON response "
+            f"(HTTP {status}, Content-Type: {content_type or 'unknown'}, "
+            f"length: {len(response_body)}). "
+            f"Preview: {preview}"
+        ) from exc
+
+    if not isinstance(
+        payload,
+        dict,
+    ):
+        raise RuntimeError(
+            "Instagram GraphQL response root is not an object."
+        )
+
+    if payload.get(
+        "errors"
+    ):
+        raise RuntimeError(
+            "Instagram GraphQL error: "
+            f"{payload['errors']}"
+        )
+
+    return payload
 
 
 def fetch_profile_page(
@@ -40,160 +339,135 @@ def fetch_profile_page(
     after: str | None = None,
     count: int = 12,
 ) -> dict:
-    cookie = os.environ.get(
-        "IG_COOKIE",
-        "",
-    ).strip()
+    del username
+    del count
 
-    doc_id = os.environ.get(
-        "IG_DOC_ID",
-        "",
-    ).strip()
+    last_error = None
 
-    if not cookie:
-        raise RuntimeError(
-            "IG_COOKIE environment variable is missing."
+    for attempt in range(
+        1,
+        4,
+    ):
+        request = build_request(
+            after
         )
 
-    if not doc_id:
-        raise RuntimeError(
-            "IG_DOC_ID environment variable is missing."
-        )
+        response_body = ""
+        response_status = 0
+        content_type = ""
 
-    csrf_token = cookie_value(
-        cookie,
-        "csrftoken",
-    )
+        try:
+            with urlopen(
+                request,
+                timeout=45,
+            ) as response:
+                response_status = getattr(
+                    response,
+                    "status",
+                    200,
+                )
 
-    if not csrf_token:
-        raise RuntimeError(
-            "csrftoken was not found in IG_COOKIE."
-        )
+                content_type = response.headers.get(
+                    "Content-Type",
+                    "",
+                )
 
-    variables = {
-        "after": after,
-        "before": None,
-        "data": {
-            "count": count,
-            "include_reel_media_seen_timestamp": True,
-            "include_relationship_info": True,
-            "latest_besties_reel_media": True,
-            "latest_reel_media": True,
-        },
-        "first": count,
-        "include_multi_captions": False,
-        "last": None,
-        "username": username,
-        "__relay_internal__pv__PolarisMultiCaptionCarouselEnabledrelayprovider": False,
-        "__relay_internal__pv__PolarisShortDramaEnabledrelayprovider": False,
-        "__relay_internal__pv__PolarisReelsRecoDebugOverlayEnabledrelayprovider": False,
-    }
+                raw_body = response.read()
 
-    body = urlencode(
-        {
-            "fb_api_caller_class": "RelayModern",
-            "fb_api_req_friendly_name": FRIENDLY_NAME,
-            "server_timestamps": "true",
-            "variables": json.dumps(
-                variables,
-                separators=(",", ":"),
-            ),
-            "doc_id": doc_id,
-        }
-    ).encode("utf-8")
+                response_body = raw_body.decode(
+                    "utf-8",
+                    errors="replace",
+                )
 
-    headers = {
-        "Accept": "*/*",
-        "Content-Type": (
-            "application/x-www-form-urlencoded"
-        ),
-        "Cookie": cookie,
-        "Origin": "https://www.instagram.com",
-        "Referer": (
-            f"https://www.instagram.com/{username}/"
-        ),
-        "User-Agent": (
-            "Mozilla/5.0 AppleWebKit/537.36 "
-            "Chrome/143 Safari/537.36"
-        ),
-        "X-CSRFToken": csrf_token,
-        "X-IG-App-ID": APP_ID,
-        "X-ASBD-ID": "359341",
-        "X-FB-Friendly-Name": FRIENDLY_NAME,
-        "X-Root-Field-Name": ROOT_FIELD,
-    }
+        except IncompleteRead as exc:
+            last_error = exc
 
-    request = Request(
-        GRAPHQL_URL,
-        data=body,
-        headers=headers,
-        method="POST",
-    )
+            if attempt < 3:
+                print(
+                    "Instagram response incomplete, retrying "
+                    f"({attempt}/3)..."
+                )
 
-    try:
-        response_body = None
+                time.sleep(
+                    2
+                )
 
-        for attempt in range(3):
-            try:
-                with urlopen(
-                    request,
-                    timeout=30,
-                ) as response:
-                    try:
-                        raw_body = response.read()
+                continue
 
-                    except IncompleteRead as exc:
-                        raw_body = exc.partial
+            raise RuntimeError(
+                "Instagram response was incomplete "
+                "after 3 attempts."
+            ) from exc
 
-                        try:
-                            json.loads(
-                                raw_body.decode("utf-8")
-                            )
-                        except (
-                            UnicodeDecodeError,
-                            json.JSONDecodeError,
-                        ):
-                            raise exc
+        except HTTPError as exc:
+            detail = exc.read().decode(
+                "utf-8",
+                errors="replace",
+            )
 
-                    response_body = raw_body.decode(
-                        "utf-8"
-                    )
-                break
+            raise RuntimeError(
+                f"Instagram HTTP {exc.code}: "
+                f"{detail[:500]}"
+            ) from exc
 
-            except IncompleteRead:
-                if attempt == 2:
-                    raise
+        except URLError as exc:
+            last_error = exc
 
-                time.sleep(2)
+            if attempt < 3:
+                print(
+                    "Instagram request failed, retrying "
+                    f"({attempt}/3)..."
+                )
 
-    except IncompleteRead as exc:
-        raise RuntimeError(
-            "Instagram response was incomplete "
-            "after 3 attempts."
-        ) from exc
+                time.sleep(
+                    2
+                )
 
-    except HTTPError as exc:
-        detail = exc.read().decode(
-            "utf-8",
-            errors="replace",
-        )
+                continue
 
-        raise RuntimeError(
-            f"Instagram HTTP {exc.code}: "
-            f"{detail[:500]}"
-        ) from exc
+            raise RuntimeError(
+                f"Instagram request failed: {exc}"
+            ) from exc
 
-    except URLError as exc:
-        raise RuntimeError(
-            f"Instagram request failed: {exc}"
-        ) from exc
+        try:
+            return decode_json_response(
+                response_body,
+                response_status,
+                content_type,
+            )
 
-    payload = json.loads(response_body)
+        except RuntimeError as exc:
+            last_error = exc
 
-    if payload.get("errors"):
-        raise RuntimeError(
-            f"Instagram GraphQL error: "
-            f"{payload['errors']}"
-        )
+            retryable_json = (
+                "application/json"
+                in content_type.lower()
+                and (
+                    "non-JSON response"
+                    in str(exc)
+                    or "empty response"
+                    in str(exc)
+                )
+            )
 
-    return payload
+            if (
+                retryable_json
+                and attempt < 3
+            ):
+                print(
+                    "Instagram JSON response was truncated, retrying "
+                    f"({attempt}/3)..."
+                )
+
+                time.sleep(
+                    2
+                )
+
+                continue
+
+            raise
+
+    raise RuntimeError(
+        "Instagram request failed after 3 attempts."
+    ) from last_error
+

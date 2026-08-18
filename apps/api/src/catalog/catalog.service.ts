@@ -28,6 +28,7 @@ import { CreateDestinationDto } from './dto/create-destination.dto';
 import { CreateHotelDto } from './dto/create-hotel.dto';
 import { CreateNotablePersonDto } from './dto/create-notable-person.dto';
 import { CreateVideoDto } from './dto/create-video.dto';
+import { ApplyFollowerUpdatesDto } from './dto/apply-follower-updates.dto';
 
 const destinationSelect = {
   id: true,
@@ -98,6 +99,7 @@ const notablePersonAdminSelect = {
   primaryCategory: true,
   occupation: true,
   followerCount: true,
+  followersUpdatedAt: true,
   biography: true,
   countryCode: true,
   imageUrl: true,
@@ -239,6 +241,100 @@ export class CatalogService {
     } catch (error) {
       this.handleUniqueConflict(error, 'اسلاگ این چهره قبلاً ثبت شده است');
     }
+  }
+  async applyFollowerUpdates(dto: ApplyFollowerUpdatesDto) {
+    const uniquePersonIds = new Set(
+      dto.updates.map((update) => update.notablePersonId),
+    );
+
+    if (uniquePersonIds.size !== dto.updates.length) {
+      throw new BadRequestException(
+        'هر چهره در هر درخواست فقط یک بار می‌تواند ارسال شود',
+      );
+    }
+
+    const people = await this.prisma.notablePerson.findMany({
+      where: {
+        id: {
+          in: [...uniquePersonIds],
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const existingIds = new Set(people.map((person) => person.id));
+
+    const missingIds = [...uniquePersonIds].filter(
+      (id) => !existingIds.has(id),
+    );
+
+    if (missingIds.length > 0) {
+      throw new BadRequestException(`چهره پیدا نشد: ${missingIds.join(', ')}`);
+    }
+
+    const result = await this.prisma.$transaction(async (transaction) => {
+      let updatedPeople = 0;
+      let snapshots = 0;
+
+      for (const update of dto.updates) {
+        const capturedAt = new Date(update.capturedAt);
+
+        const snapshotDate = new Date(
+          Date.UTC(
+            capturedAt.getUTCFullYear(),
+            capturedAt.getUTCMonth(),
+            capturedAt.getUTCDate(),
+          ),
+        );
+
+        await transaction.notablePerson.update({
+          where: {
+            id: update.notablePersonId,
+          },
+          data: {
+            followerCount: update.followerCount,
+            followersUpdatedAt: capturedAt,
+          },
+        });
+
+        updatedPeople += 1;
+
+        await transaction.followerSnapshot.upsert({
+          where: {
+            notablePersonId_snapshotDate: {
+              notablePersonId: update.notablePersonId,
+              snapshotDate,
+            },
+          },
+          create: {
+            notablePersonId: update.notablePersonId,
+            followerCount: update.followerCount,
+            snapshotDate,
+            capturedAt,
+          },
+          update: {
+            followerCount: update.followerCount,
+            capturedAt,
+          },
+        });
+
+        snapshots += 1;
+      }
+
+      return {
+        updatedPeople,
+        snapshots,
+      };
+    });
+
+    return {
+      data: {
+        received: dto.updates.length,
+        ...result,
+      },
+    };
   }
 
   async updateDestination(id: string, dto: CreateDestinationDto) {

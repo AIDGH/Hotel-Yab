@@ -206,7 +206,7 @@ export default function CatalogAdminPage() {
           {mode === "edit" && activeSection === "videos" && selectedEditId ? <div className="catalog-edit-empty"><h2>ویدیوی انتخاب‌شده</h2><p>ویرایش روابط ویدیو فعلاً غیرفعال است، اما می‌توانید ویدیو را حذف کنید.</p></div> : null}
           {mode === "edit" && !selectedEditId ? <div className="catalog-edit-empty"><p>ابتدا یکی از داده‌های موجود را جست‌وجو و انتخاب کنید.</p></div> : null}
           {activeSection === "destinations" && (mode === "create" || selectedDestination) ? <DestinationForm key={selectedEditId || "new-destination"} catalog={catalog} disabled={submitting} onSubmit={submit} mode={mode} initial={selectedDestination} /> : null}
-          {activeSection === "hotels" && (mode === "create" || selectedHotel) ? <HotelForm key={selectedEditId || "new-hotel"} disabled={submitting} onSubmit={submit} mode={mode} initial={selectedHotel} /> : null}
+          {activeSection === "hotels" && (mode === "create" || selectedHotel) ? <HotelForm key={selectedEditId || "new-hotel"} catalog={catalog} disabled={submitting} onSubmit={submit} mode={mode} initial={selectedHotel} /> : null}
           {activeSection === "people" && (mode === "create" || selectedPerson) ? <PersonForm key={selectedEditId || "new-person"} disabled={submitting} onSubmit={submit} mode={mode} initial={selectedPerson} /> : null}
           {activeSection === "videos" && mode === "create" ? <VideoForm catalog={catalog} disabled={submitting} onSubmit={submit} /> : null}
           {mode === "edit" && selectedEditId ? <button className="catalog-delete" type="button" disabled={submitting} onClick={() => void deleteSelected()}>{submitting ? "در حال حذف…" : "حذف دائمی این مورد"}</button> : null}
@@ -264,21 +264,38 @@ function DestinationForm({ catalog, disabled, onSubmit, mode, initial }: { catal
   );
 }
 
-function HotelForm({ disabled, onSubmit, mode, initial }: { disabled: boolean; onSubmit: SubmitHandler; mode: CatalogMode; initial?: CatalogHotel }) {
+function HotelForm({ catalog, disabled, onSubmit, mode, initial }: { catalog: CatalogData | null; disabled: boolean; onSubmit: SubmitHandler; mode: CatalogMode; initial?: CatalogHotel }) {
   const endpoint = mode === "edit" && initial ? `hotels/${initial.id}` : "hotels";
+  const cities = (catalog?.destinations ?? []).filter((item) => item.type === "CITY").sort((left, right) => left.name.localeCompare(right.name, "fa"));
+  const initialCity = cities.find((item) => normalizeSearch(item.name) === normalizeSearch(initial?.city ?? ""));
+  const [selectedCityId, setSelectedCityId] = useState(initialCity?.id ?? "");
+  const [cityError, setCityError] = useState<string | null>(null);
+  const selectedCity = cities.find((item) => item.id === selectedCityId);
+  const cityItems = cities.map((city) => {
+    const province = (catalog?.destinations ?? []).find((item) => item.id === city.parentProvinceId);
+    return { id: city.id, value: city.id, label: province ? `${city.name} · ${province.name}` : city.name };
+  });
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [imageUrlOverride, setImageUrlOverride] = useState<string | null>(initial?.imageUrl ?? null);
   const [logoUrlOverride, setLogoUrlOverride] = useState<string | null>(initial?.logoUrl ?? null);
   const suggestedImageUrl = slug ? `/images/hotels/${slug}.webp` : "";
   const suggestedLogoUrl = slug ? `/images/hotels/${slug}-logo.webp` : "";
   return (
-    <CatalogForm title={mode === "edit" ? "ویرایش هتل" : "هتل جدید"} description="فیلدها با مدل فعلی Hotel و فایل Import سازگارند." disabled={disabled} submitLabel={mode === "edit" ? "ذخیره تغییرات" : "ثبت در دیتابیس"} onSubmit={(event, data) => onSubmit(endpoint, {
-      slug: text(data, "slug"), name: text(data, "name"), description: optional(data, "description"), countryCode: text(data, "countryCode").toUpperCase(), city: text(data, "city"),
-      address: optional(data, "address"), websiteUrl: optional(data, "websiteUrl"),
-      imageUrl: optional(data, "imageUrl"), logoUrl: optional(data, "logoUrl"), starRating: optionalNumber(data, "starRating"), publicationStatus: text(data, "publicationStatus"),
-    }, event.currentTarget, mode === "edit" ? "PATCH" : "POST")}>
+    <CatalogForm title={mode === "edit" ? "ویرایش هتل" : "هتل جدید"} description="شهر فقط از مقصدهای ثبت‌شده انتخاب می‌شود تا نام canonical شهر در Hotel ذخیره شود." disabled={disabled} submitLabel={mode === "edit" ? "ذخیره تغییرات" : "ثبت در دیتابیس"} onSubmit={(event, data) => {
+      if (!selectedCity) {
+        setCityError("یک شهر از مقصدهای موجود انتخاب کنید.");
+        return;
+      }
+      setCityError(null);
+      return onSubmit(endpoint, {
+        slug: text(data, "slug"), name: text(data, "name"), description: optional(data, "description"), countryCode: text(data, "countryCode").toUpperCase(), city: selectedCity.name,
+        address: optional(data, "address"), websiteUrl: optional(data, "websiteUrl"),
+        imageUrl: optional(data, "imageUrl"), logoUrl: optional(data, "logoUrl"), starRating: optionalNumber(data, "starRating"), publicationStatus: text(data, "publicationStatus"),
+      }, event.currentTarget, mode === "edit" ? "PATCH" : "POST");
+    }}>
       <label>نام هتل<input name="name" required defaultValue={initial?.name} /></label><label>Slug<input name="slug" dir="ltr" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={slug} onChange={(event) => setSlug(event.target.value)} /></label>
-      <label>شهر<input name="city" required defaultValue={initial?.city} /></label><label>کد کشور<input name="countryCode" dir="ltr" defaultValue={initial?.countryCode ?? "IR"} required maxLength={2} /></label>
+      <SearchableSingleSelect label="شهر" searchPlaceholder="جست‌وجوی شهر" emptyText="هنوز شهری انتخاب نشده است." noResultsText="شهری پیدا نشد." selectedAriaLabel="شهر انتخاب‌شده" items={cityItems} selectedValue={selectedCityId} error={cityError} onChange={(value) => { setSelectedCityId(value); setCityError(null); }} />
+      <label>کد کشور<input name="countryCode" dir="ltr" defaultValue={initial?.countryCode ?? "IR"} required maxLength={2} /></label>
       <label>ستاره رسمی<select name="starRating" defaultValue={initial?.starRating ?? ""}><option value="">نامشخص</option>{[1,2,3,4,5].map((value) => <option key={value}>{value}</option>)}</select></label><label>وضعیت انتشار<PublicationSelect value={initial?.publicationStatus} /></label>
       <label className="catalog-field-wide">توضیحات<textarea name="description" rows={3} defaultValue={initial?.description ?? ""} /></label><label className="catalog-field-wide">آدرس<input name="address" defaultValue={initial?.address ?? ""} /></label>
       <label className="catalog-field-wide">وب‌سایت یا صفحه رسمی<input name="websiteUrl" dir="ltr" type="url" defaultValue={initial?.websiteUrl ?? ""} /></label>

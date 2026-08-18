@@ -5,7 +5,8 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import jdatetime
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
+from openpyxl.formatting.rule import FormulaRule
 from openpyxl.styles import (
     Alignment,
     Border,
@@ -13,10 +14,10 @@ from openpyxl.styles import (
     PatternFill,
     Side,
 )
+from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import (
     DataValidation,
 )
-from openpyxl.formatting.rule import FormulaRule
 
 
 BASE_DIR = (
@@ -39,6 +40,57 @@ PERSIAN_DIGITS = str.maketrans(
     "0123456789",
     "۰۱۲۳۴۵۶۷۸۹",
 )
+
+HEADERS = [
+    "اولویت",
+    "امتیاز",
+    "اینستاگرام",
+    "تاریخ انتشار",
+    "لوکیشن اینستاگرام",
+    "شهر تشخیص crawler",
+    "استان تشخیص crawler",
+    "سیگنال‌های تشخیص",
+    "کپشن",
+    "لینک پست",
+    "وضعیت بررسی",
+    "هتل",
+    "شهر نهایی",
+    "استان نهایی",
+    "نام مکان نهایی",
+    "عنوان نهایی",
+    "نوع مکان",
+    "نوع محتوا",
+    "خلاصه کپشن",
+    "یادداشت",
+    "Shortcode",
+]
+
+CONTENT_TYPE_OPTIONS = [
+    "POST",
+    "REEL",
+    "STORY",
+    "HIGHLIGHT",
+    "LIVE",
+    "CAROUSEL",
+    "IGTV",
+    "OTHER",
+]
+
+PLACE_TYPE_OPTIONS = [
+    "CULTURAL",
+    "NATURE",
+    "HOTEL",
+    "HISTORICAL",
+    "RELIGIOUS",
+    "URBAN",
+    "RURAL",
+    "BEACH",
+    "MOUNTAIN",
+    "DESERT",
+    "FOOD",
+    "EVENT",
+    "OTHER",
+]
 
 
 def resolve_input(
@@ -76,6 +128,16 @@ def normalize_signals(
 
     return str(
         value or ""
+    )
+
+
+def normalize_source_url(
+    value,
+) -> str:
+    return (
+        str(value or "")
+        .strip()
+        .rstrip("/")
     )
 
 
@@ -211,6 +273,7 @@ def to_jalali(
     ):
         return value
 
+
 def guess_hotel(
     item: dict,
 ) -> str:
@@ -259,11 +322,6 @@ def guess_hotel(
             "هتل" in word
             or word.lower() == "hotel"
         ):
-            start = max(
-                0,
-                index,
-            )
-
             end = min(
                 len(words),
                 index + 4,
@@ -271,7 +329,7 @@ def guess_hotel(
 
             return " ".join(
                 words[
-                    start:end
+                    index:end
                 ]
             )
 
@@ -282,6 +340,807 @@ def guess_hotel(
         return "نیاز به بررسی"
 
     return ""
+
+
+def guess_content_type(
+    item: dict,
+) -> str:
+    existing = str(
+        item.get(
+            "content_type",
+            "",
+        )
+    ).strip().upper()
+
+    if existing:
+        return existing
+
+    product_type = str(
+        item.get(
+            "product_type",
+            "",
+        )
+    ).strip().lower()
+
+    source_url = normalize_source_url(
+        item.get(
+            "source_url",
+            "",
+        )
+    ).lower()
+
+    if (
+        product_type == "clips"
+        or "/reel/" in source_url
+    ):
+        return "REEL"
+
+    if (
+        product_type
+        == "carousel_container"
+    ):
+        return "CAROUSEL"
+
+    if source_url:
+        return "POST"
+
+    return ""
+
+
+def row_values(
+    item: dict,
+) -> dict:
+    return {
+        "اولویت": get_priority(
+            item
+        ),
+        "امتیاز": item.get(
+            "signal_score",
+            0,
+        ),
+        "اینستاگرام": item.get(
+            "instagram_username",
+            "",
+        ),
+        "لینک پست": item.get(
+            "source_url",
+            "",
+        ),
+        "تاریخ انتشار": to_jalali(
+            item.get(
+                "published_at",
+                "",
+            )
+        ),
+        "لوکیشن اینستاگرام": item.get(
+            "instagram_location",
+            "",
+        ),
+        "شهر تشخیص crawler": item.get(
+            "matched_cities",
+            "",
+        ),
+        "استان تشخیص crawler": item.get(
+            "matched_provinces",
+            "",
+        ),
+        "سیگنال‌های تشخیص": normalize_signals(
+            item.get(
+                "candidate_signals",
+                [],
+            )
+        ),
+        "کپشن": item.get(
+            "caption",
+            "",
+        ),
+        "وضعیت بررسی": item.get(
+            "review_status",
+            "pending",
+        ),
+        "هتل": guess_hotel(
+            item
+        ),
+        "شهر نهایی": (
+            item.get(
+                "final_cities"
+            )
+            or item.get(
+                "matched_cities",
+                "",
+            )
+        ),
+        "استان نهایی": (
+            item.get(
+                "final_provinces"
+            )
+            or item.get(
+                "matched_provinces",
+                "",
+            )
+        ),
+        "عنوان نهایی": item.get(
+            "final_title",
+            "",
+        ),
+        "یادداشت": item.get(
+            "notes",
+            "",
+        ),
+        "Shortcode": item.get(
+            "shortcode",
+            "",
+        ),
+        "نام مکان نهایی": item.get(
+            "place_name",
+            "",
+        ),
+        "نوع مکان": item.get(
+            "place_type",
+            "",
+        ),
+        "نوع محتوا": guess_content_type(
+            item
+        ),
+        "خلاصه کپشن": item.get(
+            "caption_summary",
+            "",
+        ),
+    }
+
+
+def ensure_column_order(
+    workbook,
+    sheet,
+):
+    existing_headers = []
+
+    for column in range(
+        1,
+        sheet.max_column + 1,
+    ):
+        value = sheet.cell(
+            row=1,
+            column=column,
+        ).value
+
+        if value is None:
+            continue
+
+        existing_headers.append(
+            str(value).strip()
+        )
+
+    extra_headers = [
+        header
+        for header
+        in existing_headers
+        if header not in HEADERS
+    ]
+
+    target_headers = (
+        HEADERS
+        + extra_headers
+    )
+
+    existing_rows = []
+
+    if existing_headers:
+        header_map = {
+            str(
+                sheet.cell(
+                    row=1,
+                    column=column,
+                ).value
+            ).strip(): column
+            for column in range(
+                1,
+                sheet.max_column + 1,
+            )
+            if sheet.cell(
+                row=1,
+                column=column,
+            ).value is not None
+        }
+
+        for row_number in range(
+            2,
+            sheet.max_row + 1,
+        ):
+            existing_rows.append(
+                {
+                    header: sheet.cell(
+                        row=row_number,
+                        column=column,
+                    ).value
+                    for (
+                        header,
+                        column,
+                    )
+                    in header_map.items()
+                }
+            )
+
+    if (
+        existing_headers
+        == target_headers
+    ):
+        headers = {
+            header: index
+            for (
+                index,
+                header,
+            )
+            in enumerate(
+                target_headers,
+                start=1,
+            )
+        }
+
+        return sheet, headers
+
+    original_title = (
+        sheet.title
+    )
+
+    original_index = (
+        workbook.index(
+            sheet
+        )
+    )
+
+    temporary_title = (
+        f"{original_title}"
+        "__reordered__"
+    )
+
+    if (
+        temporary_title
+        in workbook.sheetnames
+    ):
+        workbook.remove(
+            workbook[
+                temporary_title
+            ]
+        )
+
+    reordered = (
+        workbook.create_sheet(
+            temporary_title,
+            original_index,
+        )
+    )
+
+    reordered.append(
+        target_headers
+    )
+
+    for row in existing_rows:
+        reordered.append(
+            [
+                row.get(
+                    header,
+                    "",
+                )
+                for header
+                in target_headers
+            ]
+        )
+
+    workbook.remove(
+        sheet
+    )
+
+    reordered.title = (
+        original_title
+    )
+
+    headers = {
+        header: index
+        for (
+            index,
+            header,
+        )
+        in enumerate(
+            target_headers,
+            start=1,
+        )
+    }
+
+    return reordered, headers
+
+
+def existing_source_urls(
+    sheet,
+    headers: dict[str, int],
+) -> set[str]:
+    source_column = headers[
+        "لینک پست"
+    ]
+
+    result = set()
+
+    for row_number in range(
+        2,
+        sheet.max_row + 1,
+    ):
+        value = normalize_source_url(
+            sheet.cell(
+                row=row_number,
+                column=source_column,
+            ).value
+        )
+
+        if value:
+            result.add(
+                value
+            )
+
+    return result
+
+
+def apply_layout(
+    sheet,
+    headers: dict[str, int],
+):
+    sheet.sheet_view.rightToLeft = (
+        True
+    )
+
+    header_fill = PatternFill(
+        fill_type="solid",
+        fgColor="1F4E78",
+    )
+
+    header_font = Font(
+        bold=True,
+        color="FFFFFF",
+    )
+
+    thin_side = Side(
+        style="thin",
+        color="B7B7B7",
+    )
+
+    all_borders = Border(
+        left=thin_side,
+        right=thin_side,
+        top=thin_side,
+        bottom=thin_side,
+    )
+
+    for column in range(
+        1,
+        sheet.max_column + 1,
+    ):
+        cell = sheet.cell(
+            row=1,
+            column=column,
+        )
+
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.border = all_borders
+        cell.alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+            wrap_text=True,
+        )
+
+    widths = {
+        "اولویت": 13,
+        "امتیاز": 10,
+        "اینستاگرام": 22,
+        "لینک پست": 42,
+        "تاریخ انتشار": 18,
+        "لوکیشن اینستاگرام": 28,
+        "شهر تشخیص crawler": 30,
+        "استان تشخیص crawler": 35,
+        "سیگنال‌های تشخیص": 45,
+        "کپشن": 80,
+        "وضعیت بررسی": 18,
+        "هتل": 30,
+        "شهر نهایی": 30,
+        "استان نهایی": 30,
+        "عنوان نهایی": 40,
+        "یادداشت": 35,
+        "Shortcode": 20,
+        "نام مکان نهایی": 35,
+        "نوع مکان": 20,
+        "نوع محتوا": 20,
+        "خلاصه کپشن": 60,
+    }
+
+    for (
+        header,
+        width,
+    ) in widths.items():
+        column = headers.get(
+            header
+        )
+
+        if not column:
+            continue
+
+        sheet.column_dimensions[
+            get_column_letter(
+                column
+            )
+        ].width = width
+
+    sheet.freeze_panes = "A2"
+
+    if sheet.max_row > 1:
+        sheet.auto_filter.ref = (
+            f"A1:"
+            f"{get_column_letter(sheet.max_column)}"
+            f"{sheet.max_row}"
+        )
+
+
+def add_validations(
+    sheet,
+    headers: dict[str, int],
+):
+    max_validation_row = max(
+        sheet.max_row + 1000,
+        5000,
+    )
+
+    status_column = get_column_letter(
+        headers[
+            "وضعیت بررسی"
+        ]
+    )
+
+    status_validation = DataValidation(
+        type="list",
+        formula1=(
+            '"pending,approved,rejected"'
+        ),
+        allow_blank=False,
+    )
+
+    sheet.add_data_validation(
+        status_validation
+    )
+
+    status_validation.add(
+        f"{status_column}2:"
+        f"{status_column}"
+        f"{max_validation_row}"
+    )
+
+    place_type_column = (
+        get_column_letter(
+            headers[
+                "نوع مکان"
+            ]
+        )
+    )
+
+    place_type_validation = (
+        DataValidation(
+            type="list",
+            formula1=(
+                '"'
+                + ",".join(
+                    PLACE_TYPE_OPTIONS
+                )
+                + '"'
+            ),
+            allow_blank=True,
+            showErrorMessage=False,
+        )
+    )
+
+    sheet.add_data_validation(
+        place_type_validation
+    )
+
+    place_type_validation.add(
+        f"{place_type_column}2:"
+        f"{place_type_column}"
+        f"{max_validation_row}"
+    )
+
+    content_type_column = (
+        get_column_letter(
+            headers[
+                "نوع محتوا"
+            ]
+        )
+    )
+
+    content_type_validation = (
+        DataValidation(
+            type="list",
+            formula1=(
+                '"'
+                + ",".join(
+                    CONTENT_TYPE_OPTIONS
+                )
+                + '"'
+            ),
+            allow_blank=True,
+            showErrorMessage=False,
+        )
+    )
+
+    sheet.add_data_validation(
+        content_type_validation
+    )
+
+    content_type_validation.add(
+        f"{content_type_column}2:"
+        f"{content_type_column}"
+        f"{max_validation_row}"
+    )
+
+
+def add_status_formatting(
+    sheet,
+    headers: dict[str, int],
+):
+    if sheet.max_row <= 1:
+        return
+
+    status_column = (
+        get_column_letter(
+            headers[
+                "وضعیت بررسی"
+            ]
+        )
+    )
+
+    status_range = (
+        f"{status_column}2:"
+        f"{status_column}"
+        f"{sheet.max_row}"
+    )
+
+    pending_fill = PatternFill(
+        fill_type="solid",
+        fgColor="FFF2CC",
+    )
+
+    approved_fill = PatternFill(
+        fill_type="solid",
+        fgColor="C6EFCE",
+    )
+
+    rejected_fill = PatternFill(
+        fill_type="solid",
+        fgColor="FFC7CE",
+    )
+
+    sheet.conditional_formatting.add(
+        status_range,
+        FormulaRule(
+            formula=[
+                (
+                    f'${status_column}2='
+                    '"pending"'
+                )
+            ],
+            fill=pending_fill,
+        ),
+    )
+
+    sheet.conditional_formatting.add(
+        status_range,
+        FormulaRule(
+            formula=[
+                (
+                    f'${status_column}2='
+                    '"approved"'
+                )
+            ],
+            fill=approved_fill,
+        ),
+    )
+
+    sheet.conditional_formatting.add(
+        status_range,
+        FormulaRule(
+            formula=[
+                (
+                    f'${status_column}2='
+                    '"rejected"'
+                )
+            ],
+            fill=rejected_fill,
+        ),
+    )
+
+
+def priority_fills():
+    return {
+        "HOTEL": PatternFill(
+            fill_type="solid",
+            fgColor="D9EAF7",
+        ),
+        "HIGH": PatternFill(
+            fill_type="solid",
+            fgColor="E2F0D9",
+        ),
+        "MEDIUM": PatternFill(
+            fill_type="solid",
+            fgColor="FFF2CC",
+        ),
+        "LOW": PatternFill(
+            fill_type="solid",
+            fgColor="FCE4D6",
+        ),
+    }
+
+
+def link_fills():
+    return {
+        "HOTEL": PatternFill(
+            fill_type="solid",
+            fgColor="C5D9F1",
+        ),
+        "HIGH": PatternFill(
+            fill_type="solid",
+            fgColor="C6E0B4",
+        ),
+        "MEDIUM": PatternFill(
+            fill_type="solid",
+            fgColor="FFE699",
+        ),
+        "LOW": PatternFill(
+            fill_type="solid",
+            fgColor="F8CBAD",
+        ),
+    }
+
+
+def style_data_rows(
+    sheet,
+    headers: dict[str, int],
+):
+    fill_by_priority = (
+        priority_fills()
+    )
+
+    link_fill_by_priority = (
+        link_fills()
+    )
+
+    thin_side = Side(
+        style="thin",
+        color="B7B7B7",
+    )
+
+    all_borders = Border(
+        left=thin_side,
+        right=thin_side,
+        top=thin_side,
+        bottom=thin_side,
+    )
+
+    priority_column = (
+        headers[
+            "اولویت"
+        ]
+    )
+
+    link_column = (
+        headers[
+            "لینک پست"
+        ]
+    )
+
+    for row_number in range(
+        2,
+        sheet.max_row + 1,
+    ):
+        priority = str(
+            sheet.cell(
+                row=row_number,
+                column=priority_column,
+            ).value
+            or ""
+        ).strip().upper()
+
+        row_fill = (
+            fill_by_priority.get(
+                priority
+            )
+        )
+
+        for column in range(
+            1,
+            sheet.max_column + 1,
+        ):
+            cell = sheet.cell(
+                row=row_number,
+                column=column,
+            )
+
+            if row_fill:
+                cell.fill = (
+                    row_fill
+                )
+
+            cell.alignment = (
+                Alignment(
+                    horizontal="center",
+                    vertical="center",
+                    wrap_text=True,
+                )
+            )
+
+            cell.border = (
+                all_borders
+            )
+
+        link_cell = sheet.cell(
+            row=row_number,
+            column=link_column,
+        )
+
+        source_url = (
+            normalize_source_url(
+                link_cell.value
+            )
+        )
+
+        if source_url:
+            link_cell.hyperlink = (
+                source_url
+            )
+
+            link_cell.font = Font(
+                color="0563C1",
+                underline="single",
+            )
+
+        darker_fill = (
+            link_fill_by_priority.get(
+                priority
+            )
+        )
+
+        if darker_fill:
+            link_cell.fill = (
+                darker_fill
+            )
+
+        sheet.row_dimensions[
+            row_number
+        ].height = 90
+
+
+def append_candidate(
+    sheet,
+    headers: dict[str, int],
+    item: dict,
+):
+    values = row_values(
+        item
+    )
+
+    row_number = (
+        sheet.max_row + 1
+    )
+
+    for (
+        header,
+        column,
+    ) in headers.items():
+        if header not in values:
+            continue
+
+        sheet.cell(
+            row=row_number,
+            column=column,
+            value=values[
+                header
+            ],
+        )
+
 
 def json_to_excel(
     input_path: Path,
@@ -306,342 +1165,112 @@ def json_to_excel(
         reverse=True,
     )
 
-    workbook = Workbook()
-
-    sheet = workbook.active
-    sheet.title = "Candidates"
-
-    sheet.sheet_view.rightToLeft = (
-        True
+    output_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
     )
 
-    headers = [
-        "اولویت",
-        "امتیاز",
-        "اینستاگرام",
-        "لینک پست",
-        "تاریخ انتشار",
-        "لوکیشن اینستاگرام",
-        "شهر تشخیص crawler",
-        "استان تشخیص crawler",
-        "سیگنال‌های تشخیص",
-        "کپشن",
-        "وضعیت بررسی",
-        "هتل",
-        "شهر نهایی",
-        "استان نهایی",
-        "عنوان نهایی",
-        "یادداشت",
-        "Shortcode",
-    ]
-
-    sheet.append(
-        headers
+    existed = (
+        output_path.exists()
     )
 
-    header_fill = PatternFill(
-        fill_type="solid",
-        fgColor="1F4E78",
-    )
-
-    header_font = Font(
-        bold=True,
-        color="FFFFFF",
-    )
-
-    hotel_fill = PatternFill(
-        fill_type="solid",
-        fgColor="D9EAF7",
-    )
-
-    high_fill = PatternFill(
-        fill_type="solid",
-        fgColor="E2F0D9",
-    )
-
-    medium_fill = PatternFill(
-        fill_type="solid",
-        fgColor="FFF2CC",
-    )
-
-    low_fill = PatternFill(
-        fill_type="solid",
-        fgColor="FCE4D6",
-    )
-
-    fill_by_priority = {
-        "HOTEL": hotel_fill,
-        "HIGH": high_fill,
-        "MEDIUM": medium_fill,
-        "LOW": low_fill,
-    }
-    thin_side = Side(
-        style="thin",
-        color="B7B7B7",
-    )
-
-    all_borders = Border(
-        left=thin_side,
-        right=thin_side,
-        top=thin_side,
-        bottom=thin_side,
-    )
-
-    for cell in sheet[1]:
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.border = all_borders
-
-        cell.alignment = Alignment(
-            horizontal="center",
-            vertical="center",
-            wrap_text=True,
+    if existed:
+        workbook = load_workbook(
+            output_path
         )
+
+        if (
+            "Candidates"
+            in workbook.sheetnames
+        ):
+            sheet = workbook[
+                "Candidates"
+            ]
+        else:
+            sheet = workbook.create_sheet(
+                "Candidates"
+            )
+    else:
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Candidates"
+
+    sheet, headers = (
+        ensure_column_order(
+            workbook,
+            sheet,
+        )
+    )
+
+    known_urls = existing_source_urls(
+        sheet,
+        headers,
+    )
+
+    added = 0
+    skipped = 0
 
     for item in data:
-        priority = get_priority(
-            item
-        )
-
-        row = [
-            priority,
-            item.get(
-                "signal_score",
-                0,
-            ),
-            item.get(
-                "instagram_username",
-                "",
-            ),
-            item.get(
-                "source_url",
-                "",
-            ),
-            to_jalali(
+        source_url = (
+            normalize_source_url(
                 item.get(
-                    "published_at",
+                    "source_url",
                     "",
                 )
-            ),
-            item.get(
-                "instagram_location",
-                "",
-            ),
-            item.get(
-                "matched_cities",
-                "",
-            ),
-            item.get(
-                "matched_provinces",
-                "",
-            ),
-            normalize_signals(
-                item.get(
-                    "candidate_signals",
-                    [],
-                )
-            ),
-            item.get(
-                "caption",
-                "",
-            ),
-            item.get(
-                "review_status",
-                "pending",
-            ),
-            guess_hotel(
-                item
-            ),
-            item.get(
-                "final_cities"
-            )
-            or item.get(
-                "matched_cities",
-                "",
-            ),
-            item.get(
-                "final_provinces"
-            )
-            or item.get(
-                "matched_provinces",
-                "",
-            ),
-            item.get(
-                "final_title",
-                "",
-            ),
-            item.get(
-                "notes",
-                "",
-            ),
-            item.get(
-                "shortcode",
-                "",
-            ),
-        ]
-
-        sheet.append(
-            row
-        )
-
-        row_number = (
-            sheet.max_row
-        )
-
-        row_fill = (
-            fill_by_priority.get(
-                priority
             )
         )
 
-        if row_fill:
-            for cell in sheet[
-                row_number
-            ]:
-                cell.fill = (
-                    row_fill
-                )
+        if (
+            source_url
+            and source_url
+            in known_urls
+        ):
+            skipped += 1
+            continue
 
-        link_cell = sheet.cell(
-            row=row_number,
-            column=4,
+        append_candidate(
+            sheet,
+            headers,
+            item,
         )
 
-        source_url = item.get(
-            "source_url",
-            "",
-        )
+        added += 1
 
         if source_url:
-            link_cell.hyperlink = (
+            known_urls.add(
                 source_url
             )
 
-            link_cell.style = (
-                "Hyperlink"
-            )
-
-        for cell in sheet[
-            row_number
-        ]:
-            cell.alignment = Alignment(
-                horizontal="center",
-                vertical="center",
-                wrap_text=True,
-            )
-
-            cell.border = all_borders
-
-        sheet.row_dimensions[
-            row_number
-        ].height = 90
-
-    widths = {
-        "A": 13,
-        "B": 10,
-        "C": 22,
-        "D": 42,
-        "E": 18,
-        "F": 28,
-        "G": 30,
-        "H": 35,
-        "I": 45,
-        "J": 80,
-        "K": 18,
-        "L": 30,
-        "M": 30,
-        "N": 30,
-        "O": 40,
-        "P": 35,
-        "Q": 20,
-    }
-
-    for (
-        column,
-        width,
-    ) in widths.items():
-        sheet.column_dimensions[
-            column
-        ].width = width
-
-    sheet.freeze_panes = "A2"
-
-    if sheet.max_row > 1:
-        sheet.auto_filter.ref = (
-            f"A1:Q{sheet.max_row}"
-        )
-
-    validation = DataValidation(
-        type="list",
-        formula1=(
-            '"pending,approved,rejected"'
-        ),
-        allow_blank=False,
-    )
-    pending_fill = PatternFill(
-        fill_type="solid",
-        fgColor="FFF2CC",
+    apply_layout(
+        sheet,
+        headers,
     )
 
-    approved_fill = PatternFill(
-        fill_type="solid",
-        fgColor="C6EFCE",
+    style_data_rows(
+        sheet,
+        headers,
     )
 
-    rejected_fill = PatternFill(
-        fill_type="solid",
-        fgColor="FFC7CE",
+    add_validations(
+        sheet,
+        headers,
     )
 
-    if sheet.max_row > 1:
-        status_range = (
-            f"K2:K{sheet.max_row}"
-        )
-
-        sheet.conditional_formatting.add(
-            status_range,
-            FormulaRule(
-                formula=[
-                    '$K2="pending"'
-                ],
-                fill=pending_fill,
-            ),
-        )
-
-        sheet.conditional_formatting.add(
-            status_range,
-            FormulaRule(
-                formula=[
-                    '$K2="approved"'
-                ],
-                fill=approved_fill,
-            ),
-        )
-
-        sheet.conditional_formatting.add(
-            status_range,
-            FormulaRule(
-                formula=[
-                    '$K2="rejected"'
-                ],
-                fill=rejected_fill,
-            ),
-        )
-    sheet.add_data_validation(
-        validation
+    add_status_formatting(
+        sheet,
+        headers,
     )
-
-    if sheet.max_row > 1:
-        validation.add(
-            f"K2:K{sheet.max_row}"
-        )
 
     workbook.save(
         output_path
     )
 
     print(
-        "Excel created:"
+        (
+            "Excel updated:"
+            if existed
+            else "Excel created:"
+        )
     )
 
     print(
@@ -649,8 +1278,26 @@ def json_to_excel(
     )
 
     print(
-        "Rows:",
+        "JSON candidates:",
         len(data),
+    )
+
+    print(
+        "Added:",
+        added,
+    )
+
+    print(
+        "Skipped existing:",
+        skipped,
+    )
+
+    print(
+        "Workbook rows:",
+        max(
+            sheet.max_row - 1,
+            0,
+        ),
     )
 
 
@@ -659,7 +1306,8 @@ def main():
         description=(
             "Convert Instagram "
             "candidate JSON "
-            "to Excel."
+            "to a merge-safe Excel "
+            "review workbook."
         )
     )
 

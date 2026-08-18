@@ -111,28 +111,240 @@ def join_slugs(
         for item in items
     )
 
+PERSIAN_ACCOMMODATION_TERMS = (
+    "هتل",
+    "اقامتگاه",
+    "اقامت گاه",
+    "اقامت",
+    "بومگردی",
+    "بوم گردی",
+    "خانه بومگردی",
+    "خانه بومی",
+    "مهمانسرا",
+    "مهمان سرا",
+    "مهمانپذیر",
+    "مهمان پذیر",
+    "مهمانخانه",
+    "مهمان خانه",
+    "مسافرخانه",
+    "مسافر خانه",
+    "خانه مسافر",
+    "زائرسرا",
+    "زائر سرا",
+    "کاروانسرا",
+    "کاروان سرا",
+    "هاستل",
+    "متل",
+    "ریزورت",
+    "لژ",
+    "کلبه",
+    "سوئیت",
+    "ویلا",
+    "بنگالو",
+    "شاله",
+    "کمپ اقامتی",
+    "کمپینگ",
+    "مجتمع اقامتی",
+    "دهکده اقامتی",
+    "سرای اقامتی",
+    "شب مانی",
+    "شبمانی",
+)
+
+ENGLISH_ACCOMMODATION_PATTERNS = (
+    r"\bhotels?\b",
+    r"\bhostels?\b",
+    r"\bmotels?\b",
+    r"\bresorts?\b",
+    r"\blodges?\b",
+    r"\blodging\b",
+    r"\binns?\b",
+    r"\bguest\s*houses?\b",
+    r"\bhomestays?\b",
+    r"\bcaravan\s*serais?\b",
+    r"\bcaravanserais?\b",
+    r"\beco[ -]?lodges?\b",
+    r"\bbed\s*(?:and|&)\s*breakfast\b",
+    r"\bb\s*&\s*b\b",
+    r"\baparthotels?\b",
+    r"\bapartment\s+hotels?\b",
+    r"\bserviced\s+apartments?\b",
+    r"\bvacation\s+rentals?\b",
+    r"\bholiday\s+(?:homes?|rentals?)\b",
+    r"\bholiday\s+cottages?\b",
+    r"\bcottages?\b",
+    r"\bbungalows?\b",
+    r"\bchalets?\b",
+    r"\bcabins?\b",
+    r"\bvillas?\b",
+    r"\bsuites?\b",
+    r"\bcampsites?\b",
+    r"\bcampgrounds?\b",
+    r"\bglamping\b",
+    r"\baccommodations?\b",
+    r"\bovernight\s+stays?\b",
+    r"\bguest\s+rooms?\b",
+    r"\bairbnb\b",
+)
+
+
+def normalize_accommodation_text(
+    value: str,
+) -> str:
+    text = (value or "").lower()
+
+    text = text.translate(
+        str.maketrans(
+            {
+                "ي": "ی",
+                "ى": "ی",
+                "ك": "ک",
+                "ۀ": "ه",
+                "ة": "ه",
+                "ؤ": "و",
+                "إ": "ا",
+                "أ": "ا",
+            }
+        )
+    )
+
+    text = re.sub(
+        r"[\u064b-\u065f\u0670]",
+        "",
+        text,
+    )
+
+    text = re.sub(
+        r"[\u200c\u200d\ufeff]",
+        " ",
+        text,
+    )
+
+    return re.sub(
+        r"\s+",
+        " ",
+        text,
+    ).strip()
+
+
 def has_hotel_priority(
     caption: str,
     location: str,
 ) -> bool:
-    text = (
-        f"{caption or ''} "
-        f"{location or ''}"
-    ).lower()
-
-    text = text.replace(
-        "\u200c",
-        " ",
+    text = normalize_accommodation_text(
+        f"{caption or ''} {location or ''}"
     )
 
-    return (
-        "هتل" in text
-        or re.search(
-            r"\bhotel\b",
-            text,
-        )
+    if any(
+        term in text
+        for term in PERSIAN_ACCOMMODATION_TERMS
+    ):
+        return True
+
+    return any(
+        re.search(pattern, text)
         is not None
+        for pattern in ENGLISH_ACCOMMODATION_PATTERNS
     )
+
+
+def best_media_candidate(
+    candidates,
+) -> dict:
+    valid = [
+        item
+        for item in (
+            candidates or []
+        )
+        if isinstance(
+            item,
+            dict,
+        )
+        and item.get(
+            "url"
+        )
+    ]
+
+    if not valid:
+        return {}
+
+    return max(
+        valid,
+        key=lambda item: (
+            int(
+                item.get(
+                    "width"
+                )
+                or 0
+            )
+            * int(
+                item.get(
+                    "height"
+                )
+                or 0
+            )
+        ),
+    )
+
+
+def extract_media_metadata(
+    node: dict,
+) -> dict:
+    video = best_media_candidate(
+        node.get(
+            "video_versions"
+        )
+    )
+
+    image_versions = (
+        node.get(
+            "image_versions2"
+        )
+        or {}
+    )
+
+    thumbnail = (
+        best_media_candidate(
+            image_versions.get(
+                "candidates"
+            )
+        )
+    )
+
+    return {
+        "video_download_url": (
+            video.get(
+                "url",
+                "",
+            )
+        ),
+        "video_width": (
+            video.get(
+                "width"
+            )
+        ),
+        "video_height": (
+            video.get(
+                "height"
+            )
+        ),
+        "thumbnail_source_url": (
+            thumbnail.get(
+                "url",
+                "",
+            )
+        ),
+        "thumbnail_width": (
+            thumbnail.get(
+                "width"
+            )
+        ),
+        "thumbnail_height": (
+            thumbnail.get(
+                "height"
+            )
+        ),
+    }
 
 def instagram_post_url(
     node: dict,
@@ -154,13 +366,49 @@ def instagram_post_url(
     )
 
 
+def resolve_graphql_connection(
+    payload: dict,
+) -> dict:
+    data = payload.get(
+        "data"
+    ) or {}
+
+    connection_keys = [
+        (
+            "xdt_api__v1__feed__"
+            "user_timeline_graphql_connection"
+        ),
+        (
+            "xdt_api__v1__clips__"
+            "user__connection_v2"
+        ),
+    ]
+
+    for key in connection_keys:
+        connection = data.get(
+            key
+        )
+
+        if isinstance(
+            connection,
+            dict,
+        ):
+            return connection
+
+    raise RuntimeError(
+        "Unsupported Instagram GraphQL response. "
+        "No supported profile media connection was found."
+    )
+
+
 def parse_graphql_response(
     payload: dict,
 ):
-    connection = payload["data"][
-        "xdt_api__v1__feed__"
-        "user_timeline_graphql_connection"
-    ]
+    connection = (
+        resolve_graphql_connection(
+            payload
+        )
+    )
 
     posts = []
 
@@ -219,6 +467,12 @@ def parse_graphql_response(
                 ).isoformat()
             )
 
+        media_metadata = (
+            extract_media_metadata(
+                node
+            )
+        )
+
         posts.append(
             {
                 "username": (
@@ -254,6 +508,36 @@ def parse_graphql_response(
                         "media_type",
                         "",
                     )
+                ),
+                "video_download_url": (
+                    media_metadata[
+                        "video_download_url"
+                    ]
+                ),
+                "video_width": (
+                    media_metadata[
+                        "video_width"
+                    ]
+                ),
+                "video_height": (
+                    media_metadata[
+                        "video_height"
+                    ]
+                ),
+                "thumbnail_source_url": (
+                    media_metadata[
+                        "thumbnail_source_url"
+                    ]
+                ),
+                "thumbnail_width": (
+                    media_metadata[
+                        "thumbnail_width"
+                    ]
+                ),
+                "thumbnail_height": (
+                    media_metadata[
+                        "thumbnail_height"
+                    ]
                 ),
                 "matched_provinces": (
                     join_names(
