@@ -404,7 +404,7 @@ Current capabilities include:
 - destination detail pages with related hotel cards below travel videos;
 - reusable client-side progressive video lists for destination, hotel, and
   notable-person sections, revealing at most six cards per batch;
-- filtered travel-video Explore page with creator and multi-destination context
+- filtered travel-video Explore page with creator and multi-destination context on desktop, plus a compact mobile thumbnail grid that opens a vertically snapping Reels viewer without duplicating person or destination data
   plus client-side progressive reveal in batches of six;
 - federated global search across hotels, notable people, cities, and provinces;
 - displaying hotel-person relationship data;

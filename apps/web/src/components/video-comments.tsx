@@ -5,6 +5,7 @@ import { useState } from "react";
 import { browserApi } from "@/lib/browser-api";
 import { AdminDeleteAction } from "./admin-delete-action";
 import { useAuth } from "./auth-provider";
+import { SiteIcon } from "./site-icon";
 
 type VideoComment = {
   id: string;
@@ -22,7 +23,13 @@ type ReportReason =
   | "MISINFORMATION"
   | "OTHER";
 
-export function VideoComments({ videoId }: { videoId: string }) {
+export function VideoComments({
+  videoId,
+  variant = "inline",
+}: {
+  videoId: string;
+  variant?: "inline" | "sheet";
+}) {
   const { user, openAuth } = useAuth();
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -92,19 +99,40 @@ export function VideoComments({ videoId }: { videoId: string }) {
   }
 
   return (
-    <div className={`video-comments${open ? " video-comments-open" : ""}`}>
+    <div className={`video-comments video-comments-${variant}${open ? " video-comments-open" : ""}`}>
       <button
         className="video-comments-toggle"
         type="button"
         onClick={() => void toggleComments()}
         aria-expanded={open}
       >
-        <span>دیدگاه‌های ویدیو</span>
-        <small>{open ? "بستن ↑" : "نمایش ↓"}</small>
+        {variant === "sheet" ? (
+          <>
+            <SiteIcon name="comment" />
+            <small>دیدگاه‌ها</small>
+          </>
+        ) : (
+          <>
+            <span>دیدگاه‌های ویدیو</span>
+            <small>{open ? "بستن ↑" : "نمایش ↓"}</small>
+          </>
+        )}
       </button>
 
       {open ? (
-        <div className="video-comments-panel">
+        <>
+        {variant === "sheet" ? (
+          <button className="video-comments-sheet-backdrop" type="button" aria-label="بستن دیدگاه‌ها" onClick={() => void toggleComments()} />
+        ) : null}
+        <div className="video-comments-panel" role={variant === "sheet" ? "dialog" : undefined} aria-modal={variant === "sheet" ? "true" : undefined}>
+          {variant === "sheet" ? (
+            <header className="video-comments-sheet-header">
+              <strong>دیدگاه‌های ویدیو</strong>
+              <button type="button" aria-label="بستن دیدگاه‌ها" onClick={() => void toggleComments()}>
+                <SiteIcon name="close" />
+              </button>
+            </header>
+          ) : null}
           <form className="video-comment-form" onSubmit={submit}>
             <textarea
               value={body}
@@ -206,6 +234,7 @@ export function VideoComments({ videoId }: { videoId: string }) {
             )}
           </div>
         </div>
+        </>
       ) : null}
     </div>
   );

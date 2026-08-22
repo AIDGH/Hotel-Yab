@@ -27,6 +27,10 @@ export type SiteIconName =
   | "arrow-left"
   | "fullscreen"
   | "fullscreen-exit"
+  | "comment"
+  | "volume"
+  | "volume-off"
+  | "play"
   | "image";
 
 export function SiteIcon({
@@ -166,6 +170,20 @@ const icons: Record<SiteIconName, ReactNode> = {
   "arrow-left": <path d="M19 12H5M10 7l-5 5 5 5" />,
   fullscreen: <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" />,
   "fullscreen-exit": <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5" />,
+  comment: <path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 9.5 9.5 0 0 1-3.4-.7L4 20l1.5-4A7.6 7.6 0 1 1 20 11.5Z" />,
+  volume: (
+    <>
+      <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" />
+      <path d="M15 9.5a4 4 0 0 1 0 5M17.5 7a7 7 0 0 1 0 10" />
+    </>
+  ),
+  "volume-off": (
+    <>
+      <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" />
+      <path d="m15 9 6 6m0-6-6 6" />
+    </>
+  ),
+  play: <path d="m9 7 9 5-9 5V7Z" fill="currentColor" stroke="none" />,
   image: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="3" />

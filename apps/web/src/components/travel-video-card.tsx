@@ -100,6 +100,34 @@ export function TravelVideoCard({
     }
   }
 
+  async function navigateFullscreen(
+    direction: -1 | 1,
+    event: MouseEvent<HTMLButtonElement>,
+  ) {
+    event.stopPropagation();
+    const currentMedia = mediaRef.current;
+    if (!currentMedia) return;
+
+    const mediaItems = Array.from(
+      document.querySelectorAll<HTMLElement>(".travel-video-media"),
+    );
+    const currentIndex = mediaItems.indexOf(currentMedia);
+    if (currentIndex < 0 || mediaItems.length < 2) return;
+
+    const nextIndex =
+      (currentIndex + direction + mediaItems.length) % mediaItems.length;
+    const nextMedia = mediaItems[nextIndex];
+    const nextVideo = nextMedia.querySelector("video");
+
+    videoRef.current?.pause();
+    try {
+      await nextMedia.requestFullscreen();
+      await nextVideo?.play();
+    } catch (error) {
+      console.error("Fullscreen navigation failed:", error);
+    }
+  }
+
   function handleMediaDoubleClick(event: MouseEvent<HTMLDivElement>) {
     if (window.matchMedia("(max-width: 760px)").matches) return;
     if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
@@ -319,6 +347,25 @@ export function TravelVideoCard({
         >
           <SiteIcon name={isFullscreen ? "fullscreen-exit" : "fullscreen"} />
         </button>
+
+        <div className="travel-video-fullscreen-navigation">
+          <button
+            type="button"
+            className="travel-video-fullscreen-previous"
+            aria-label="ویدیوی قبلی"
+            onClick={(event) => void navigateFullscreen(-1, event)}
+          >
+            <SiteIcon name="arrow-left" />
+          </button>
+          <button
+            type="button"
+            className="travel-video-fullscreen-next"
+            aria-label="ویدیوی بعدی"
+            onClick={(event) => void navigateFullscreen(1, event)}
+          >
+            <SiteIcon name="arrow-left" />
+          </button>
+        </div>
 
         <div className="travel-video-overlay">
           <span>@{instagramUsername}</span>

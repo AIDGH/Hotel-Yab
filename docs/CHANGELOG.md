@@ -6,7 +6,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
-- Added a mobile Reels-style snap feed for Explore and desktop fullscreen video controls with button and double-click toggling; also refined mobile drawer alignment and account-trigger visibility.
+- Added a compact three-column, 12-item mobile Explore thumbnail grid that opens into a full-screen vertical Reels viewer with browser-back handling and a bottom-sheet comments panel; desktop fullscreen playback now also supports previous/next navigation.
 - Refined account navigation by moving «فعالیت‌های من» below the saved-items entry, compacting mobile drawers, aligning the mobile account identity row, animating menu exits, simplifying account field guidance, and hiding the public Footer on account routes.
 
 ### Added

@@ -4648,6 +4648,49 @@ img {
   border-radius: 0;
 }
 
+.travel-video-fullscreen-navigation {
+  display: none;
+}
+
+.travel-video-media:fullscreen .travel-video-fullscreen-navigation {
+  display: block;
+}
+
+.travel-video-fullscreen-navigation button {
+  position: absolute;
+  z-index: 30;
+  top: 50%;
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, .28);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(0, 0, 0, .48);
+  backdrop-filter: blur(9px);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.travel-video-fullscreen-navigation .site-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.travel-video-fullscreen-previous {
+  left: 24px;
+}
+
+.travel-video-fullscreen-next {
+  right: 24px;
+}
+
+.travel-video-fullscreen-next .site-icon {
+  transform: rotate(180deg);
+}
+
 .travel-video-volume-icon {
   width: 20px;
   height: 20px;
@@ -4830,6 +4873,10 @@ img {
 .explore-video-list > .explore-load-more {
   grid-column: 1 / -1;
   width: 100%;
+}
+
+.mobile-explore {
+  display: none;
 }
 
 .explore-load-more > span,
@@ -5468,68 +5515,369 @@ img {
   .explore-results {
     width: 100%;
     max-width: none;
+    padding-block: 0 48px;
     padding-inline: 0;
   }
 
   .explore-results > .results-header {
-    padding-inline: 18px;
+    display: none;
   }
 
-  .explore-video-list {
+  .explore-video-list-desktop {
+    display: none;
+  }
+
+  .mobile-explore {
+    display: block;
+    background: #fff;
+  }
+
+  .mobile-explore-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    gap: 2px;
+    direction: rtl;
+  }
+
+  .mobile-explore-tile {
+    position: relative;
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    aspect-ratio: 9 / 16;
+    background: #111;
+    cursor: pointer;
+  }
+
+  .mobile-explore-tile img {
+    object-fit: cover;
+  }
+
+  .mobile-explore-tile::after {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, .22), transparent 42%);
+    content: "";
+  }
+
+  .mobile-explore-tile-icon {
+    position: absolute;
+    z-index: 2;
+    top: 8px;
+    left: 8px;
+    display: grid;
+    width: 25px;
+    height: 25px;
+    place-items: center;
+    border-radius: 8px;
+    color: #fff;
+    background: rgba(0, 0, 0, .36);
+    backdrop-filter: blur(5px);
+  }
+
+  .mobile-explore-tile-icon .site-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .mobile-explore-load-more {
     display: flex;
-    height: calc(100dvh - 68px);
-    align-items: stretch;
-    flex-direction: column;
-    gap: 0;
+    justify-content: center;
+    padding: 22px 16px 8px;
+  }
+
+  .mobile-reels-modal {
+    position: fixed;
+    z-index: 220;
+    inset: 0;
+    color: #fff;
+    background: #000;
+    animation: mobile-reels-in 180ms ease;
+  }
+
+  .mobile-reels-header {
+    position: fixed;
+    z-index: 235;
+    top: 0;
+    right: 0;
+    left: 0;
+    display: flex;
+    min-height: calc(58px + env(safe-area-inset-top));
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+    direction: ltr;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, .62), transparent);
+    pointer-events: none;
+  }
+
+  .mobile-reels-header button {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: #fff;
+    background: rgba(0, 0, 0, .32);
+    pointer-events: auto;
+  }
+
+  .mobile-reels-header button .site-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .mobile-reels-header strong {
+    font-size: 1.05rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, .45);
+  }
+
+  .mobile-reels-feed {
+    height: 100dvh;
     overflow-x: hidden;
     overflow-y: auto;
     scroll-snap-type: y mandatory;
     scrollbar-width: none;
     overscroll-behavior-y: contain;
-    background: #0b0b0f;
   }
 
-  .explore-video-list::-webkit-scrollbar {
+  .mobile-reels-feed::-webkit-scrollbar {
     display: none;
   }
 
-  .explore-video-item,
-  .explore-video-list > .explore-load-more {
+  .mobile-reel-slide {
+    position: relative;
     width: 100%;
-    height: 100%;
-    min-height: 100%;
-    flex: 0 0 100%;
+    height: 100dvh;
+    overflow: hidden;
     scroll-snap-align: start;
     scroll-snap-stop: always;
+    background: #000;
   }
 
-  .explore-video-item {
+  .mobile-reel-slide > video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+  }
+
+  .mobile-reel-slide::after {
+    position: absolute;
+    z-index: 1;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 42%;
+    background: linear-gradient(to top, rgba(0, 0, 0, .76), transparent);
+    content: "";
+    pointer-events: none;
+  }
+
+  .mobile-reel-play-indicator {
+    position: absolute;
+    z-index: 10;
+    top: 50%;
+    left: 50%;
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    gap: 10px;
-    padding: 12px;
-    overflow-y: auto;
+    width: 64px;
+    height: 64px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, .35);
+    border-radius: 50%;
+    color: #fff;
+    background: rgba(0, 0, 0, .42);
+    backdrop-filter: blur(8px);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
   }
 
-  .explore-video-item .travel-video-card {
-    display: flex;
-    min-height: 0;
-    max-width: none;
-    flex-direction: column;
+  .mobile-reel-play-indicator .site-icon {
+    width: 30px;
+    height: 30px;
   }
 
-  .explore-video-item .travel-video-media {
-    min-height: 280px;
-    flex: 1;
-    aspect-ratio: auto;
-    border-radius: 20px;
+  .mobile-reel-actions {
+    position: absolute;
+    z-index: 20;
+    right: 12px;
+    bottom: calc(132px + env(safe-area-inset-bottom));
+    display: grid;
+    justify-items: center;
+    gap: 15px;
   }
 
-  .explore-video-list > .explore-load-more {
+  .mobile-reel-actions > button,
+  .mobile-reel-actions > a,
+  .video-comments-sheet > .video-comments-toggle {
+    display: grid;
+    width: 46px;
+    height: 46px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: #fff;
+    background: rgba(0, 0, 0, .34);
+    backdrop-filter: blur(8px);
+  }
+
+  .mobile-reel-actions .site-icon {
+    width: 25px;
+    height: 25px;
+  }
+
+  .video-comments-sheet {
     margin: 0;
-    padding: 24px;
-    flex-direction: column;
-    background: var(--surface);
+    border: 0;
+    background: transparent;
+  }
+
+  .video-comments-sheet > .video-comments-toggle {
+    position: relative;
+    overflow: visible;
+  }
+
+  .video-comments-sheet > .video-comments-toggle small {
+    position: absolute;
+    top: calc(100% + 2px);
+    color: #fff;
+    font-size: .6rem;
+    white-space: nowrap;
+    text-shadow: 0 1px 5px rgba(0, 0, 0, .8);
+  }
+
+  .video-comments-sheet-backdrop {
+    position: fixed;
+    z-index: 245;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    padding: 0;
+    border: 0;
+    background: rgba(0, 0, 0, .46);
+  }
+
+  .video-comments-sheet .video-comments-panel {
+    position: fixed;
+    z-index: 250;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    max-height: min(68dvh, 620px);
+    overflow-y: auto;
+    padding: 0 16px calc(18px + env(safe-area-inset-bottom));
+    border: 0;
+    border-radius: 24px 24px 0 0;
+    color: var(--ink);
+    background: #fff;
+    box-shadow: 0 -20px 50px rgba(0, 0, 0, .28);
+    animation: video-comments-sheet-in 210ms cubic-bezier(.2, .8, .2, 1);
+  }
+
+  .video-comments-sheet-header {
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    display: flex;
+    min-height: 58px;
+    align-items: center;
+    justify-content: space-between;
+    padding-block: 10px;
+    border-bottom: 1px solid var(--line);
+    background: #fff;
+  }
+
+  .video-comments-sheet-header button {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    color: var(--ink-soft);
+    background: #fff;
+  }
+
+  .mobile-reel-info {
+    position: absolute;
+    z-index: 10;
+    right: 18px;
+    bottom: calc(22px + env(safe-area-inset-bottom));
+    left: 74px;
+    display: grid;
+    gap: 9px;
+    text-align: right;
+  }
+
+  .mobile-reel-info > a {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 9px;
+    color: #fff;
+  }
+
+  .mobile-reel-info > a > span:last-child {
+    overflow: hidden;
+    opacity: .82;
+    font-size: .72rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-reel-avatar {
+    position: relative;
+    display: grid;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    overflow: hidden;
+    place-items: center;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: var(--brand);
+    font-weight: 900;
+  }
+
+  .mobile-reel-avatar img {
+    object-fit: cover;
+  }
+
+  .mobile-reel-info p {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: .82rem;
+    line-height: 1.75;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, .7);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .mobile-reel-destinations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .mobile-reel-destinations a {
+    padding: 4px 8px;
+    border: 1px solid rgba(255, 255, 255, .35);
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(0, 0, 0, .26);
+    font-size: .65rem;
+    backdrop-filter: blur(5px);
   }
 
   .travel-video-fullscreen {
@@ -5562,6 +5910,16 @@ img {
 @keyframes header-backdrop-out {
   from { opacity: 1; }
   to { opacity: 0; }
+}
+
+@keyframes mobile-reels-in {
+  from { opacity: 0; transform: scale(.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes video-comments-sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {

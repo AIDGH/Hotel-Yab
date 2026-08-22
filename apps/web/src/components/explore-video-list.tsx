@@ -7,6 +7,7 @@ import type {
   TravelVideo,
 } from "@/lib/travel-videos";
 import type { NotablePersonListItem } from "@/lib/types";
+import { MobileExploreReels } from "./mobile-explore-reels";
 import { TravelVideoCard } from "./travel-video-card";
 import { TravelVideoPersonCard } from "./travel-video-person-card";
 import { VideoDestinationLinks } from "./video-destination-links";
@@ -27,7 +28,7 @@ export function ExploreVideoList({ items }: { items: ExploreVideoItem[] }) {
   return (
     <>
       <div
-        className="explore-video-list"
+        className="explore-video-list explore-video-list-desktop"
         id="explore-video-list"
         aria-live="polite"
       >
@@ -68,6 +69,7 @@ export function ExploreVideoList({ items }: { items: ExploreVideoItem[] }) {
           </div>
         ) : null}
       </div>
+      <MobileExploreReels items={items} />
     </>
   );
 }
