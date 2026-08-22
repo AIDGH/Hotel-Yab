@@ -20,9 +20,24 @@ http://localhost:4000
 The frontend must not access PostgreSQL directly.
 
 All paths below are relative to `/api/v1`. Browser requests use the same-origin
-`/api/v1` path with `credentials: include`; Next.js proxies them to the internal
-API configured by `API_BASE_URL`. `NEXT_PUBLIC_API_BASE_URL` may override this
-only when a deliberately separate public API origin is required.
+`/api/v1` path with `credentials: include`. In local development, Next.js may
+rewrite that path to the internal NestJS service. In the current production
+deployment, Nginx routes `/api/` directly to NestJS and routes normal web pages
+to Next.js. Server Components use `API_BASE_URL` directly.
+
+`NEXT_PUBLIC_API_BASE_URL` is optional and should normally stay unset so the
+browser keeps using the visible site origin.
+
+---
+
+## Production Exposure
+
+The NestJS process listens internally on port 4000. The public production API is
+reached through the site's same-origin `/api/v1` path via Nginx; port 4000 is not
+intended as a public client endpoint. The Web process similarly listens on
+127.0.0.1:3000 behind Nginx.
+
+Production Swagger is disabled in the current server environment.
 
 ---
 
@@ -135,6 +150,10 @@ associationCount
 verifiedAssociationCount
 ```
 
+`followerCount` is the latest successfully refreshed public Instagram follower
+count. Daily history is stored separately and is not currently exposed by a
+public history endpoint.
+
 Only records allowed by publication rules should be returned.
 
 ### Exact Instagram Username Resolution
@@ -200,8 +219,14 @@ forms; the API remains the authoritative validation boundary.
 
 This is the passwordless/fallback path for an existing account. `identifier`
 may be the user's mobile or username. The response contains the normalized
-destination mobile, expiry, resend timing, and non-production-only
-`developmentCode`. Production must deliver the code through an SMS provider.
+destination mobile, expiry, and resend timing. `developmentCode` is returned
+only when `SMS_PROVIDER=development`. With `SMS_PROVIDER=najva`, the API sends
+the code through Najva's approved `HotelYabOTPTemplate` lookup endpoint and does
+not return it to the client. The template receives the code as `token`, Tehran
+send time as `token2`, and the configured WebOTP hostname as `token3`. A
+rejected or timed-out provider request returns `503` and removes the newly
+created challenge so a failed delivery does not leave the user behind the
+resend cooldown.
 The default resend cooldown is 60 seconds and the client must use the returned
 `resendAfterSeconds` rather than starting an unrelated timer.
 
@@ -289,9 +314,10 @@ to this endpoint with an update-version query parameter.
 
 ## POST /auth/me/avatar
 
-Authenticated `multipart/form-data` upload using the `avatar` field. Accepted
-formats are JPEG, PNG, and WebP; declared MIME type and file signature must
-match, and the maximum size is 1 MB. Returns the updated public account object.
+Authenticated `multipart/form-data` upload using the `avatar` field. Common
+image formats are accepted up to 15 MB, decoded safely, rotated and resized to
+at most 1024×1024, then stored as WebP. Returns the updated public account
+object.
 
 ## DELETE /auth/me/avatar
 
@@ -389,8 +415,9 @@ Creates or updates the current user's single review for the hotel.
 ```
 
 `rating` must be 1–5. Review text is optional; when present it must contain 3–2000
-characters. New and edited reviews are stored as `PENDING` and are not included
-in the public list until moderation publishes them. The frontend performs the
+characters. New and edited normal-user reviews are stored as `PENDING` and are
+not included in the public list until moderation publishes them. Reviews from
+`ADMIN` and `MODERATOR` accounts are immediately `PUBLISHED`. The frontend performs the
 same minimum check and renders a Persian red inline error rather than relying on
 the browser's native validation bubble.
 
@@ -421,10 +448,10 @@ Authenticated request. Completing first and last name is optional:
 ```
 
 `parentId` is optional and supports one reply level. The API allows at most five
-comment submissions per user in a rolling 60-second window. New users and
-comments containing a link, exact recent repetition, or a baseline risky term
-start as `PENDING`. A clean comment from a user with at least two published
-comments starts as `PUBLISHED`. The response returns the resulting status so the
+comment submissions per user in a rolling 60-second window. Comments containing
+a link, exact recent repetition, or a baseline risky term start as `PENDING`.
+Every clean normal-user comment starts as `PUBLISHED` without a prior-comment
+threshold. `ADMIN` and `MODERATOR` comments bypass premoderation. The response returns the resulting status so the
 UI can distinguish immediate publication from a moderation queue. When profile
 names are still empty, the public author label is `کاربر هتل‌یاب`.
 
@@ -479,10 +506,9 @@ comment to a non-`PENDING` status also resolves its open reports.
 
 ## DELETE /admin/moderation/video-comments/:id
 
-Administrator-only permanent deletion endpoints. They return
+Staff-only permanent deletion endpoints for `ADMIN` and `MODERATOR`. They return
 `{ "data": { "success": true } }`; a missing item returns `404`. Deleting a
 parent video comment also removes its replies through the database relation.
-Moderators may change moderation status but cannot use these deletion routes.
 
 ## PATCH /admin/moderation/users/:id/status
 
@@ -493,19 +519,79 @@ Administrator-only endpoint:
 ```
 
 Supported values are `ACTIVE` and `BLOCKED`. Blocking immediately revokes all
-sessions for the target user. Administrators cannot block their own account.
+sessions for the target user. Administrators cannot block their own account or
+alter another `ADMIN` through staff user management.
+
+## GET /admin/moderation/users
+
+Searches up to 100 managed accounts by name, username, mobile, email, or
+Instagram handle. `ADMIN` receives normal users and moderators; `MODERATOR`
+receives the same non-admin list. The requesting staff account itself is
+excluded.
+
+## GET /admin/moderation/administrators
+
+Moderator-only administrator list used by the separate `/admin/administrators`
+review page. Search fields and editable profile/status behavior match the users
+endpoint; the final active administrator still cannot be blocked.
+
+## PATCH /admin/moderation/users/:id
+
+Updates username, first/last name, email, Instagram handle, and status. An
+`ADMIN` managing a non-admin account may also switch between `USER` and
+`MODERATOR`. A moderator may update administrator profile/status fields but
+cannot change the administrator role. Staff cannot change their own account
+here, and the final active administrator cannot be blocked. Blocking revokes
+active sessions.
 
 ---
 
 # Admin Catalog
 
-All catalog endpoints require an authenticated `ADMIN`; `MODERATOR` access is
-not sufficient.
+All catalog endpoints require an authenticated `ADMIN` or `MODERATOR`.
 
 ## GET /admin/catalog/bootstrap
 
 Returns compact destination, hotel, person, and video records for the forms and
-relationship selectors.
+relationship selectors. Notable-person admin records include the current
+`followerCount` and nullable `followersUpdatedAt`, allowing ingestion tools to
+compare a newly observed public count with the current database value.
+
+## POST /admin/catalog/followers
+
+Applies successful Instagram follower observations in bulk.
+
+```json
+{
+  "updates": [
+    {
+      "notablePersonId": "2dbb27de-7a8e-4b55-8ed2-2f4a2190aa73",
+      "followerCount": 293103,
+      "capturedAt": "2026-08-16T13:30:00Z"
+    }
+  ]
+}
+```
+
+Rules:
+
+- ADMIN authentication is required;
+- one request may contain 1–500 updates;
+- `notablePersonId` must identify an existing person;
+- the same person may appear only once in one request;
+- `followerCount` must be a non-negative integer;
+- only successful crawler observations are sent;
+- the service updates `NotablePerson.followerCount` and
+  `followersUpdatedAt`;
+- the service upserts one `FollowerSnapshot` per person per UTC calendar day
+  using `(notablePersonId, snapshotDate)`;
+- a failed Instagram read is omitted, so it never clears or overwrites the
+  previous known count.
+
+The follower collector is an internal ingestion client; there is no public
+write route for follower counts. The reviewed Instagram travel importer is also
+an internal Admin Catalog client: only human-approved rows may use its `--apply`
+mode, and future batches should run dry-run first.
 
 ## POST /admin/catalog/destinations
 
@@ -532,7 +618,39 @@ published, non-rejected video causes the same transaction to create a `VISITED`
 `HotelAssociation` with `PENDING` verification. Draft, archived, or rejected
 videos do not expose a new public relationship. The pending state makes the
 person visible without falsely claiming verification; the linked published
-video is rendered in that association card.
+video is rendered in the hotel's dedicated video section and on the person's
+detail page.
+
+## PATCH /admin/catalog/destinations/:id
+
+Updates an existing city/province record using the same validated field shape
+as creation. Parent-province and display-order rules are re-applied.
+
+## PATCH /admin/catalog/hotels/:id
+
+Updates an existing hotel.
+
+## PATCH /admin/catalog/notable-people/:id
+
+Updates an existing notable person and preserves normalized Instagram-handle
+duplicate checks.
+
+## POST /admin/catalog/media
+
+Authenticated multipart catalog-media upload. The current controller accepts a
+`file` plus `kind` and `slug`; media storage remains a local/deployment concern.
+
+## DELETE /admin/catalog/destinations/:id
+
+## DELETE /admin/catalog/hotels/:id
+
+## DELETE /admin/catalog/notable-people/:id
+
+## DELETE /admin/catalog/videos/:id
+
+Staff-only deletion routes for canonical catalog records. Referential
+constraints and service rules remain authoritative; these routes are separate
+from contribution moderation deletion.
 
 ## GET /admin/catalog/export
 
@@ -561,6 +679,12 @@ Example:
 
 Frontend pagination should preserve active filters when moving between pages.
 
+Public hotel and notable-person `query` filters normalize common Arabic/Persian
+letter forms before building case-insensitive PostgreSQL conditions. The
+leading forms `آ` and `ا` are queried as alternatives, so inputs such as
+`اذربایجان` can match stored text such as `آذربایجان` without changing the
+canonical database value.
+
 ---
 
 # Error Handling
@@ -577,6 +701,7 @@ Typical cases:
 409 → Unique-field conflict such as an email already in use
 429 → OTP requested again before the resend window
 404 → Resource not found
+503 → SMS provider unavailable or rejected the OTP request
 500 → Internal server error
 ```
 
@@ -632,9 +757,8 @@ These endpoints return:
 - `ratingSummary` containing the user-review average and count of published
   reviews. It is independent from `starRating`.
 - `videos`, containing only published videos linked through `VideoHotel`.
-  The frontend matches each video's normalized `instagramUsername` to the
-  association person's `instagramHandle` before rendering it in that person's
-  hotel-association card.
+  The frontend renders these first as hotel-introduction videos with creator
+  cards, separately from the compact notable-guest grid.
 
 ### Notable Person Detail
 
@@ -644,6 +768,10 @@ These endpoints return:
 - Instagram;
 - media;
 - associated hotels.
+- all published `TRAVEL` and `HOTEL` videos resolved by normalized
+  `instagramUsername`, including destination and hotel links. Hotel videos are
+  embedded in the matching hotel association card; travel videos remain in the
+  separate destination-linked section.
 
 Both endpoints apply the same publication and association-visibility rules as
 the list endpoints.

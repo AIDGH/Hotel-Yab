@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
+import { AutoSubmitInput } from "@/components/auto-submit-input";
 import { DestinationCard } from "@/components/destination-card";
 import { EmptyState } from "@/components/empty-state";
 import { getDestinationCatalog } from "@/lib/destination-catalog";
+import { normalizePersianSearchText } from "@/lib/search-text";
 
 export const metadata: Metadata = {
   title: "کشف مقصدها",
@@ -25,6 +27,7 @@ export default async function DestinationsPage({
   const destinations = await getDestinationCatalog();
 
   const query = params.query?.trim() ?? "";
+  const normalizedQuery = normalizePersianSearchText(query);
   const type = params.type ?? "cities";
   const selectedProvince = params.province ?? "";
 
@@ -41,8 +44,8 @@ export default async function DestinationsPage({
 
     const matchesQuery =
       !query ||
-      city.name.includes(query) ||
-      provinceName.includes(query);
+      normalizePersianSearchText(city.name).includes(normalizedQuery) ||
+      normalizePersianSearchText(provinceName).includes(normalizedQuery);
 
     const matchesProvince =
       !selectedProvince ||
@@ -52,7 +55,8 @@ export default async function DestinationsPage({
   });
 
   const filteredProvinces = destinations.provinces.filter(
-    (province) => !query || province.name.includes(query),
+    (province) =>
+      !query || normalizePersianSearchText(province.name).includes(normalizedQuery),
   );
 
   const resultCount =
@@ -80,10 +84,11 @@ export default async function DestinationsPage({
             <label>
               <span>جست‌وجوی مقصد</span>
 
-              <input
+              <AutoSubmitInput
                 name="query"
                 defaultValue={query}
                 placeholder="مثلاً مشهد، شیراز یا خراسان رضوی"
+                autoComplete="off"
               />
             </label>
 

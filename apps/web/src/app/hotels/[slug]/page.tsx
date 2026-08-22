@@ -9,12 +9,15 @@ import { HotelStars } from "@/components/hotel-stars";
 import { MediaTile } from "@/components/media-tile";
 import { PersonDisplayName } from "@/components/person-display-name";
 import { PersonInstagramHandle } from "@/components/person-instagram-handle";
+import { ProgressiveVideoList } from "@/components/progressive-video-list";
 import { SourceList } from "@/components/source-list";
 import { TravelVideoCard } from "@/components/travel-video-card";
+import { TravelVideoPersonCard } from "@/components/travel-video-person-card";
+import { SiteIcon } from "@/components/site-icon";
 import { getHotel } from "@/lib/api";
 import {
-  associationLabel,
-  formatDate,
+  categoryLabel,
+  formatFollowerCount,
   formatPersianRating,
 } from "@/lib/labels";
 
@@ -58,6 +61,25 @@ export default async function HotelPage({ params }: HotelPageProps) {
   const hasVerifiedAssociations = hotel.associations.some(
     ({ verificationStatus }) => verificationStatus === "VERIFIED",
   );
+  const peopleByInstagramHandle = new Map(
+    hotel.associations.flatMap((association) => {
+      const handle = normalizeInstagramHandle(
+        association.notablePerson.instagramHandle,
+      );
+      return handle ? [[handle, association.notablePerson] as const] : [];
+    }),
+  );
+  const videoCreatorHandles = new Set(
+    hotel.videos.map((video) =>
+      normalizeInstagramHandle(video.instagramUsername),
+    ),
+  );
+  const guestAssociations = hotel.associations.filter((association) => {
+    const handle = normalizeInstagramHandle(
+      association.notablePerson.instagramHandle,
+    );
+    return !handle || !videoCreatorHandles.has(handle);
+  });
 
   return (
     <main className="detail-page">
@@ -85,13 +107,13 @@ export default async function HotelPage({ params }: HotelPageProps) {
               hasVerifiedAssociations ? "" : " status-badge-neutral"
             }`}
           >
-            <span>{hasVerifiedAssociations ? "✓" : "◇"}</span>
+            <SiteIcon name={hasVerifiedAssociations ? "check" : "clock"} />
             {hasVerifiedAssociations
               ? "دارای ارتباط تأییدشده"
               : "روابط در حال بررسی"}
           </span>
           <h1>{hotel.name}</h1>
-          <p className="detail-location">⌖ {hotel.city}</p>
+          <p className="detail-location"><SiteIcon name="location" /> {hotel.city}</p>
           <div className="hotel-quality-summary">
             <HotelStars value={hotel.starRating} />
             {hotel.ratingSummary.reviewCount > 0 &&
@@ -145,114 +167,110 @@ export default async function HotelPage({ params }: HotelPageProps) {
       </section>
 
       <section className="section section-tint">
-        <div className="container detail-content">
-          <div className="detail-main">
-            <span className="section-eyebrow">ردپای چهره‌ها</span>
-            <h2>چه کسانی با این هتل ارتباط داشته‌اند؟</h2>
-            {hasAssociations ? (
-              <div className="association-list">
-                {hotel.associations.map((association) => {
-                  const personInstagramHandle = normalizeInstagramHandle(
-                    association.notablePerson.instagramHandle,
-                  );
-                  const associationVideos = personInstagramHandle
-                    ? hotel.videos.filter(
-                        (video) =>
-                          normalizeInstagramHandle(video.instagramUsername) ===
-                          personInstagramHandle,
-                      )
-                    : [];
-
-                  return (
-                    <article className="association-card" key={association.id}>
-                      <div className="association-person">
-                        <MediaTile
-                          imageUrl={association.notablePerson.imageUrl}
-                          label={association.notablePerson.displayName}
-                          variant="person"
-                        />
-                        <div>
-                          <span>{associationLabel(association.type)}</span>
-                          <h3>
-                            <Link
-                              href={`/notable-people/${association.notablePerson.slug}`}
-                            >
-                              <PersonDisplayName
-                                name={association.notablePerson.displayName}
-                              />
-                            </Link>
-                          </h3>
-                          {association.notablePerson.instagramHandle ? (
-                            <PersonInstagramHandle
-                              handle={association.notablePerson.instagramHandle}
-                            />
-                          ) : null}
-                          <p>{association.summary}</p>
-                        </div>
-                      </div>
-                      <div className="verification-row">
-                        <span
-                          className={
-                            association.verificationStatus === "VERIFIED"
-                              ? ""
-                              : "verification-pending"
-                          }
-                        >
-                          {association.verificationStatus === "VERIFIED"
-                            ? "✓ تأییدشده"
-                            : "◇ در حال تکمیل"}
-                        </span>
-                        <small>
-                          {association.verifiedAt
-                            ? `بررسی در ${formatDate(association.verifiedAt)}`
-                            : "هنوز تأیید نهایی نشده"}
-                        </small>
-                      </div>
-                      {associationVideos.length > 0 ? (
-                        <div className="association-video-list">
-                          {associationVideos.map((video) => (
-                            <TravelVideoCard
-                              key={video.id}
-                              videoId={video.id}
-                              title={video.title}
-                              mediaUrl={video.mediaUrl}
-                              thumbnailUrl={video.thumbnailUrl}
-                              sourceUrl={video.sourceUrl}
-                              instagramUsername={video.instagramUsername}
-                            />
-                          ))}
-                        </div>
-                      ) : null}
-                      {association.sources.length > 0 ||
-                      associationVideos.length === 0 ? (
-                        <SourceList sources={association.sources} />
-                      ) : null}
-                    </article>
-                  );
-                })}
-              </div>
-            ) : (
-              <EmptyState
-                kind="empty"
-                title="هنوز رابطه‌ی تأییدشده‌ای منتشر نشده"
-                description="رابطه‌ها پس از ثبت منبع و تکمیل بررسی در این بخش نمایش داده می‌شوند."
-              />
-            )}
+        <div className="container">
+          <div className="results-header">
+            <div>
+              <span className="section-eyebrow">معرفی ویدیویی</span>
+              <h2>ویدیوهای {hotel.name}</h2>
+            </div>
+            {hotel.videos.length > 0 ? (
+              <span>{hotel.videos.length.toLocaleString("fa-IR")} ویدیو</span>
+            ) : null}
           </div>
-          <aside className="detail-aside">
-            <h3>وضعیت هر ارتباط شفاف است</h3>
-            <p>
-              رابطه‌های اولیه با نشان «در حال تکمیل» منتشر می‌شوند و تا قبل از
-              بررسی نهایی، تأییدشده محسوب نمی‌شوند.
-            </p>
-            <ul>
-              <li>جای مشخص برای عکس، ویدئو یا لینک</li>
-              <li>نشان جداگانه برای رابطهٔ تأییدشده</li>
-              <li>عدم نمایش رابطه‌های ردشده</li>
-            </ul>
-          </aside>
+          {hotel.videos.length > 0 ? (
+            <ProgressiveVideoList
+              className="hotel-video-list"
+              key={hotel.slug}
+            >
+              {hotel.videos.map((video) => {
+                const normalizedHandle = normalizeInstagramHandle(
+                  video.instagramUsername,
+                );
+                return (
+                  <div className="hotel-video-item" key={video.id}>
+                    <TravelVideoPersonCard
+                      instagramUsername={video.instagramUsername}
+                      person={peopleByInstagramHandle.get(normalizedHandle) ?? null}
+                    />
+                    <TravelVideoCard
+                      videoId={video.id}
+                      title={video.title}
+                      mediaUrl={video.mediaUrl}
+                      thumbnailUrl={video.thumbnailUrl}
+                      sourceUrl={video.sourceUrl}
+                      instagramUsername={video.instagramUsername}
+                    />
+                  </div>
+                );
+              })}
+            </ProgressiveVideoList>
+          ) : (
+            <EmptyState
+              kind="empty"
+              title="هنوز ویدیوی معرفی ثبت نشده"
+              description={`ویدیوهای منتشرشده درباره ${hotel.name} در این بخش نمایش داده می‌شوند.`}
+            />
+          )}
         </div>
       </section>
+
+      {guestAssociations.length > 0 ? (
+        <section className="section container hotel-guests-section">
+          <div className="results-header">
+            <div>
+              <span className="section-eyebrow">مهمان‌های شناخته‌شده</span>
+              <h2>چهره‌هایی که به این هتل رفته‌اند</h2>
+            </div>
+            <span>{guestAssociations.length.toLocaleString("fa-IR")} چهره</span>
+          </div>
+          <div className="hotel-guest-grid">
+            {guestAssociations.map((association) => (
+              <article className="hotel-guest-card" key={association.id}>
+                <Link href={`/notable-people/${association.notablePerson.slug}`}>
+                  <div className="hotel-guest-avatar">
+                    <MediaTile
+                      imageUrl={association.notablePerson.imageUrl}
+                      label={association.notablePerson.displayName}
+                      variant="person"
+                    />
+                  </div>
+                  <div>
+                    <h3>
+                      <PersonDisplayName name={association.notablePerson.displayName} />
+                    </h3>
+                    <div className="hotel-guest-meta">
+                      <span>
+                        {association.notablePerson.occupation ||
+                          categoryLabel(association.notablePerson.primaryCategory)}
+                      </span>
+                      {formatFollowerCount(
+                        association.notablePerson.followerCount,
+                      ) ? (
+                        <span>
+                          <bdi dir="ltr">
+                            {formatFollowerCount(
+                              association.notablePerson.followerCount,
+                            )}
+                          </bdi>{" "}
+                          دنبال‌کننده
+                        </span>
+                      ) : (
+                        <span>تعداد دنبال‌کننده ثبت نشده</span>
+                      )}
+                    </div>
+                    {association.notablePerson.instagramHandle ? (
+                      <PersonInstagramHandle
+                        handle={association.notablePerson.instagramHandle}
+                      />
+                    ) : null}
+                  </div>
+                </Link>
+                {association.sources.length > 0 ? <SourceList sources={association.sources} /> : null}
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <div id="hotel-reviews">
         <HotelReviews

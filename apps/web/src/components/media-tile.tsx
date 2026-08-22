@@ -1,3 +1,5 @@
+import { SiteIcon } from "./site-icon";
+
 type MediaTileProps = {
   imageUrl: string | null;
   label: string;
@@ -20,7 +22,9 @@ export function MediaTile({ imageUrl, label, variant }: MediaTileProps) {
       aria-label={imageUrl ? label : undefined}
       aria-hidden={imageUrl ? undefined : true}
     >
-      {!imageUrl ? <span>{variant === "hotel" ? "⌂" : label.slice(0, 1)}</span> : null}
+      {!imageUrl ? (
+        <span>{variant === "hotel" ? <SiteIcon name="hotel" /> : label.slice(0, 1)}</span>
+      ) : null}
     </div>
   );
 }

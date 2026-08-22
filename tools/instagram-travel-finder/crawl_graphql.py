@@ -242,7 +242,7 @@ def fetch_page_safely(
 
 def crawl_profile(
     username: str,
-    max_pages: int = 4,
+    max_pages: int = 10000,
     delay_seconds: int = 5,
 ):
     all_posts = []
@@ -528,6 +528,27 @@ def save_matches(
                     post.get(
                         "signal_score",
                         0,
+                    )
+                ),
+                "content_type": (
+                    post.get(
+                        "content_type",
+                        "",
+                    )
+                ),
+                "content_bonus": (
+                    post.get(
+                        "content_bonus",
+                        0,
+                    )
+                ),
+                "ranking_score": (
+                    post.get(
+                        "ranking_score",
+                        post.get(
+                            "signal_score",
+                            0,
+                        ),
                     )
                 ),
                 "candidate_signals": (

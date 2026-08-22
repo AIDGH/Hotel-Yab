@@ -5,6 +5,8 @@ import { type ReactNode, useEffect, useState } from "react";
 
 import { browserApi } from "@/lib/browser-api";
 import type { TravelVideo } from "@/lib/types";
+import { ConfirmDialog } from "./confirm-dialog";
+import { SiteIcon } from "./site-icon";
 
 type AccountHotelReview = {
   id: string;
@@ -38,6 +40,11 @@ export function AccountActivity() {
   const [activity, setActivity] = useState<AccountActivityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<
+    | { kind: "review"; item: AccountHotelReview }
+    | { kind: "comment"; item: AccountVideoComment }
+    | null
+  >(null);
   const [videoMetadataById, setVideoMetadataById] = useState(
     new Map<string, TravelVideo>(),
   );
@@ -65,9 +72,6 @@ export function AccountActivity() {
   }, []);
 
   async function deleteReview(review: AccountHotelReview) {
-    if (!window.confirm(`نظر شما درباره «${review.hotel.name}» حذف شود؟`)) {
-      return;
-    }
     setDeletingId(review.id);
     setFeedback(null);
     try {
@@ -94,7 +98,6 @@ export function AccountActivity() {
   }
 
   async function deleteComment(comment: AccountVideoComment) {
-    if (!window.confirm("این دیدگاه ویدیو حذف شود؟")) return;
     setDeletingId(comment.id);
     setFeedback(null);
     try {
@@ -127,6 +130,7 @@ export function AccountActivity() {
   }
 
   return (
+    <>
     <section className="account-activity-card">
       <div className="account-activity-heading">
         <div>
@@ -164,7 +168,7 @@ export function AccountActivity() {
               <article className="account-activity-item" key={review.id}>
                 <div className="account-activity-item-heading">
                   <div>
-                    <span>⌖ {review.hotel.city}</span>
+                    <span><SiteIcon name="location" /> {review.hotel.city}</span>
                     <h3>{review.hotel.name}</h3>
                   </div>
                   <ModerationStatus status={review.status} />
@@ -185,7 +189,7 @@ export function AccountActivity() {
                   <button
                     type="button"
                     disabled={deletingId === review.id}
-                    onClick={() => void deleteReview(review)}
+                    onClick={() => setPendingDelete({ kind: "review", item: review })}
                   >
                     {deletingId === review.id ? "در حال حذف…" : "حذف"}
                   </button>
@@ -232,7 +236,7 @@ export function AccountActivity() {
                     <button
                       type="button"
                       disabled={deletingId === comment.id}
-                      onClick={() => void deleteComment(comment)}
+                      onClick={() => setPendingDelete({ kind: "comment", item: comment })}
                     >
                       {deletingId === comment.id ? "در حال حذف…" : "حذف"}
                     </button>
@@ -244,6 +248,27 @@ export function AccountActivity() {
         </div>
       ) : null}
     </section>
+    <ConfirmDialog
+      open={pendingDelete !== null}
+      title={pendingDelete?.kind === "review" ? "حذف نظر هتل" : "حذف دیدگاه ویدیو"}
+      description={
+        pendingDelete?.kind === "review"
+          ? `نظر شما درباره «${pendingDelete.item.hotel.name}» برای همیشه حذف شود؟`
+          : "این دیدگاه برای همیشه حذف شود؟"
+      }
+      confirmLabel="حذف"
+      danger
+      busy={deletingId !== null}
+      onCancel={() => setPendingDelete(null)}
+      onConfirm={() => {
+        if (!pendingDelete) return;
+        const current = pendingDelete;
+        setPendingDelete(null);
+        if (current.kind === "review") void deleteReview(current.item);
+        else void deleteComment(current.item);
+      }}
+    />
+    </>
   );
 }
 

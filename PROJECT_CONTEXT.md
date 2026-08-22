@@ -3,7 +3,7 @@
 > این فایل مرجع اصلی وضعیت فعلی پروژه و handoff بین چت‌ها و توسعه‌دهنده‌هاست.
 > جزئیات تخصصی در فایل‌های `docs/` نگهداری می‌شوند و این فایل باید خلاصه، به‌روز و قابل اتکا باقی بماند.
 
-آخرین به‌روزرسانی محتوایی: ۲۰۲۶-۰۸-۱۱
+آخرین به‌روزرسانی محتوایی: ۲۰۲۶-۰۸-۲۲
 
 ---
 
@@ -68,9 +68,13 @@ Hotel-Yab در حال حاضر سرویس رزرو هتل نیست.
 
 ## 3. وضعیت فعلی محصول
 
-پروژه در وضعیت **prototype قابل ارائه** قرار دارد.
+پروژه در وضعیت **production prototype قابل استفاده** قرار دارد.
 
-هنوز production-ready نیست، اما بخش اصلی discovery کار می‌کند.
+نسخه فعلی روی VPS واقعی بالا آمده و از طریق IP عمومی در دسترس است. هسته
+discovery، PostgreSQL، API، Next.js، رسانه‌های provisionشده و backup روزانه
+روی سرور فعال‌اند. دامنه/HTTPS، SMS واقعی، monitoring و چند باگ production
+از جمله پایداری session بعد از refresh هنوز باید تکمیل شوند؛ بنابراین محصول
+هنوز برای انتشار عمومی گسترده نهایی نشده است.
 
 ### موارد پیاده‌سازی‌شده
 
@@ -99,6 +103,8 @@ Hotel-Yab در حال حاضر سرویس رزرو هتل نیست.
 - لوگوی اختیاری هتل در کارت و صفحه جزئیات
 - نمایش درجه رسمی هتل جدا از امتیاز کاربران در کارت و صفحه جزئیات
 - Instagram Handle و Follower Count چهره‌ها
+- به‌روزرسانی گروهی followerهای Instagram با Playwright، همراه
+  `followersUpdatedAt` و تاریخچه روزانه `FollowerSnapshot`
 - Occupation و Biography
 - Unit Test و E2E Test
 - Swagger / OpenAPI
@@ -106,7 +112,7 @@ Hotel-Yab در حال حاضر سرویس رزرو هتل نیست.
 - صفحه فهرست مقصدها با Search، تغییر نوع و فیلتر استان
 - Destination Card و صفحه جزئیات مشترک برای شهر و استان
 - ویدیوهای سفر چندمقصدی در صفحه مقصد و پروفایل چهره
-- نمایش ویدیوی منتشرشدهٔ متصل به هتل داخل کارت ارتباط همان چهره در صفحه هتل
+- نمایش ویدیوهای منتشرشدهٔ متصل به هتل در بخش معرفی ویدیویی مستقل صفحه هتل
 - صفحه `/explore` برای کشف همه ویدیوهای سفر با جست‌وجو و فیلتر نوع/خود مقصد
 - جست‌وجوی یکپارچه `/search` با نتایج گروه‌بندی‌شده هتل، چهره، شهر و استان
 - اتصال سازنده ویدیو به پروفایل واقعی با `instagramUsername`
@@ -120,8 +126,17 @@ Hotel-Yab در حال حاضر سرویس رزرو هتل نیست.
 - کامنت ویدیو با نمایش بسته به‌صورت پیش‌فرض و moderation هیبریدی مبتنی بر اعتماد و ریسک
 - گزارش کامنت، مخفی‌سازی خودکار پس از ۳ گزارش مستقل و محدودیت ۵ کامنت در دقیقه
 - پنل محافظت‌شده مدیر/ناظر برای انتشار، رد، پنهان‌کردن و بازگرداندن Review و Comment؛ همراه رسیدگی به گزارش‌ها و مسدودسازی کاربر توسط مدیر
-- پنل فقط-ادمین `/admin/catalog` برای افزودن مقصد، هتل، چهره و ویدیو، اتصال چندمقصدی/چندهتلی و دریافت خروجی JSON سازگار با Import
+- پنل مدیریتی `/admin/catalog` برای `ADMIN` و `MODERATOR` جهت افزودن مقصد، هتل، چهره و ویدیو، اتصال چندمقصدی/چندهتلی و دریافت خروجی JSON سازگار با Import
+- API ویرایش مقصد/هتل/چهره و حذف رکوردهای Catalog، همراه endpoint آپلود رسانه
+- pipeline پژوهشی Instagram برای crawl → checkpoint → candidate detection →
+  Excel review → dry-run import
 - نمایش خلاصه امتیاز کاربران و تعداد نظر در hero صفحه هتل، مستقل از ستاره رسمی
+- اجرای نسخه production روی VPS Ubuntu 24.04 با Nginx، systemd و PostgreSQL 17
+- فعال‌بودن خودکار Web/API/Nginx پس از reboot کامل سرور
+- UFW با دسترسی عمومی محدود به SSH/HTTP/HTTPS
+- backup روزانه PostgreSQL با systemd timer
+- provision رسانه‌های محتوایی production خارج از Git
+- تکمیل `import_approved.py --apply` و ورود موفق اولین batch شامل ۳۲ ویدیوی approved سفر/هتل به PostgreSQL
 
 ---
 
@@ -148,6 +163,9 @@ Hotel-Yab/
 ├── apps/
 │   ├── web/
 │   └── api/
+├── tools/
+│   ├── instagram-travel-finder/
+│   └── instagram-follower-tracker/
 ├── docs/
 ├── packages/
 ├── PROJECT_CONTEXT.md
@@ -206,6 +224,25 @@ Microservice در وضعیت فعلی نیاز پروژه نیست.
 - معماری سیستم: `docs/ARCHITECTURE.md`
 - تصمیم‌های معماری و دلایل آن‌ها: `docs/DECISIONS.md`
 
+### Production Runtime فعلی
+
+```text
+Browser
+  ↓
+Nginx :80
+  ├── /api/* → NestJS :4000
+  └── سایر routeها → Next.js :3000
+                         │
+                         └── Server Components → NestJS :4000
+
+NestJS → Prisma → PostgreSQL 17 :5432
+```
+
+`hotel-yab-api.service` و `hotel-yab-web.service` با systemd اجرا می‌شوند و
+پس از reboot خودکار برمی‌گردند. Browser API روی `/api/v1` same-origin است؛
+در production این مسیر را Nginx مستقیم به NestJS می‌فرستد.
+
+
 ---
 
 ## 5. مدل داده
@@ -228,6 +265,8 @@ User ──< UserSession
   └── NotablePerson (اتصال اختیاری و تأییدشده توسط ادمین)
 
 Destination ──< VideoDestination >── Video ──< VideoHotel >── Hotel
+
+NotablePerson ──< FollowerSnapshot
 ```
 
 ### Hotel
@@ -256,12 +295,19 @@ Destination ──< VideoDestination >── Video ──< VideoHotel >── Ho
 - primaryCategory
 - occupation
 - followerCount
+- followersUpdatedAt
+- followerSnapshots (تاریخچه روزانه)
 - biography
 - country
 - imageUrl
 - publicationStatus
 
 `instagramHandle` بدون `@` ذخیره می‌شود و نباید از slug حدس زده شود.
+
+`followerCount` آخرین مقدار موفق است و `followersUpdatedAt` زمان آخرین refresh
+موفق را نگه می‌دارد. `FollowerSnapshot` برای هر شخص در هر روز UTC حداکثر یک
+رکورد تاریخی دارد؛ اجرای دوباره در همان روز snapshot را upsert می‌کند. failure
+در Instagram مقدار قبلی را پاک نمی‌کند.
 
 ### Destination و Video
 
@@ -312,7 +358,7 @@ REJECTED
 ### User، Review و Video Comment
 
 - ثبت‌نام جدید `User` فقط به شماره موبایل داخلی تأییدشده، نام‌کاربری یکتا و رمز قوی نیاز دارد؛ نام، نام خانوادگی، ایمیل، Instagram و عکس بعداً از صفحه حساب افزوده می‌شوند.
-- `UserAvatar` تصویر اختیاری حساب را جدا از رکورد اصلی User نگه می‌دارد تا باینری تصویر در درخواست‌های عادی ورود/پروفایل خوانده نشود؛ فرمت‌های مجاز JPEG/PNG/WebP و سقف حجم ۱ مگابایت است.
+- `UserAvatar` تصویر اختیاری حساب را جدا از رکورد اصلی User نگه می‌دارد؛ تصاویر رایج تا ۱۵ مگابایت پس از چرخش/بهینه‌سازی به WebP با ابعاد محدود تبدیل می‌شوند.
 - پسندیدن و ذخیره‌کردن دو وضعیت مستقل‌اند و با چهار رابطه صریح `UserHotelLike`، `UserSavedHotel`، `UserNotablePersonLike` و `UserSavedNotablePerson` نگهداری می‌شوند؛ کلید مرکب هر رابطه از ثبت تکراری جلوگیری می‌کند.
 - رمز جدید حداقل ۸ کاراکتر و شامل حرف کوچک و بزرگ لاتین، عدد و یک نماد است؛ این قانون روی ورود رمزهای موجود اعمال نمی‌شود.
 - حساب‌های OTP قدیمی تا زمان تکمیل نام‌کاربری و رمز می‌توانند با OTP وارد شوند.
@@ -322,12 +368,14 @@ REJECTED
 - درخواست مجدد OTP در API و UI دارای cooldown پیش‌فرض ۶۰ ثانیه است.
 - هر کاربر برای هر هتل یک `HotelReview` فعال با امتیاز ۱ تا ۵ دارد.
 - `Video` رکورد کامل ویدیو را نگه می‌دارد و `VideoComment` با همان شناسه canonical به آن وصل می‌شود.
-- Review جدید همیشه با وضعیت `PENDING` ثبت می‌شود. Comment و پاسخ کاربر تازه‌وارد، تکراری یا پرریسک نیز `PENDING` است؛ کامنت سالم کاربر قابل‌اعتماد می‌تواند مستقیم `PUBLISHED` شود.
-- کاربر پس از ۲ کامنت منتشرشده قابل‌اعتماد محسوب می‌شود. هر حساب حداکثر ۵ کامنت در ۶۰ ثانیه می‌تواند ثبت کند.
+- Review کاربر عادی با وضعیت `PENDING` ثبت می‌شود؛ Review ادمین/Moderator مستقیم `PUBLISHED` است. Comment سالم بدون حدنصاب قبلی منتشر می‌شود و فقط لینک، تکرار یا عبارت پرریسک وارد صف می‌شود؛ محتوای ادمین/Moderator نیاز به پیش‌بررسی ندارد.
+- هر حساب حداکثر ۵ کامنت در ۶۰ ثانیه می‌تواند ثبت کند.
 - نام و نام خانوادگی برای ثبت کامنت اجباری نیست؛ حسابی که هنوز نامش را کامل نکرده با عنوان عمومی «کاربر هتل‌یاب» نمایش داده می‌شود.
 - هر کاربر می‌تواند هر کامنت منتشرشده دیگران را یک‌بار گزارش کند؛ ۳ گزارش مستقلِ حل‌نشده کامنت را خودکار `HIDDEN` می‌کند.
 - تصمیم moderation همراه شناسه مدیر/ناظر، زمان و یادداشت داخلی ثبت می‌شود.
-- ادمین می‌تواند نظر هتل یا دیدگاه/پاسخ ویدیو را از همان نمای عمومی و پس از تأیید دومرحله‌ای برای همیشه حذف کند.
+- ادمین می‌تواند محتوا را از نمای عمومی حذف کند؛ در پنل Moderation هر دو نقش
+  `ADMIN` و `MODERATOR` می‌توانند نظر هتل یا دیدگاه/پاسخ ویدیو را پس از تأیید
+  دومرحله‌ای برای همیشه حذف کنند.
 
 جزئیات کامل مدل داده:
 
@@ -374,14 +422,19 @@ Public Website
 
 ## 7. وضعیت فعلی داده
 
-آخرین شمارش شناخته‌شده:
+شمارش‌ها باید با مرحله‌شان تفسیر شوند. preview تاریخی اولیه همچنان برای تاریخچه
+منبع معتبر است، اما snapshot production بعد از deploy و batch ویدیو چنین بود:
 
-- ۱۵ هتل `PUBLISHED`
-- ۱۵۷ شخص `PUBLISHED`
-- ۱۵۲ association با وضعیت `PENDING`
-- ۳ source اولیه Instagram
-- ۱۴۹ association بدون evidence
-- ۱۶ شخص بدون رابطه مشخص با هتل
+- ۱۸ Hotel در production
+- ۱۵۷ NotablePerson در production
+- ۳۵ Destination در production
+- ۳۸ Video در production
+- ۳۲ ویدیوی approved سفر/هتل در اولین reviewed batch جدید وارد شدند
+
+شمارش ۱۵۷-person preview و اجرای ۱۴۹-person follower refresh مربوط به مراحل
+متفاوت dataset هستند و نباید با snapshot production یکی فرض شوند. شمارش
+association/source فقط وقتی از خود production دوباره query شود باید به‌عنوان
+عدد جاری نوشته شود.
 
 دیتای runtime خصوصی:
 
@@ -419,25 +472,58 @@ Sources
 docs/data-workbook-guide.md
 ```
 
-### محدودیت فعلی Pipeline
+### وضعیت فعلی Pipeline
 
-Workbook هنوز مستقیماً با دیتابیس sync نمی‌شود.
-
-Flow هدف:
+برای Travel/Instagram یک pipeline پژوهشی قابل استفاده ساخته شده است:
 
 ```text
-Research Spreadsheet
+Instagram public timeline
         ↓
-Clean Dataset
+GraphQL crawler + checkpoint/resume
         ↓
-Sync Script
+High-recall detector + HOTEL priority
         ↓
-PostgreSQL
+JSON
         ↓
-Website
+Excel review
+        ↓
+approved-row dry-run importer
+        ↓
+explicit --apply
+        ↓
+Admin API / PostgreSQL
 ```
 
-ساخت یک sync process امن با validation، duplicate detection و dry-run از مراحل آینده پروژه است.
+فایل‌های اصلی:
+
+```text
+tools/instagram-travel-finder/graphql_client.py
+tools/instagram-travel-finder/crawl_graphql.py
+tools/instagram-travel-finder/detector.py
+tools/instagram-travel-finder/json_to_excel.py
+tools/instagram-travel-finder/import_approved.py
+```
+
+خروجی‌ها، browser/session state و captureهای محلی در Git قرار نمی‌گیرند.
+
+برای followerها pipeline write کامل شده است:
+
+```text
+GET /admin/catalog/bootstrap
+        ↓
+Playwright persistent Instagram session
+        ↓
+track_all.py
+        ↓
+POST /admin/catalog/followers (--apply)
+        ↓
+NotablePerson latest count + FollowerSnapshot
+```
+
+Workbook اصلی Hotel/Person/Association هنوز sync عمومی و کامل خودکار ندارد.
+اما مسیر Instagram review کامل شده است: `import_approved.py --apply` از طریق
+Admin API کار می‌کند و اولین batch شامل ۳۲ ویدیوی approved با موفقیت به
+PostgreSQL production اعمال شده است.
 
 ### داده مقصدها
 
@@ -451,9 +537,10 @@ Website
 - رکورد کامل ویدیوها در مدل `Video` دیتابیس نگهداری می‌شود تا نمایش عمومی و کامنت‌ها از یک شناسه canonical استفاده کنند.
 - تصاویر شهرها و استان‌ها به‌ترتیب در `apps/web/public/images/cities/` و `apps/web/public/images/provinces/` قرار دارند و نام فایل تصویر با slug مقصد یکسان است.
 - رکورد مقصد، مشخصات ویدیو و رابطه‌های `VideoDestination`/`VideoHotel` وارد Prisma شده‌اند؛ خود باینری رسانه فعلاً در `apps/web/public` باقی مانده و دیتابیس فقط مسیر آن را نگه می‌دارد.
-- جزئیات عمومی هتل، ویدیوهای `PUBLISHED` متصل از طریق `VideoHotel` را نیز برمی‌گرداند؛ frontend با تطبیق نرمال‌شدهٔ `Video.instagramUsername` و `NotablePerson.instagramHandle` آن‌ها را زیر ارتباط همان چهره نمایش می‌دهد و دیگر placeholder منبع را به‌جای ویدیوی موجود نشان نمی‌دهد.
+- جزئیات عمومی هتل، ویدیوهای `PUBLISHED` متصل از طریق `VideoHotel` را نیز برمی‌گرداند؛ frontend آن‌ها را در بخش مستقل ویدیوهای معرفی همراه کارت سازنده نمایش می‌دهد و ارتباط‌های بدون ویدیوی متناظر را جداگانه در گرید فشرده مهمان‌های شناخته‌شده قرار می‌دهد.
+- جزئیات هر چهره همه ویدیوهای منتشرشده `TRAVEL` و `HOTEL` او را مستقیماً از API و با تطبیق نرمال‌شدهٔ `instagramHandle`/`instagramUsername` دریافت می‌کند؛ ویدیوهای `HOTEL` داخل کارت ارتباط همان هتل و ویدیوهای `TRAVEL` در بخش مستقل سفرها و مقصدها نمایش داده می‌شوند.
 - دستور `pnpm --filter @hotel-yab/api data:import-travel` داده‌های JSON انتقالی را idempotent به PostgreSQL وارد می‌کند.
-- دادهٔ فعلی مرتضی کوثری شامل ۵ ویدیو و ۹ اتصال مقصدی است؛ رسانه‌های ۰۰۱ تا ۰۰۴ موجودند و فایل MP4/thumbnail ویدیوی ۰۰۵ هنوز باید اضافه شود.
+- داده ویدیو دیگر به نمونه اولیه یک سازنده محدود نیست؛ snapshot production فعلی ۳۸ Video دارد و batch جدید reviewed نیز وارد PostgreSQL شده است.
 
 ---
 
@@ -470,10 +557,12 @@ apps/web/public/images/people/
 
 `logoUrl` لوگوی اختیاری هتل را نگهداری می‌کند. فایل محلی لوگو با الگوی
 `<hotel-slug>-logo.webp` در پوشه هتل‌ها قرار می‌گیرد.
-لوگو داخل قاب سفید با فاصله داخلی و `contain` نمایش داده می‌شود تا گوشه‌ها یا
-بخش‌های تصویر بریده نشوند.
+لوگو با `cover` تمام قاب خود را پر می‌کند و همان قاب، گوشه‌های تصویر را گرد
+می‌کند؛ حاشیه و فاصله سفید جداگانه‌ای دور فایل دیده نمی‌شود.
 
-در development ممکن است URL به localhost اشاره کند، اما در production باید storage یا URL پایدار استفاده شود.
+در development ممکن است URL محلی استفاده شود. در production فعلی، رسانه‌های
+محتوایی خارج از Git روی filesystem خود VPS provision شده‌اند و database تا حد
+ممکن مسیر relative پایدار نگه می‌دارد. Object Storage/CDN هنوز مرحله بعدی است.
 
 رسانه مرتبط با Association باید به عنوان `Source` و `Evidence` مدل شود.
 
@@ -538,10 +627,16 @@ Endpointهای فعلی:
 | POST           | `/api/v1/videos/:videoId/comments/:commentId/reports`          | گزارش یک کامنت منتشرشده              |
 | GET            | `/api/v1/admin/moderation/queue`                               | صف Review، Comment و گزارش‌ها        |
 | PATCH          | `/api/v1/admin/moderation/{hotel-reviews\|video-comments}/:id` | ثبت تصمیم moderation                 |
-| DELETE         | `/api/v1/admin/moderation/{hotel-reviews\|video-comments}/:id` | حذف دائمی محتوا فقط توسط ادمین       |
+| DELETE         | `/api/v1/admin/moderation/{hotel-reviews\|video-comments}/:id` | حذف دائمی محتوا توسط مدیر یا ناظر    |
 | PATCH          | `/api/v1/admin/moderation/users/:id/status`                    | مسدود/فعال‌کردن کاربر توسط مدیر      |
+| GET/PATCH      | `/api/v1/admin/moderation/users[/:id]`                         | جست‌وجو و ویرایش role-aware کاربران |
+| GET            | `/api/v1/admin/moderation/administrators`                      | فهرست جداگانه مدیران برای Moderator |
 | GET            | `/api/v1/admin/catalog/bootstrap`                              | داده‌های لازم پنل کاتالوگ            |
-| POST           | `/api/v1/admin/catalog/{destinations\|hotels\|notable-people\|videos}` | افزودن رکورد canonical توسط ادمین |
+| POST           | `/api/v1/admin/catalog/{destinations\|hotels\|notable-people\|videos}` | افزودن رکورد canonical توسط مدیر یا ناظر |
+| PATCH          | `/api/v1/admin/catalog/{destinations\|hotels\|notable-people}/:id` | ویرایش رکوردهای موجود             |
+| DELETE         | `/api/v1/admin/catalog/{destinations\|hotels\|notable-people\|videos}/:id` | حذف رکورد Catalog توسط مدیر یا ناظر |
+| POST           | `/api/v1/admin/catalog/media`                                  | آپلود رسانه Catalog                  |
+| POST           | `/api/v1/admin/catalog/followers`                              | ثبت followerهای موفق و snapshot روزانه |
 | GET            | `/api/v1/admin/catalog/export`                                 | خروجی JSON قابل ورود مجدد            |
 
 Swagger در development:
@@ -599,7 +694,7 @@ Landing Page
 /hotels/:slug
 ```
 
-صفحه جزئیات هتل؛ ویدیوهای منتشرشدهٔ متصل به هتل زیر کارت چهرهٔ سازنده نمایش داده می‌شوند
+صفحه جزئیات هتل؛ ویدیوهای منتشرشدهٔ متصل در بخش معرفی ویدیویی و مهمان‌های بدون ویدیوی متناظر در گرید جدا نمایش داده می‌شوند
 
 ```text
 /notable-people
@@ -659,13 +754,31 @@ Landing Page
 /admin/moderation
 ```
 
-صف محافظت‌شده بررسی نظر هتل، کامنت ویدیوی در انتظار و کامنت‌های گزارش‌شده برای نقش‌های `ADMIN` و `MODERATOR`؛ مسدودسازی کاربر فقط برای `ADMIN`
+صف محافظت‌شده بررسی نظر هتل، کامنت ویدیوی در انتظار و کامنت‌های گزارش‌شده برای نقش‌های `ADMIN` و `MODERATOR`؛ هر دو نقش می‌توانند محتوای انتخابی را با تأیید دومرحله‌ای برای همیشه حذف کنند
+
+```text
+/admin/users
+```
+
+پنل جست‌وجو و ویرایش کاربران و ناظرها برای `ADMIN` و `MODERATOR`.
+
+```text
+/admin/administrators
+```
+
+صفحه مستقل «بررسی مدیران» فقط برای `MODERATOR`. self-edit، تغییر ادمین توسط
+ادمین و مسدودکردن آخرین ادمین فعال ممنوع است.
 
 ```text
 /admin/catalog
 ```
 
-پنل فقط-ادمین برای افزودن مقصد، هتل، چهره و ویدیو، پیشنهاد مسیر رسانه، پیشنهادهای قابل‌تایپ و در ابتدا خالی برای نوع محتوا/نوع مکان/دسته سازنده، جست‌وجو و انتخاب تک‌گزینه‌ای سازنده، جست‌وجو و انتخاب کلیکی چند مقصد/هتل و Export داده؛ اتصال ویدیوی منتشرشده و ردنشده به هتل در صورت نبود رابطه قبلی، یک `HotelAssociation` در حال تکمیل نیز می‌سازد
+پنل `ADMIN` و `MODERATOR` برای افزودن مقصد، هتل، چهره و ویدیو، ویرایش مقصد/هتل/چهره،
+حذف رکوردهای Catalog، آپلود رسانه، پیشنهاد مسیر رسانه، پیشنهادهای قابل‌تایپ
+و در ابتدا خالی برای نوع محتوا/نوع مکان/دسته سازنده، جست‌وجو و انتخاب
+تک‌گزینه‌ای سازنده، جست‌وجو و انتخاب کلیکی چند مقصد/هتل و Export داده؛ اتصال
+ویدیوی منتشرشده و ردنشده به هتل در صورت نبود رابطه قبلی، یک
+`HotelAssociation` در حال تکمیل نیز می‌سازد
 
 ### قابلیت‌های فعلی UI
 
@@ -692,9 +805,10 @@ Landing Page
 - نمایش کارت‌های هتل مرتبط زیر ویدیوهای هر مقصد با عنوان متناسب «هتل‌های شهر/استان …» و Empty/API State مستقل
 - نمایش همه ویدیوهای سفر در Explore با اطلاعات سازنده بالا، کارت ویدیو در میانه و لینک مقصدهای چندگانه پایین
 - فیلتر خودکار Explore بر اساس نوع مقصد و مقصد، همراه پاک‌شدن انتخاب ناسازگار هنگام تغییر نوع
-- نمایش اولیه ۶ ویدیو در Explore و آشکارسازی ۶تایی ویدیوهای بعدی با دکمه «نمایش ویدیوهای بیشتر» و بدون refresh صفحه
+- نمایش اولیه حداکثر ۶ ویدیو در Explore، مقصد، هتل و هر بخش ویدیویی صفحه چهره؛ هر بار ۶ ویدیوی بعدی با دکمه «نمایش ویدیوهای بیشتر» و بدون refresh آشکار می‌شود
 - ترتیب ناوبری بخش کشف در Header و Footer به‌صورت «مقصدها، هتل‌ها، چهره‌ها، ویدیوها»
 - نتایج گروه‌بندی‌شده Global Search با شمارش، لینک «مشاهده همه»، حالت بی‌نتیجه و تحمل خطای مستقل API
+- جست‌وجوی زنده از دو کاراکتر در Hero، جست‌وجوی یکپارچه و فیلترهای متنی فهرست‌ها؛ نرمال‌سازی فارسی تفاوت‌های رایج `آ/ا`، `ی/ي`، `ک/ك` و نیم‌فاصله را تحمل می‌کند
 - نمایش ویدیوها و مقصدهای مرتبط به‌صورت فوتر فشرده زیر هر ویدیو، پایین associationهای صفحه شخص
 - کنترل سرعت پخش `1×/2×` و نوار قابل‌کشیدن زمان روی Travel Video
 - توقف خودکار ویدیوی قبلی هنگام پخش ویدیوی دیگر، همراه بازگشت کاور و حفظ زمان برای ادامه پخش از همان نقطه
@@ -707,10 +821,14 @@ Landing Page
 - خطاهای حساب، ورود، نظر هتل، کامنت و گزارش با پیام مشخص و ظاهر قرمز نمایش داده می‌شوند؛ پیام‌های موفقیت سبزند
 - خطای فرمت رمز در ورود، ثبت‌نام، تکمیل حساب قدیمی و صفحه حساب با اعتبارسنجی داخلی فارسی و قرمز نمایش داده می‌شود و به پیام native انگلیسی مرورگر واگذار نمی‌شود
 - جداسازی جهت LTR شماره موبایل داخل متن فارسی برای نمایش صحیح `+98`
-- Header واکنش‌گرا با منوی حساب و خروج؛ منوی حساب پس از هر تغییر مسیر خودکار بسته می‌شود
-- صفحه حساب دو‌بخشی در لپ‌تاپ با ستون کناری پروفایل/ناوبری و فرم اصلی جمع‌وجور و تک‌ستونه؛ در موبایل به چیدمان یک‌ستونه تبدیل می‌شود
+- Header واکنش‌گرا با آیکون‌های SVG مشترک، منوی حساب انیمیشنی و فلش چرخان؛ کلیک بیرون، انتخاب لینک یا Escape منو را می‌بندد
+- منوی اصلی و حساب در موبایل دو کشوی تمام‌قد و متقابلاً انحصاری از سمت چپ‌اند؛ backdrop صفحه را تیره می‌کند و لمس بیرون یا خود کنترل فعال کشو را می‌بندد
+- صفحه حساب دو‌بخشی و عریض در لپ‌تاپ با ستون کناری پروفایل/ناوبری و فرم اصلی دو‌ستونه؛ در موبایل به چیدمان یک‌ستونه تبدیل می‌شود
 - آپلود، نمایش در Header/Sidebar و حذف عکس پروفایل با خطای قرمز و محدودیت فرمت/حجم
-- مسیر مستقل `/account/activity` و گزینه جداگانه «فعالیت‌های من» در منوی حساب برای مشاهده وضعیت همه نظرهای هتل و دیدگاه‌های ویدیوی خود کاربر، رفتن به محتوای مرتبط و حذف امن
+- مسیر مستقل `/account/activity` و گزینه جداگانه «فعالیت‌های من» پس از «پسندیده‌ها و ذخیره‌ها» در منوی حساب برای مشاهده وضعیت همه نظرهای هتل و دیدگاه‌های ویدیوی خود کاربر، رفتن به محتوای مرتبط و حذف امن
+- منوهای موبایل با عرض فشرده‌تر، سربرگ هم‌تراز حساب و انیمیشن ورود و خروج نمایش داده می‌شوند؛ فوتر عمومی نیز در مسیرهای حساب کاربری پنهان است
+- صفحه اکسپلور ویدیو در موبایل به‌صورت فید عمودی تمام‌قد با توقف روی هر ویدیو نمایش داده می‌شود؛ در دسکتاپ نیز ویدیو با دابل‌کلیک یا دکمه اختصاصی وارد و از حالت تمام‌صفحه خارج می‌شود
+- تأیید حذف و جایگزینی فایل با Dialog داخلی و واکنش‌گرای سایت انجام می‌شود و به `window.confirm` مرورگر وابسته نیست
 - دکمه‌های مستقل پسندیدن و ذخیره‌کردن روی کارت و صفحه جزئیات هتل/چهره؛ برای مهمان پنجره ورود باز می‌شود و وضعیت کاربر واردشده بدون درخواست جداگانه برای هر کارت از Provider مشترک خوانده می‌شود
 - مسیر مستقل `/account/library` برای نمایش جداگانه هتل‌ها و چهره‌های پسندیده یا ذخیره‌شده، همراه دسترسی از Header و ستون کناری حساب
 - فرم امتیاز و نظر هتل پایین ارتباط‌های چهره‌ها
@@ -727,6 +845,8 @@ Landing Page
 - نام استان روی hero به‌صورت badge با کنتراست بالا نمایش داده می‌شود تا روی تصاویر مختلف خوانا بماند.
 - بخش Navbar/Footer/Homepage از «شهرها» به «مقصدها» تغییر کرده؛ کارت مشترک DestinationCard داریم؛ توضیح کارت‌ها دوخطی clamp می‌شود.
 - انتخاب‌های Sort، دسته‌بندی، نوع مقصد و استان با navigation کامل بلافاصله نتایج را refresh می‌کنند.
+- association بدون ویدیو و منبع در صفحه چهره، متن‌های پژوهشی/درحال‌تکمیل و placeholder رسانه را نمایش نمی‌دهد؛ بخش ویدیوهای سفر خالی نیز پنهان می‌ماند
+- Footer به‌جای بخش شفافیت، شماره تماس و Instagram هتل‌یاب را نمایش می‌دهد؛ بخش‌های «چرا هتل‌یاب؟» و فراخوان تکمیل داده فعلاً از Home پنهان‌اند
 - در filter bar مقصدها، جست‌وجو همواره `۳/۷` فضای فیلدها را دارد. در حالت استان، نوع مقصد `۴/۷` است و در حالت شهر همان فضا میان نوع مقصد و استان به دو بخش `۲/۷` تقسیم می‌شود.
 
 Pagination فیلترهای فعال را هنگام رفتن به صفحه قبل یا بعد حفظ می‌کند.
@@ -771,9 +891,23 @@ AUTH_OTP_SECRET="حداقل-۳۲-کاراکتر-تصادفی"
 AUTH_OTP_TTL_MINUTES=5
 AUTH_OTP_RESEND_SECONDS=60
 AUTH_SESSION_DAYS=30
+SMS_PROVIDER=development
+NAJVA_API_BASE_URL="https://sms.najva.com"
+NAJVA_API_KEY=""
+NAJVA_SENDER=""
+NAJVA_OTP_TEMPLATE="HotelYabOTPTemplate"
+SMS_OTP_ORIGIN_HOST=""
 ```
 
-Frontend نیز به `NEXT_PUBLIC_API_BASE_URL` نیاز دارد. در development کد OTP داخل پاسخ و UI نمایش داده می‌شود؛ production به اتصال سرویس‌دهنده واقعی SMS نیاز دارد.
+برای browser معمولاً `NEXT_PUBLIC_API_BASE_URL` لازم نیست و fallback
+`/api/v1` ترجیح داده می‌شود. Server Components به `API_BASE_URL` کامل مثل
+`http://localhost:4000/api/v1` نیاز دارند. در development کد OTP داخل پاسخ/UI
+قابل نمایش است. برای ارسال واقعی، `SMS_PROVIDER=najva`، کلید API، سرشماره نجوا
+و hostname واقعی سایت فقط در environment سرور تنظیم می‌شوند؛ با فعال‌شدن نجوا،
+کد دیگر در پاسخ API نمایش داده نمی‌شود. قالب تاییدشده
+`HotelYabOTPTemplate` از `%token` برای کد، `%token2` برای ساعت تهران و `%token3`
+برای hostname خط WebOTP استفاده می‌کند. اعتبارسنجی environment در production
+فقط provider `najva` را می‌پذیرد.
 
 ### Migration
 
@@ -790,6 +924,30 @@ pnpm --filter @hotel-yab/api data:import-travel
 
 دستور اول dataset خصوصی Hotel/Person/Association و دستور دوم JSONهای انتقالی
 Destination/TravelVideo را idempotent وارد PostgreSQL می‌کند.
+
+### Instagram Follower Tracker
+
+بار اول برای ذخیره session اکانت تستی:
+
+```bash
+python3 tools/instagram-follower-tracker/fetch_profile_browser.py --login
+```
+
+اسکن read-only:
+
+```bash
+python3 tools/instagram-follower-tracker/track_all.py --delay 5
+```
+
+اسکن و ثبت نتایج موفق در PostgreSQL از مسیر Admin API:
+
+```bash
+python3 tools/instagram-follower-tracker/track_all.py --delay 5 --apply
+```
+
+`HOTELYAB_ADMIN_COOKIE` برای write لازم است. browser profile و outputهای محلی
+نباید commit شوند. collector در اجرای کامل ۲۰۲۶-۰۸-۱۶ هر ۱۴۹ شخص runtime را
+با موفقیت refresh کرد.
 
 ### اجرای Backend
 
@@ -812,6 +970,72 @@ Frontend: http://localhost:3000
 API:      http://localhost:4000/api/v1
 Health:   http://localhost:4000/api/v1/health
 ```
+
+---
+
+## 11B. اجرای Production و Update سرور
+
+### وضعیت سرور فعلی
+
+- VPS: ArvanCloud / Ubuntu 24.04
+- Public IP فعلی: `87.247.170.136`
+- Node.js: `v24.19.0`
+- pnpm: `11.18.0`
+- PostgreSQL: 17 روی پورت 5432
+- Web داخلی: `127.0.0.1:3000`
+- API داخلی: `127.0.0.1:4000`
+- Nginx ورودی عمومی HTTP
+- `hotel-yab-api.service` و `hotel-yab-web.service` فعال و enabled
+- backup دیتابیس روزانه 03:00 UTC
+
+دامنه و HTTPS هنوز اضافه نشده‌اند.
+
+### Workflow عادی Update کد
+
+توسعه و تست روی Mac انجام می‌شود؛ production محل کدنویسی روزمره نیست.
+
+```bash
+# Mac
+git status --short --branch
+# test, commit, then push explicitly when ready
+
+# VPS
+ssh jaryan@87.247.170.136
+cd ~/Hotel-Yab
+git pull
+pnpm install --frozen-lockfile
+```
+
+اگر Prisma migration جدید وجود دارد:
+
+```bash
+pnpm api:prisma:generate
+pnpm api:prisma:migrate:deploy
+```
+
+Build و restart:
+
+```bash
+pnpm api:build
+pnpm web:build
+sudo systemctl restart hotel-yab-api hotel-yab-web
+```
+
+Health check:
+
+```bash
+curl -fsS http://127.0.0.1:4000/api/v1/health
+curl -I http://87.247.170.136/
+```
+
+رسانه‌های `apps/web/public/images/`، `hotel-videos/` و `travel-videos/` در Git
+نیستند و در صورت تغییر باید جداگانه با روش کنترل‌شده به سرور sync شوند.
+
+### Backup
+
+Backup دیتابیس با `hotel-yab-db-backup.timer` اجرا می‌شود و فایل‌های custom dump
+در `/var/backups/hotel-yab` نگهداری می‌شوند. این backup روی همان VPS است؛
+نسخه off-server هنوز TODO است.
 
 ---
 
@@ -894,6 +1118,16 @@ data/Influencer_Hotel_Tracker.xlsx
 data/Influencer_Hotel_Tracker.pdf
 ```
 
+### Tooling
+
+```text
+tools/instagram-travel-finder/
+tools/instagram-follower-tracker/
+```
+
+Travel finder output, captured query files, and the follower browser profile are
+local-only and excluded from Git.
+
 ---
 
 ## 14. Documentation
@@ -969,19 +1203,9 @@ docs/data-workbook-guide.md
 
 ## 15. Product Roadmap
 
-ترتیب فعلی توسعه محصول (جمع‌آوری داده به‌صورت موازی و دستی ادامه دارد):
-
-```text
-1. Destination Detail v2: hotels related to each city/province (implemented)
-      ↓
-2. Video Explore (implemented)
-      ↓
-3. Global Search (implemented)
-      ↓
-4. User Features (در حال اجرا)
-```
-
-سه مرحله discovery شامل هتل‌های مقصد، `Video Explore` و `Global Search` تکمیل شده‌اند. مدیریت یکپارچه فعالیت‌های کاربر و پسند/ذخیره مستقل هتل‌ها و چهره‌ها نیز پیاده‌سازی شده‌اند. شخصی‌سازی عمداً تا زمان شکل‌گرفتن داده و رفتار کاربری کافی عقب افتاده و تکمیل محتوای صفحه هتل نیز تا آماده‌شدن داده‌های لازم متوقف می‌ماند.
+فازهای اصلی discovery و User Features پایه پیاده‌سازی شده‌اند. roadmap نزدیک دیگر
+بر مبنای ساخت featureهای پایه نیست و روی پایدارسازی production، افزایش داده و
+بهبود Admin/Product متمرکز است. جمع‌آوری داده به‌صورت موازی ادامه دارد.
 
 ### Phase 1 — Destination Detail v2
 
@@ -1022,18 +1246,29 @@ docs/data-workbook-guide.md
 
 ### مسیرهای موازی — Data, Content & Scale
 
-- ادامه جمع‌آوری دستی داده توسط صاحب پروژه
-- تکمیل عکس، Instagram، Biography، Occupation، ویدیو و Source
-- تکمیل Import گروهی با Dry Run و گزارش Duplicate؛ Import JSON و Export پنل اکنون موجود است
-- تکمیل صفحه هتل پس از آماده‌شدن داده‌های موردنیاز
-- تکمیل Admin Panel با ویرایش رکوردها، مدیریت association/source و آپلود واقعی رسانه؛ افزودن مقصد، هتل، چهره و ویدیو اکنون موجود است
-- گسترش Moderation و گزارش‌های مدیریتی
-- Production Hosting
-- Media Storage
-- Analytics
-- Monitoring
-- SEO
-- CI/CD
+مسیر Instagram review تا write کامل شده و اولین batch ۳۲تایی روی production
+اعمال شده است. اولویت نزدیک پروژه اکنون:
+
+```text
+Production session bug
+        ↓
+Server update runbook
+        ↓
+Domain + HTTPS
+        ↓
+Production SMS
+        ↓
+Crawler automation + more reviewed data
+        ↓
+Hotel/Person data completion + visible bugs
+        ↓
+Product/Admin improvements
+```
+
+هفته ۴ روی یادگیری update سرور، دامنه، SMS، crawler، تکمیل دیتا و باگ‌ها تمرکز
+دارد. هفته ۵ روی جداکردن presentation ویدیو/association در صفحه هتل، بهبود UI،
+لیست کاربران ادمین و قواعد role-to-role تمرکز می‌کند. Monitoring، CI/CD،
+Object Storage و personalization بعد از پایدارشدن این حلقه می‌آیند.
 
 جزئیات اجرایی و وضعیت checkboxها در:
 
@@ -1052,25 +1287,35 @@ docs/TODO.md
 - داده اولیه هنوز نیاز به enrichment دارد.
 - follower count ممکن است قدیمی شود و evidence محسوب نمی‌شود.
 - بسیاری از associationها تا بررسی source همچنان `OTHER` هستند.
-- دیتابیس فعلی local است.
+- دیتابیس runtime production روی PostgreSQL 17 VPS فعال است؛ local فقط محیط development است.
 
 ### Media
 
-- media upload UI وجود ندارد.
-- storage production هنوز انتخاب نشده است.
+- Catalog endpoint آپلود رسانه وجود دارد، اما storage نهایی/object storage هنوز طراحی نشده است.
+- production فعلی از filesystem VPS برای رسانه استفاده می‌کند؛ Object Storage/CDN هنوز انتخاب نشده است.
 - فایل‌های عکس، کاور و ویدیو فعلاً فقط داخل `apps/web/public/{images,travel-videos,hotel-videos}` به‌صورت محلی نگهداری و از Git خارج می‌شوند؛ PostgreSQL فقط مسیر آن‌ها را نگه می‌دارد.
 - برخی تصاویر هنوز missing یا placeholder هستند.
-- پنل Catalog فعلاً create-only است؛ ویرایش/آرشیو رکوردهای موجود هنوز UI ندارد.
-- داده ویدیو/مقصد هنوز فایل‌محور است؛ فقط اطلاعات شخص از API اصلی resolve می‌شود.
+- Catalog برای مقصد/هتل/چهره update و برای رکوردهای اصلی delete API دارد؛
+  ویرایش کامل Video و archive/publication UX هنوز کامل نشده است.
+- مقصد و Video در runtime از PostgreSQL/API می‌آیند؛ transition JSON فقط
+  migration/recovery input است.
 
 ### Product
 
-- پنل فعلی فقط Review و Comment را پوشش می‌دهد؛ مدیریت هتل/چهره/association/source هنوز وجود ندارد.
-- مدیریت نقش‌ها UI ندارد؛ برای bootstrap می‌توان از `pnpm --filter @hotel-yab/api user:set-role -- <mobile-or-username> ADMIN` استفاده کرد.
-- سرویس ارسال SMS واقعی متصل نشده و نمایش development OTP فقط برای محیط غیر-production است.
-- بازیابی/مدیریت همه فعالیت‌های کاربر در صفحه حساب هنوز تکمیل نشده است.
-- Data Sync اتوماتیک هنوز ساخته نشده است.
-- Production infrastructure هنوز نهایی نشده است.
+- پنل Moderation برای Review/Comment/Report، پنل Users برای مدیریت role-aware حساب‌ها و پنل Catalog برای مقصد/هتل/چهره/ویدیو وجود دارند؛ review association/source هنوز اضافه نشده است.
+- نقش USER/MODERATOR از پنل Users قابل مدیریت است؛ bootstrap نقش ADMIN همچنان با `pnpm --filter @hotel-yab/api user:set-role -- <mobile-or-username> ADMIN` انجام می‌شود.
+- اتصال فنی OTP به endpoint قالبی v1 نجوا با قالب تاییدشده
+  `HotelYabOTPTemplate` اضافه شده است؛ فعال‌سازی production به تنظیم
+  `NAJVA_API_KEY`، `NAJVA_SENDER` و `SMS_OTP_ORIGIN_HOST` روی VPS و تست تحویل
+  واقعی نیاز دارد.
+- نمایش `developmentCode` فقط با `SMS_PROVIDER=development` فعال است، نه صرفاً
+  بر اساس غیر-production بودن محیط.
+- account activity و library پیاده‌سازی شده‌اند؛ باگ production session بعد refresh هنوز باز است.
+- Follower refresh به‌صورت command + Admin API عملیاتی است، اما scheduler
+  production هنوز ساخته نشده است.
+- Travel reviewed-XLSX importer write/apply تکمیل شده و اولین batch production اعمال شده است.
+- Production infrastructure پایه فعال است؛ دامنه/HTTPS، فعال‌سازی و تست تحویل
+  نجوا، off-server backup و monitoring هنوز نهایی نشده‌اند.
 
 ---
 
@@ -1110,6 +1355,9 @@ git status --short --branch
 - `data/` خصوصی است.
 - envها private هستند.
 - `apps/api/prisma/data/import.json` private است.
+- `tools/instagram-follower-tracker/.browser-profile/` و outputهای follower local-only هستند.
+- `tools/instagram-travel-finder/output/`، `query.json` و `query.rtf` local-only هستند.
+- Cookie، sessionid، CSRF/LSD/fb_dtsg و سایر request tokenهای Instagram نباید در Git یا مستندات ذخیره شوند.
 - فونت‌ها و assetهای کدی رابط می‌توانند در Git باشند، اما عکس‌ها، کاورها و ویدیوهای محتوایی `apps/web/public` نباید Track یا Commit شوند.
 - داده یا تغییر موجود کاربر بدون هماهنگی حذف نشود.
 

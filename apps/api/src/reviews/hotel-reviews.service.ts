@@ -3,6 +3,7 @@ import { PrismaService } from '../database/prisma.service';
 import {
   ContentModerationStatus,
   PublicationStatus,
+  UserRole,
 } from '../generated/prisma/enums';
 import { UpsertHotelReviewDto } from './dto/upsert-hotel-review.dto';
 
@@ -77,24 +78,37 @@ export class HotelReviewsService {
     };
   }
 
-  async upsert(hotelSlug: string, userId: string, dto: UpsertHotelReviewDto) {
+  async upsert(
+    hotelSlug: string,
+    userId: string,
+    role: UserRole,
+    dto: UpsertHotelReviewDto,
+  ) {
     const hotel = await this.findPublicHotel(hotelSlug);
+    const publishImmediately =
+      role === UserRole.ADMIN || role === UserRole.MODERATOR;
+    const status = publishImmediately
+      ? ContentModerationStatus.PUBLISHED
+      : ContentModerationStatus.PENDING;
+    const publishedAt = publishImmediately ? new Date() : null;
     const review = await this.prisma.hotelReview.upsert({
       where: { hotelId_userId: { hotelId: hotel.id, userId } },
       update: {
         rating: dto.rating,
         body: dto.body?.trim() ?? '',
-        status: ContentModerationStatus.PENDING,
+        status,
         moderationNote: null,
         moderatedAt: null,
         moderatedById: null,
-        publishedAt: null,
+        publishedAt,
       },
       create: {
         hotelId: hotel.id,
         userId,
         rating: dto.rating,
         body: dto.body?.trim() ?? '',
+        status,
+        publishedAt,
       },
       select: {
         id: true,

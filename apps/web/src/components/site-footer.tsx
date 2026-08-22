@@ -1,7 +1,15 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { BrandMark } from "./brand-mark";
+import { SiteIcon } from "./site-icon";
 
 export function SiteFooter() {
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/account")) return null;
+
   return (
     <footer className="site-footer">
       <div className="container footer-grid">
@@ -19,10 +27,16 @@ export function SiteFooter() {
           <Link href="/notable-people">چهره‌ها</Link>
           <Link href="/explore">ویدیوها</Link>
         </div>
-        <div className="footer-links">
-          <strong>شفافیت</strong>
-          <Link href="/#how-it-works">روش راستی‌آزمایی</Link>
-          <span>گزارش اطلاعات نادرست — به‌زودی</span>
+        <div className="footer-links footer-contact" id="contact">
+          <strong>ارتباط با ما</strong>
+          <a href="tel:+989912184701" dir="ltr">
+            <SiteIcon name="phone" />
+            <span>0991 218 4701</span>
+          </a>
+          <a href="https://www.instagram.com/jaryan.hotelyab" target="_blank" rel="noreferrer noopener" dir="ltr">
+            <SiteIcon name="instagram" />
+            <span>@jaryan.hotelyab</span>
+          </a>
         </div>
       </div>
       <div className="container footer-bottom">

@@ -99,6 +99,16 @@ export default function ModerationPage() {
     await loadQueue();
   }
 
+  async function remove(
+    kind: "hotel-reviews" | "video-comments",
+    id: string,
+  ) {
+    await browserApi(`/admin/moderation/${kind}/${id}`, {
+      method: "DELETE",
+    });
+    await loadQueue();
+  }
+
   async function updateUserStatus(
     id: string,
     nextStatus: "ACTIVE" | "BLOCKED",
@@ -190,6 +200,7 @@ export default function ModerationPage() {
                 onModerate={(nextStatus, note) =>
                   moderate("hotel-reviews", item.id, nextStatus, note)
                 }
+                onDelete={() => remove("hotel-reviews", item.id)}
               />
             ))}
           </ModerationSection>
@@ -220,6 +231,7 @@ export default function ModerationPage() {
                 onModerate={(nextStatus, note) =>
                   moderate("video-comments", item.id, nextStatus, note)
                 }
+                onDelete={() => remove("video-comments", item.id)}
               />
             ))}
           </ModerationSection>
@@ -256,6 +268,7 @@ export default function ModerationPage() {
                 onModerate={(nextStatus, note) =>
                   moderate("video-comments", item.id, nextStatus, note)
                 }
+                onDelete={() => remove("video-comments", item.id)}
               />
             ))}
           </ModerationSection>
@@ -300,6 +313,7 @@ function ModerationCard({
   canManageUsers,
   onUpdateUserStatus,
   onModerate,
+  onDelete,
 }: {
   title: ReactNode;
   meta: string;
@@ -314,9 +328,11 @@ function ModerationCard({
     status: "ACTIVE" | "BLOCKED",
   ) => Promise<void>;
   onModerate: (status: ModerationStatus, note: string) => Promise<void>;
+  onDelete: () => Promise<void>;
 }) {
   const [saving, setSaving] = useState(false);
   const [cardError, setCardError] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   async function submit(
     form: HTMLFormElement | null,
@@ -434,6 +450,46 @@ function ModerationCard({
                 : "فعال‌کردن کاربر"}
             </button>
           ) : null}
+          {confirmingDelete ? (
+            <div className="moderation-delete-confirm">
+              <span>این مورد برای همیشه حذف شود؟</span>
+              <button
+                type="button"
+                className="button button-small button-danger"
+                disabled={saving}
+                onClick={async () => {
+                  setSaving(true);
+                  setCardError("");
+                  try {
+                    await onDelete();
+                  } catch {
+                    setCardError("حذف دائمی انجام نشد.");
+                    setSaving(false);
+                    setConfirmingDelete(false);
+                  }
+                }}
+              >
+                {saving ? "در حال حذف…" : "بله، حذف دائمی"}
+              </button>
+              <button
+                type="button"
+                className="button-link"
+                disabled={saving}
+                onClick={() => setConfirmingDelete(false)}
+              >
+                انصراف
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="button-link moderation-delete-trigger"
+              disabled={saving}
+              onClick={() => setConfirmingDelete(true)}
+            >
+              حذف دائمی از سایت
+            </button>
+          )}
         </div>
       </form>
     </article>

@@ -4,6 +4,7 @@ import { HotelLogo } from "./hotel-logo";
 import { HotelStars } from "./hotel-stars";
 import { MediaTile } from "./media-tile";
 import { EntityLibraryActions } from "./entity-library-actions";
+import { SiteIcon } from "./site-icon";
 
 export function HotelCard({ hotel }: { hotel: HotelListItem }) {
   const hasAssociations = hotel.associationCount > 0;
@@ -26,7 +27,7 @@ export function HotelCard({ hotel }: { hotel: HotelListItem }) {
               hasVerifiedAssociations ? "" : " status-badge-neutral"
             }`}
           >
-            <span>{hasVerifiedAssociations ? "✓" : "◇"}</span>
+            <SiteIcon name={hasVerifiedAssociations ? "check" : "clock"} />
             {hasVerifiedAssociations
               ? "دارای ارتباط تأییدشده"
               : hasAssociations
@@ -36,7 +37,7 @@ export function HotelCard({ hotel }: { hotel: HotelListItem }) {
         </div>
         <div className="hotel-card-body">
           <div>
-            <span className="location-label">⌖ {hotel.city}</span>
+            <span className="location-label"><SiteIcon name="location" /> {hotel.city}</span>
             <h3>{hotel.name}</h3>
             <HotelStars value={hotel.starRating} />
           </div>
@@ -48,7 +49,7 @@ export function HotelCard({ hotel }: { hotel: HotelListItem }) {
           </p>
           <div className="card-meta">
             <span>{hotel.associationCount.toLocaleString("fa-IR")} چهره مرتبط</span>
-            <strong aria-hidden="true">←</strong>
+            <SiteIcon name="arrow-left" />
           </div>
         </div>
       </Link>

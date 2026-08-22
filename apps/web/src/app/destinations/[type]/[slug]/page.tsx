@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { EmptyState } from "@/components/empty-state";
 import { HotelCard } from "@/components/hotel-card";
+import { ProgressiveVideoList } from "@/components/progressive-video-list";
 import { TravelVideoCard } from "@/components/travel-video-card";
 import { TravelVideoPersonCard } from "@/components/travel-video-person-card";
 import { getDestinationCatalog } from "@/lib/destination-catalog";
@@ -131,7 +132,10 @@ export default async function DestinationPage({
         </div>
 
         {destinationVideos.length > 0 ? (
-          <div className="destination-video-list">
+          <ProgressiveVideoList
+            className="destination-video-list"
+            key={`${destinationType}:${slug}`}
+          >
             {destinationVideos.map((video) => (
               <div className="destination-video-item" key={video.videoId}>
                 <TravelVideoPersonCard
@@ -151,7 +155,7 @@ export default async function DestinationPage({
                 />
               </div>
             ))}
-          </div>
+          </ProgressiveVideoList>
         ) : (
           <EmptyState
             kind="empty"

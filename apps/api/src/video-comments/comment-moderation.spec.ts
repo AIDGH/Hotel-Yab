@@ -2,29 +2,14 @@ import { UserRole } from '../generated/prisma/enums';
 import { decideCommentModeration } from './comment-moderation';
 
 describe('decideCommentModeration', () => {
-  it('publishes a clean comment from a trusted user', () => {
+  it('publishes a clean comment without a prior-comment threshold', () => {
     expect(
       decideCommentModeration({
         body: 'این ویدیو اطلاعات خوبی داشت.',
         role: UserRole.USER,
-        publishedCommentCount: 2,
         repeated: false,
       }),
     ).toEqual({ publishImmediately: true, reasons: [] });
-  });
-
-  it('queues the first comments of a new user', () => {
-    expect(
-      decideCommentModeration({
-        body: 'این ویدیو اطلاعات خوبی داشت.',
-        role: UserRole.USER,
-        publishedCommentCount: 1,
-        repeated: false,
-      }),
-    ).toMatchObject({
-      publishImmediately: false,
-      reasons: ['کمتر از دو دیدگاه تأییدشده'],
-    });
   });
 
   it('queues links and repeated content even for trusted users', () => {
@@ -32,12 +17,21 @@ describe('decideCommentModeration', () => {
       decideCommentModeration({
         body: 'دوباره ببینید https://example.com',
         role: UserRole.USER,
-        publishedCommentCount: 2,
         repeated: true,
       }),
     ).toMatchObject({
       publishImmediately: false,
       reasons: ['دارای لینک', 'متن تکراری'],
     });
+  });
+
+  it('publishes staff comments without automated moderation', () => {
+    expect(
+      decideCommentModeration({
+        body: 'https://example.com',
+        role: UserRole.MODERATOR,
+        repeated: true,
+      }),
+    ).toEqual({ publishImmediately: true, reasons: [] });
   });
 });

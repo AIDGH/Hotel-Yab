@@ -10,6 +10,12 @@ export type EnvironmentVariables = {
   AUTH_OTP_TTL_MINUTES: number;
   AUTH_OTP_RESEND_SECONDS: number;
   AUTH_SESSION_DAYS: number;
+  SMS_PROVIDER: 'development' | 'najva';
+  NAJVA_API_BASE_URL: string;
+  NAJVA_API_KEY?: string;
+  NAJVA_SENDER?: string;
+  NAJVA_OTP_TEMPLATE: string;
+  SMS_OTP_ORIGIN_HOST?: string;
 };
 
 const nodeEnvironment = process.env.NODE_ENV ?? 'development';
@@ -41,4 +47,30 @@ export const environmentValidationSchema = Joi.object<EnvironmentVariables>({
   AUTH_OTP_TTL_MINUTES: Joi.number().integer().min(2).max(15).default(5),
   AUTH_OTP_RESEND_SECONDS: Joi.number().integer().min(30).max(300).default(60),
   AUTH_SESSION_DAYS: Joi.number().integer().min(1).max(90).default(30),
+  SMS_PROVIDER: Joi.when('NODE_ENV', {
+    is: 'production',
+    then: Joi.string().valid('najva').required(),
+    otherwise: Joi.string()
+      .valid('development', 'najva')
+      .default('development'),
+  }),
+  NAJVA_API_BASE_URL: Joi.string()
+    .uri({ scheme: ['https'] })
+    .default('https://sms.najva.com'),
+  NAJVA_API_KEY: Joi.string().when('SMS_PROVIDER', {
+    is: 'najva',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  NAJVA_SENDER: Joi.string().when('SMS_PROVIDER', {
+    is: 'najva',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  NAJVA_OTP_TEMPLATE: Joi.string().default('HotelYabOTPTemplate'),
+  SMS_OTP_ORIGIN_HOST: Joi.string().hostname().when('SMS_PROVIDER', {
+    is: 'najva',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
 });

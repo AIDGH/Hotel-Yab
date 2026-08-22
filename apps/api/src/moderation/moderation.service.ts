@@ -1,15 +1,20 @@
 import {
   BadRequestException,
+  ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import {
   CommentReportReason,
   ContentModerationStatus,
+  UserRole,
   UserStatus,
 } from '../generated/prisma/enums';
 import { ModerateContentDto } from './dto/moderate-content.dto';
+import { UpdateManagedUserDto } from './dto/update-managed-user.dto';
 
 @Injectable()
 export class ModerationService {
@@ -193,15 +198,171 @@ export class ModerationService {
     return { data: { success: true } };
   }
 
-  async updateUserStatus(id: string, adminId: string, status: UserStatus) {
+  async listManagedUsers(
+    actorId: string,
+    actorRole: UserRole,
+    query?: string,
+    administratorsOnly = false,
+  ) {
+    if (administratorsOnly && actorRole !== UserRole.MODERATOR) {
+      throw new ForbiddenException('بررسی مدیران فقط برای ناظر محتوا مجاز است');
+    }
+    const search = query?.trim().slice(0, 100);
+    const searchTerms = search?.split(/\s+/).filter(Boolean) ?? [];
+    const searchWhere = searchTerms.map(
+      (term) =>
+        ({
+          OR: [
+            { firstName: { contains: term, mode: 'insensitive' } },
+            { lastName: { contains: term, mode: 'insensitive' } },
+            { username: { contains: term, mode: 'insensitive' } },
+            { email: { contains: term, mode: 'insensitive' } },
+            {
+              instagramHandle: {
+                contains: term.replace(/^@/, ''),
+                mode: 'insensitive',
+              },
+            },
+            { mobile: { contains: term.replace(/\s/g, '') } },
+          ],
+        }) satisfies Prisma.UserWhereInput,
+    );
+    const users = await this.prisma.user.findMany({
+      where: {
+        id: { not: actorId },
+        role: administratorsOnly ? UserRole.ADMIN : { not: UserRole.ADMIN },
+        ...(searchWhere.length > 0 ? { AND: searchWhere } : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }],
+      take: 100,
+      select: {
+        id: true,
+        mobile: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        instagramHandle: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        lastLoginAt: true,
+        _count: { select: { hotelReviews: true, videoComments: true } },
+      },
+    });
+    return {
+      data: users.map(({ _count, ...user }) => ({
+        ...user,
+        displayName:
+          [user.firstName, user.lastName].filter(Boolean).join(' ') ||
+          user.username ||
+          'کاربر هتل‌یاب',
+        createdAt: user.createdAt.toISOString(),
+        lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+        reviewCount: _count.hotelReviews,
+        commentCount: _count.videoComments,
+      })),
+    };
+  }
+
+  async updateManagedUser(
+    id: string,
+    actorId: string,
+    actorRole: UserRole,
+    dto: UpdateManagedUserDto,
+  ) {
+    const target = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, status: true },
+    });
+    if (!target) throw new NotFoundException('کاربر پیدا نشد');
+    this.assertCanManageUser(actorId, actorRole, target);
+
+    if (actorRole === UserRole.MODERATOR && dto.role !== undefined) {
+      throw new ForbiddenException(
+        'ناظر محتوا نمی‌تواند نقش مدیر را تغییر دهد',
+      );
+    }
+    if (actorRole === UserRole.ADMIN && dto.role === UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'ایجاد یا تغییر نقش مدیر از این پنل مجاز نیست',
+      );
+    }
+    if (dto.status === UserStatus.BLOCKED && target.role === UserRole.ADMIN) {
+      const otherActiveAdmins = await this.prisma.user.count({
+        where: {
+          id: { not: id },
+          role: UserRole.ADMIN,
+          status: UserStatus.ACTIVE,
+        },
+      });
+      if (otherActiveAdmins === 0) {
+        throw new BadRequestException('آخرین مدیر فعال را نمی‌توان مسدود کرد');
+      }
+    }
+
+    try {
+      const updated = await this.prisma.$transaction(async (transaction) => {
+        const user = await transaction.user.update({
+          where: { id },
+          data: {
+            ...(dto.username !== undefined ? { username: dto.username } : {}),
+            ...(dto.firstName !== undefined
+              ? { firstName: dto.firstName }
+              : {}),
+            ...(dto.lastName !== undefined ? { lastName: dto.lastName } : {}),
+            ...(dto.email !== undefined ? { email: dto.email } : {}),
+            ...(dto.instagramHandle !== undefined
+              ? { instagramHandle: dto.instagramHandle }
+              : {}),
+            ...(dto.status !== undefined ? { status: dto.status } : {}),
+            ...(dto.role !== undefined ? { role: dto.role } : {}),
+          },
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            instagramHandle: true,
+            role: true,
+            status: true,
+          },
+        });
+        if (dto.status === UserStatus.BLOCKED) {
+          await transaction.userSession.deleteMany({ where: { userId: id } });
+        }
+        return user;
+      });
+      return { data: updated };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'نام‌کاربری، ایمیل یا آیدی اینستاگرام قبلاً استفاده شده است',
+        );
+      }
+      throw error;
+    }
+  }
+
+  async updateUserStatus(
+    id: string,
+    adminId: string,
+    actorRole: UserRole,
+    status: UserStatus,
+  ) {
     if (id === adminId && status === UserStatus.BLOCKED) {
       throw new BadRequestException('You cannot block your own account');
     }
     const existing = await this.prisma.user.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, role: true, status: true },
     });
     if (!existing) throw new NotFoundException('The user was not found');
+    this.assertCanManageUser(adminId, actorRole, existing);
 
     const user = await this.prisma.$transaction(async (transaction) => {
       const updated = await transaction.user.update({
@@ -215,6 +376,21 @@ export class ModerationService {
       return updated;
     });
     return { data: user };
+  }
+
+  private assertCanManageUser(
+    actorId: string,
+    actorRole: UserRole,
+    target: { id: string; role: UserRole },
+  ) {
+    if (actorId === target.id) {
+      throw new ForbiddenException(
+        'نمی‌توانید حساب خودتان را از این پنل تغییر دهید',
+      );
+    }
+    if (actorRole === UserRole.ADMIN && target.role === UserRole.ADMIN) {
+      throw new ForbiddenException('مدیر نمی‌تواند مدیر دیگری را تغییر دهد');
+    }
   }
 }
 

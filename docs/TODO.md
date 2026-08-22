@@ -4,230 +4,207 @@ This file tracks open product and technical work for Hotel-Yab.
 
 ---
 
-# Current Priority
+# Current Priority - Week 4 (2026-08-22 to 2026-08-25)
 
-## 1. User Features
+## 1. Production Stabilization and Server Workflow
 
-- [x] Add separate like/save states for hotels
-- [x] Add separate like/save states for notable people
-- [x] Add a private account library for liked and saved entities
-- [ ] Consider personalized discovery after enough behavioral data exists (deferred)
+- [x] Deploy the current application to the ArvanCloud VPS.
+- [x] Run Next.js and NestJS as enabled `systemd` services.
+- [x] Put Nginx in front of the application.
+- [x] Route public `/api/v1` traffic to the NestJS service and normal web traffic to Next.js.
+- [x] Restore the canonical PostgreSQL data on production.
+- [x] Provision production media separately from Git.
+- [x] Enable UFW with only SSH/HTTP/HTTPS public.
+- [x] Configure and validate a daily PostgreSQL custom-format backup timer.
+- [x] Verify API/Web/Nginx automatically return after a full VPS reboot.
+- [ ] Fix the production auth/session bug where a signed-in user may appear logged out after page refresh.
+- [ ] Learn and document the repeatable laptop -> Git -> production update workflow for code, migrations, data, and media.
+- [ ] Connect the final domain to the VPS.
+- [ ] Enable HTTPS with a valid certificate.
+- [ ] Update the production canonical origin/CORS/cookie configuration after the domain is active.
 
-Hotel data enrichment and a fuller Hotel Detail Page continue after the required hotel dataset is ready. Manual data collection continues in parallel and is not blocked by this execution order.
+## 2. Production Authentication
 
----
+- [x] Integrate the approved Najva OTP template for registration/login delivery.
+- [ ] Configure the Najva API key/sender/WebOTP hostname on production and verify account credit and real delivery.
+- [ ] Test OTP resend cooldown, provider failure handling, and production delivery end-to-end.
+- [ ] Decide whether email is actually required for MVP before integrating a provider.
 
-# Deferred Core Website Work
+## 3. Crawler and Data Growth
 
-- [ ] Complete Notable Person Detail Page
-- [ ] Improve hotel/person relationship presentation
-- [ ] Complete Hotel Detail Page after its required dataset is ready
-- [ ] Improve mobile responsiveness
-- [ ] Improve loading states
-- [ ] Improve empty states
-- [ ] Improve error states
-- [ ] Final UI polish for listing and detail pages
+- [x] Implement approved Instagram review XLSX `--apply` through the protected Admin Catalog API.
+- [x] Apply the first reviewed production batch successfully; 32 approved travel/hotel videos were imported.
+- [x] Verify the resulting canonical PostgreSQL/video relationships and public-site output.
+- [ ] Reduce manual steps in the Instagram crawler workflow and make repeated profile runs easier.
+- [ ] Add a practical batch/profile queue around the existing checkpoint/resume crawler.
+- [ ] Continue collecting more reviewed travel and hotel videos.
+- [ ] Complete missing hotel fields, images, logos, and official metadata.
+- [ ] Complete missing notable-person image, Instagram, occupation, biography, and follower metadata.
 
----
+## 4. Immediate Website Bugs
 
-# 2. Content Enrichment
-
-## Hotel Images
-
-- [ ] Add images for the remaining existing hotels (3 of 15 currently have local hotel-view images)
-- [ ] Add or verify logos for the remaining hotels (2 of 15 currently have local logos)
-- [ ] Define a consistent image size and format
-- [ ] Add fallback image behavior
-
-## Notable Person Images
-
-- [ ] Add images for existing people
-- [ ] Verify that each image belongs to the correct person
-- [ ] Replace low-quality images where necessary
-
-## Person Information
-
-- [ ] Complete Instagram handles
-- [ ] Complete occupations
-- [ ] Complete biographies
-- [ ] Add missing follower information where needed
-
-## Videos and Sources
-
-- [ ] Find relevant videos for hotel-person relationships
-- [ ] Store source links
-- [ ] Add Instagram post/reel links where relevant
-- [ ] Define how sources and videos should appear on detail pages
+- [x] Fix missing/incorrect hotel-logo rendering cases in production.
+- [x] Fix hotel-category videos that should appear on notable-person detail pages but currently do not.
+- [ ] Regression-test media URLs after production path normalization.
 
 ---
 
-# 3. Continue Data Collection
+# Week 5 (2026-08-29 to 2026-09-01)
 
-- [ ] Add more hotels
-- [ ] Add more notable people
-- [ ] Add more hotel-person associations
-- [ ] Review duplicate records
-- [ ] Review incomplete records
-- [ ] Review unverified associations
-- [ ] Improve overall data quality before large-scale expansion
+## Product and Admin
 
----
-
-# 4. Second Spreadsheet / Clean Dataset
-
-- [ ] Define the purpose of the second spreadsheet
-- [ ] Define the final columns
-- [ ] Define unique identifiers for hotels and people
-- [ ] Define association structure
-- [ ] Define validation rules
-- [ ] Define publication fields
-- [ ] Prepare existing research data for migration
-
-Planned flow:
-
-```text
-Research Spreadsheet
-        ↓
-Clean Spreadsheet
-        ↓
-Sync Script
-        ↓
-PostgreSQL
-        ↓
-Website
-```
+- [x] Separate the Hotel Detail concepts of «people connected to this hotel» and «influencer/hotel videos» instead of presenting them as one mixed block.
+- [x] Improve high-value icons and small UI states across Hotel, Person, Explore, and Account pages.
+- [x] Add an administrator view for website users with search and basic account status information.
+- [x] Prevent an `ADMIN` from blocking/suspending another `ADMIN`.
+- [x] Add a separate moderator-only administrator review page.
+- [x] Re-check role hierarchy and avoid staff self-lockout/peer-lockout scenarios.
+- [ ] Continue crawler automation and data enrichment in parallel.
+- [ ] Run a focused regression pass on Auth, Admin, Hotel, Person, and Media after the Week 5 changes.
 
 ---
 
-# 5. Data Sync Script
+# Content Enrichment
 
-- [x] Add an idempotent transition importer for destination/video JSON into PostgreSQL
-- [ ] Replace the transition importer with a workbook-to-PostgreSQL bulk command and dry-run report
-- [ ] Add dry-run checks for missing destination images, MP4 files, thumbnails, slugs, duplicate type-scoped display orders, and unresolved video links
-- [ ] Design spreadsheet-to-database sync process
-- [ ] Normalize hotel names
-- [ ] Normalize person names
-- [ ] Match existing database records
-- [ ] Prevent duplicate hotels
-- [ ] Prevent duplicate people
-- [ ] Prevent duplicate associations
-- [ ] Validate required fields
-- [ ] Handle invalid rows
-- [ ] Add dry-run mode before database writes
-- [ ] Add sync summary/report
-- [ ] Document how to run the sync script
+## Hotel Images and Metadata
 
----
+- [ ] Complete missing main images and logos for current hotels.
+- [ ] Define and enforce a consistent image size/format policy.
+- [ ] Keep fallback image behavior clean when media is missing.
+- [ ] Continue expanding the hotel catalog beyond the current production set.
 
-# 6. User Accounts
+## Notable People
 
-The account foundation is implemented without making login mandatory for public discovery.
+- [ ] Complete missing images.
+- [ ] Verify image/person matches.
+- [ ] Complete Instagram handles, occupations, biographies, and other stable profile fields.
+- [ ] Continue follower refreshes without treating follower count as evidence.
 
-- [x] Define why users need accounts
-- [x] Design password + mobile OTP authentication flows
-- [x] Separate login and registration while keeping discovery public
-- [x] Implement mobile/username password login and OTP fallback with revocable sessions
-- [x] Add unique username and salted password hashing
-- [x] Add strong new-password rules and show/hide password controls
-- [x] Render password-format failures as Persian red inline form feedback
-- [x] Add six-slot OTP entry with API-backed 60-second resend countdown
-- [x] Auto-submit a complete six-digit OTP without requiring Enter or the confirmation button
-- [x] Keep signup to mobile/username/password and defer optional profile identity fields to the account page
-- [x] Add editable user profile with optional unique email and Instagram
-- [x] Add a responsive account layout and validated profile-avatar upload/removal
-- [x] Add hotel ratings/reviews with pending moderation
-- [x] Add collapsed video comments with hybrid trust/risk moderation
-- [x] Add per-user comment rate limiting and user reports with automatic hiding
-- [x] Add account activity management for reviews/comments with moderation states and safe deletion
-- [x] Add independent likes and saves for hotels and notable people with a private account library
-- [ ] Integrate a production SMS provider
-- [ ] Consider user-submitted hotel/person information
+## Associations and Sources
+
+- [ ] Review incomplete/pending hotel-person associations.
+- [ ] Attach reviewed public evidence where available.
+- [ ] Reject weak/incorrect associations instead of guessing.
+- [ ] Build the association/source review UI when the manual workflow is clear enough.
 
 ---
 
-# 7. Admin and Moderation
+# Data Pipeline
 
-The contribution-moderation slice and first create-only catalog slice are implemented.
-
-- [x] Define and enforce `USER`, `MODERATOR`, and `ADMIN` roles
-- [x] Create hotel-review and video-comment moderation queues
-- [x] Add publish/reject/hide/pending actions with moderator identity, time, and note
-- [x] Add unresolved comment-report queue and administrator user blocking/reactivation
-- [x] Add administrator-only deletion of hotel reviews and video comments from public content
-- [x] Add a safe local command to bootstrap an admin/moderator role
-- [x] Create administrator-only add forms for destinations, hotels, notable people, and travel videos
-- [x] Add multi-destination and optional hotel links while creating a video
-- [x] Add searchable click-to-toggle destination/hotel multi-selection and editable media-path suggestions
-- [x] Add editable suggested values for video place type and creator category
-- [x] Keep video metadata suggestions initially empty and add content-type suggestions
-- [x] Add searchable existing-creator selection to the catalog video form
-- [x] Create a pending person–hotel association when a catalog video introduces a new pair
-- [x] Add an import-compatible catalog JSON export
-- [ ] Add edit/archive interfaces for existing destination, hotel, person, and video records
-- [ ] Create association review interface
-- [ ] Add source verification workflow
-- [ ] Add publication controls
-- [ ] Add append-only moderation history if latest-decision audit fields are insufficient
-- [ ] Add UI for user role management
+- [x] Keep Destination/Video/PostgreSQL as the canonical runtime source.
+- [x] Add checkpoint/resume Instagram travel crawling and high-recall candidate detection.
+- [x] Add JSON -> XLSX human review.
+- [x] Add approved-row dry-run validation.
+- [x] Add approved-row Admin API apply.
+- [x] Import the first reviewed 32-video batch successfully.
+- [ ] Add a clearer post-apply summary for created/skipped/blocked rows if current output is not sufficient.
+- [ ] Add stronger validation for media paths, thumbnails, duplicate display orders, and unresolved relations before future bulk apply.
+- [ ] Keep all generated crawler output, browser/session data, and request captures local-only.
+- [ ] Consider a generalized workbook-to-PostgreSQL bulk tool only when the real workflow needs it.
 
 ---
 
-# 8. Technical Improvements
+# User Accounts
 
-- [ ] Improve validation across API endpoints
-- [ ] Improve API error handling
-- [ ] Add automated tests
-- [ ] Review database indexes
-- [ ] Review performance as dataset grows
-- [ ] Define production environment
-- [ ] Define deployment process
-- [ ] Define production media storage
-- [ ] Add monitoring and logging when needed
+- [x] Password + mobile OTP authentication foundation.
+- [x] Revocable server-side sessions with HttpOnly cookie.
+- [x] User profile and avatar.
+- [x] Hotel reviews and video comments.
+- [x] Private account activity.
+- [x] Independent likes/saves and private library.
+- [ ] Fix production refresh/session persistence behavior.
+- [x] Add the production Najva template adapter and environment validation.
+- [ ] Activate Najva credentials and verify live OTP delivery on production.
+- [ ] Consider user-submitted hotel/person data later, behind moderation.
 
 ---
 
-# 9. Documentation
+# Admin and Moderation
 
-- [x] Create `ARCHITECTURE.md`
-- [x] Create `DECISIONS.md`
-- [x] Create `API.md`
-- [x] Create `DATABASE.md`
-- [x] Create `DATA_POLICY.md`
-- [x] Create `CHANGELOG.md`
-- [x] Create `TODO.md`
+- [x] `USER`, `MODERATOR`, `ADMIN` roles exist.
+- [x] Review/comment/report moderation queues exist.
+- [x] Admin blocking/reactivation exists for normal users.
+- [x] Catalog create/update for current canonical entities exists.
+- [x] Catalog delete endpoints exist.
+- [x] Catalog export exists.
+- [x] Add safe user-list UI for staff.
+- [x] Finalize staff-to-staff blocking rules.
+- [x] Give `MODERATOR` access to users, a separate administrator review page, and catalog management.
+- [ ] Add edit/archive support for existing video records.
+- [ ] Add explicit archive/publication controls where deletion is not appropriate.
+- [ ] Add association/source review workflow.
+- [ ] Add append-only moderation history only if latest-decision audit fields become insufficient.
 
-After the documentation set is complete:
+---
 
-- [ ] Refactor `PROJECT_CONTEXT.md`
-- [ ] Remove unnecessary duplicated details
-- [ ] Link each detailed document from `PROJECT_CONTEXT.md`
-- [ ] Review `README.md`
+# Production and Operations
+
+## Current Production Setup
+
+- [x] Ubuntu 24.04 VPS.
+- [x] Node.js 24 + pnpm 11.
+- [x] PostgreSQL 17 production cluster on port 5432.
+- [x] `hotel-yab-api.service` and `hotel-yab-web.service` enabled through systemd.
+- [x] Nginx public reverse proxy.
+- [x] UFW enabled; 3000/4000/5432 are not intended as public ports.
+- [x] Daily PostgreSQL backup timer at 03:00 UTC.
+- [x] Current media provisioned to the VPS filesystem outside Git.
+- [ ] Domain and HTTPS.
+- [ ] Off-server backup copy.
+- [ ] Monitoring/alerting/log aggregation.
+- [ ] Automated deployment/CI-CD after the manual deploy workflow is stable.
+- [ ] Schedule follower refresh in production when the desired cadence is decided.
+- [ ] Decide when to migrate content media to object storage/CDN.
+- [ ] Remove the old stopped PostgreSQL 16 cluster only after the production setup has remained stable long enough.
+
+---
+
+# Technical Improvements
+
+- [ ] Improve API validation/error handling where real production failures show gaps.
+- [ ] Add/expand automated tests around production-critical auth/admin flows.
+- [ ] Review indexes and query performance as data grows.
+- [ ] Add observability before broader public traffic.
+- [ ] Review SEO/performance/security before a public launch campaign.
+
+---
+
+# Documentation
+
+- [x] `ARCHITECTURE.md`
+- [x] `DECISIONS.md`
+- [x] `API.md`
+- [x] `DATABASE.md`
+- [x] `DATA_POLICY.md`
+- [x] `CHANGELOG.md`
+- [x] `TODO.md`
+- [x] Refresh the documentation after the first production deployment and first reviewed Instagram batch apply.
+- [ ] Keep the server/deployment runbook current after domain, SMS, and auth-session fixes.
+- [ ] Review `README.md` later and remove duplicated operational detail.
 
 ---
 
 # Suggested Execution Order
 
 ```text
-1. User Features
+1. Fix production auth/session refresh behavior
+2. Document and practice the repeatable server update workflow
+3. Domain + HTTPS + canonical production origin
+4. Production SMS
+5. Crawler automation + more reviewed video/data ingestion
+6. Data enrichment + visible media bugs
+7. Hotel/Person product refinements
+8. Admin user/role-management improvements
+9. Off-server backup + monitoring + CI/CD
 ```
-
-Manual data collection, content enrichment, and later data-pipeline work run in parallel with this product sequence.
 
 ---
 
 # TODO Rules
 
-- Only open work belongs in this file.
+- Only open or actively tracked work belongs in this file.
 - Completed meaningful work should move to `CHANGELOG.md`.
-- Technical decisions should go to `DECISIONS.md`.
-- Database changes should be documented in `DATABASE.md`.
-- API changes should be documented in `API.md`.
-- Data-policy changes should be documented in `DATA_POLICY.md`.
-
-## Destination Discovery
-
-- [ ] Add real province dataset and images
-- [ ] Model destinations in Prisma/PostgreSQL
-- [ ] Expand the reviewed travel-video dataset
-- [ ] Move travel videos and video-destination relationships into Prisma after validating the prototype
-- [ ] Move destination data into the main data pipeline
+- Technical decisions belong in `DECISIONS.md`.
+- Database changes belong in `DATABASE.md`.
+- API contract changes belong in `API.md`.
+- Data-policy changes belong in `DATA_POLICY.md`.

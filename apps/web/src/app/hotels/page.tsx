@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { EmptyState } from "@/components/empty-state";
 import { HotelCard } from "@/components/hotel-card";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
+import { AutoSubmitInput } from "@/components/auto-submit-input";
 import { getHotels } from "@/lib/api";
 import Link from "next/link";
 
@@ -70,11 +71,11 @@ export default async function HotelsPage({ searchParams }: HotelsPageProps) {
           <form className="filter-bar filter-bar-four" method="get">
             <label>
               <span>نام هتل یا شهر</span>
-              <input name="query" defaultValue={query} placeholder="مثلاً هتل یا تهران" />
+              <AutoSubmitInput name="query" defaultValue={query} placeholder="مثلاً هتل یا تهران" autoComplete="off" />
             </label>
             <label>
               <span>شهر</span>
-              <input name="city" defaultValue={city} placeholder="همه شهرها" />
+              <AutoSubmitInput name="city" defaultValue={city} placeholder="همه شهرها" autoComplete="off" />
             </label>
             <label>
               <span>مرتب‌سازی</span>

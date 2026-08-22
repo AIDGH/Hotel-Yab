@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SiteIcon } from "./site-icon";
 
 type SectionHeadingProps = {
   eyebrow: string;
@@ -27,7 +28,7 @@ export function SectionHeading({
       {actionHref && actionLabel ? (
         <Link className="text-link" href={actionHref}>
           {actionLabel}
-          <span aria-hidden="true">←</span>
+          <SiteIcon name="arrow-left" />
         </Link>
       ) : null}
     </div>

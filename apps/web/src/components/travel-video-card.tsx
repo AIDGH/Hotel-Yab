@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { SiteIcon } from "./site-icon";
 import { VideoComments } from "./video-comments";
 
 const TRAVEL_VIDEO_PLAY_EVENT = "hotel-yab:travel-video-play";
@@ -42,6 +43,8 @@ export function TravelVideoCard({
   instagramUsername,
 }: TravelVideoCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaRef = useRef<HTMLDivElement>(null);
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playbackId = useId();
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -50,6 +53,7 @@ export function TravelVideoCard({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showPausedThumbnail, setShowPausedThumbnail] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const progressPercent = duration > 0
     ? Math.min((currentTime / duration) * 100, 100)
@@ -70,6 +74,37 @@ export function TravelVideoCard({
     } catch (error) {
       console.error("Video playback failed:", error);
     }
+  }
+
+  function handleMediaClick(event: MouseEvent<HTMLDivElement>) {
+    if (event.detail > 1) return;
+
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = setTimeout(() => {
+      void togglePlay();
+      clickTimerRef.current = null;
+    }, 220);
+  }
+
+  async function toggleFullscreen(event: MouseEvent<HTMLElement>) {
+    event.stopPropagation();
+
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await mediaRef.current?.requestFullscreen();
+      }
+    } catch (error) {
+      console.error("Fullscreen failed:", error);
+    }
+  }
+
+  function handleMediaDoubleClick(event: MouseEvent<HTMLDivElement>) {
+    if (window.matchMedia("(max-width: 760px)").matches) return;
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = null;
+    void toggleFullscreen(event);
   }
 
   function toggleMute(
@@ -154,11 +189,25 @@ export function TravelVideoCard({
     };
   }, [playbackId]);
 
+  useEffect(() => {
+    function syncFullscreenState() {
+      setIsFullscreen(document.fullscreenElement === mediaRef.current);
+    }
+
+    document.addEventListener("fullscreenchange", syncFullscreenState);
+    return () => {
+      document.removeEventListener("fullscreenchange", syncFullscreenState);
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    };
+  }, []);
+
   return (
     <article className="travel-video-card">
       <div
+        ref={mediaRef}
         className="travel-video-media"
-        onClick={togglePlay}
+        onClick={handleMediaClick}
+        onDoubleClick={handleMediaDoubleClick}
       >
         <video
           ref={videoRef}
@@ -259,6 +308,16 @@ export function TravelVideoCard({
           aria-pressed={playbackRate === 2}
         >
           {playbackRate}×
+        </button>
+
+        <button
+          className="travel-video-fullscreen"
+          type="button"
+          onClick={(event) => void toggleFullscreen(event)}
+          aria-label={isFullscreen ? "خروج از نمایش تمام‌صفحه" : "نمایش تمام‌صفحه"}
+          aria-pressed={isFullscreen}
+        >
+          <SiteIcon name={isFullscreen ? "fullscreen-exit" : "fullscreen"} />
         </button>
 
         <div className="travel-video-overlay">

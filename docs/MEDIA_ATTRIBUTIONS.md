@@ -15,3 +15,11 @@ and resizing to a maximum width of 1280 pixels.
 Source and license details were reviewed on 2026-08-09. Existing hotel logo
 files supplied with the project are not third-party additions made in this
 change.
+
+## Tooling Note
+
+The Instagram follower and travel-discovery tooling added in August 2026 does
+not by itself grant reuse rights for discovered third-party media. Crawler
+output, public post URLs, and locally reviewed metadata are not media-license
+records. Any third-party binary later copied into Hotel-Yab still requires an
+explicit attribution entry here under the existing policy.

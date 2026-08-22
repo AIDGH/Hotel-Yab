@@ -22,6 +22,30 @@ apps/api/prisma/schema.prisma
 
 The Prisma schema is the source of truth for the exact database models, fields, enums, and relationships.
 
+## Production Database
+
+The first production deployment uses PostgreSQL 17 on the VPS, database
+`hotel_yab`, accessed by the application through a dedicated database role.
+Secrets are stored only in the production environment file and are not
+documented or committed.
+
+The initial production bootstrap applied Prisma migrations first and then
+restored the canonical application data. Ephemeral local `UserSession` and
+`OtpChallenge` rows were cleared during that bootstrap so local authentication
+state was not carried into production.
+
+Deployment-time production counts after the reviewed Instagram batch were:
+
+- 18 `Hotel` records;
+- 157 `NotablePerson` records;
+- 35 `Destination` records;
+- 38 `Video` records.
+
+These counts are a deployment snapshot, not schema constraints.
+
+A systemd timer creates a daily custom-format PostgreSQL backup at 03:00 UTC in
+`/var/backups/hotel-yab`. Off-server backup is still pending.
+
 ---
 
 # Core Domain
@@ -69,7 +93,9 @@ Typical information includes:
 - display name;
 - primary category;
 - occupation;
-- follower count snapshot (`followerCount`);
+- latest follower count (`followerCount`);
+- nullable last successful follower refresh time (`followersUpdatedAt`);
+- daily follower-history relation (`followerSnapshots`);
 - biography;
 - image;
 - Instagram information;
@@ -95,6 +121,40 @@ Example:
 primaryCategory = ACTOR
 occupation = بازیگر و تهیه‌کننده
 ```
+
+`followerCount` is the latest known successful public Instagram observation.
+`followersUpdatedAt` records when that latest value was captured. A failed
+collector run leaves both values unchanged.
+
+## FollowerSnapshot
+
+`FollowerSnapshot` stores time-series follower history for a notable person.
+
+Important fields:
+
+- `id`;
+- `notablePersonId`;
+- `followerCount`;
+- `snapshotDate` (`DATE`);
+- `capturedAt` (`TIMESTAMPTZ`).
+
+Relationship:
+
+```text
+NotablePerson 1 ─────< FollowerSnapshot
+```
+
+The unique constraint on `(notablePersonId, snapshotDate)` permits at most one
+snapshot per person per UTC calendar day. Reapplying the collector on the same
+day updates that day's count/timestamp rather than creating a duplicate. Deleting
+a person cascades to the person's follower snapshots.
+
+The latest value remains denormalized on `NotablePerson.followerCount` for
+public list sorting and display; history stays in `FollowerSnapshot`. There is
+currently no public follower-history API.
+
+The schema was introduced in migration
+`20260816135826_add_follower_snapshots`.
 
 ---
 
@@ -159,7 +219,8 @@ password after OTP login.
 `UserAvatar` has a one-to-zero-or-one relation with `User` and stores the
 validated image bytes, MIME type, and timestamps. Keeping the binary in a
 separate relation prevents normal login/profile queries from loading image data.
-The API accepts JPEG, PNG, or WebP up to 1 MB and returns only a versioned
+The API accepts common processable image formats up to 15 MB, normalizes them to
+an optimized WebP of bounded dimensions, and returns only a versioned
 authenticated avatar URL in the public account object. Deleting a user cascades
 to the avatar row.
 
@@ -243,11 +304,9 @@ single reply level enforced by the service. Public reads return only comments
 with status `PUBLISHED`. The latest moderation decision uses the same
 moderator/time/note fields as hotel reviews.
 
-Clean comments from users with at least two published comments may start as
-`PUBLISHED`; new users, exact
-repeats, links, and baseline risky terms start as `PENDING`. Trust is derived
-from the user's published-comment count rather than stored as a separate mutable
-flag. First and last name remain optional for commenting; serialization falls
+Clean comments start as `PUBLISHED` without a prior-comment threshold; exact
+repeats, links, and baseline risky terms start as `PENDING`. Staff comments
+bypass premoderation. First and last name remain optional for commenting; serialization falls
 back to the public label `کاربر هتل‌یاب` when both are absent. An administrator
 may permanently delete a comment; deleting a parent cascades to its replies.
 
@@ -370,7 +429,10 @@ The database currently supports common application queries such as:
 - filter by category;
 - sort by follower count, name, or association count;
 - paginate results;
-- retrieve associated hotels.
+- retrieve associated hotels;
+- update the latest follower count/timestamp from a successful internal
+  collector run;
+- upsert one daily follower snapshot per person.
 
 ### Associations
 
@@ -390,7 +452,9 @@ The database currently supports common application queries such as:
 - classify new video comments using trust/risk rules and enforce the per-user rate limit;
 - create unique comment reports and auto-hide comments at the report threshold;
 - list contribution moderation queues plus unresolved reports and persist moderator audit fields;
-- let administrators block/reactivate users and revoke sessions when blocking.
+- let administrators and moderators search/manage non-admin users and expose a
+  separate administrator query only to moderators, revoking sessions when
+  blocking.
 
 ---
 
@@ -455,8 +519,20 @@ extension if every transition must be audited rather than only the latest one.
 
 The private core importer remains idempotent. `data:import-travel` separately
 upserts the transition destination/video JSON, while the admin catalog exports
-the full database in the extended import shape. Future bulk synchronization may
-still require metadata such as:
+the full database in the extended import shape.
+
+Two operational ingestion tools now exist outside Prisma models:
+
+- the Instagram follower tracker, which reads the canonical person list and
+  writes successful observations through the Admin Catalog API;
+- the Instagram travel finder, which crawls candidate posts, produces a human
+  review workbook, and currently supports approved-row dry-run validation.
+
+The reviewed-travel XLSX write path is implemented and has been used for the
+first production batch: 32 explicitly approved travel/hotel videos were applied
+through the protected Admin Catalog API. Dry-run validation remains the required
+preflight for future batches. Future bulk synchronization may still require
+metadata such as:
 
 - external IDs;
 - sync timestamps;
@@ -479,3 +555,5 @@ These models should only be introduced when their workflow is implemented.
 8. `schema.prisma` remains the source of truth for the exact schema.
 9. Raw OTP/session secrets are never persisted; only hashes are stored.
 10. User-generated content is private while its moderation status is `PENDING`.
+11. Time-series follower history lives in `FollowerSnapshot`; the latest value
+    remains on `NotablePerson` for efficient public reads.

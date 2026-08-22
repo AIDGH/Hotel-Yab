@@ -7,6 +7,7 @@ import {
   VerificationStatus,
 } from '../generated/prisma/enums';
 import { NotablePersonQueryDto } from './dto/notable-person-query.dto';
+import { createPersianSearchVariants } from '../common/search-text';
 
 const verifiedAssociationWhere = {
   verificationStatus: VerificationStatus.VERIFIED,
@@ -27,6 +28,52 @@ const visibleAssociationWhere = {
     verifiedAssociationWhere,
   ],
 } satisfies Prisma.HotelAssociationWhereInput;
+
+const personVideoSelect = {
+  id: true,
+  videoCategory: true,
+  instagramUsername: true,
+  platform: true,
+  personCategory: true,
+  contentType: true,
+  sourceUrl: true,
+  title: true,
+  placeName: true,
+  placeType: true,
+  publishedDate: true,
+  captionSummary: true,
+  evidenceType: true,
+  verificationStatus: true,
+  notes: true,
+  mediaUrl: true,
+  thumbnailUrl: true,
+  publicationStatus: true,
+  destinations: {
+    select: {
+      destination: {
+        select: {
+          id: true,
+          type: true,
+          slug: true,
+          name: true,
+          description: true,
+          imageUrl: true,
+          parentProvinceId: true,
+          parentProvince: { select: { slug: true, name: true } },
+          isFeatured: true,
+          displayOrder: true,
+          primarySourceUrl: true,
+          sourceType: true,
+          notes: true,
+          publicationStatus: true,
+        },
+      },
+    },
+  },
+  hotels: {
+    select: { hotel: { select: { id: true, slug: true, name: true } } },
+  },
+} satisfies Prisma.VideoSelect;
 
 type NotablePersonListItem = {
   id: string;
@@ -51,6 +98,7 @@ export class NotablePeopleService {
   ): Promise<PaginatedResponse<NotablePersonListItem>> {
     const { page, pageSize } = query;
     const search = query.query?.trim();
+    const searchVariants = search ? createPersianSearchVariants(search) : [];
     const countryCode = query.countryCode?.toUpperCase();
     const sort = query.sort ?? 'FOLLOWERS_DESC';
     const orderBy: Prisma.NotablePersonOrderByWithRelationInput[] =
@@ -70,28 +118,28 @@ export class NotablePeopleService {
 
     const where = {
       publicationStatus: PublicationStatus.PUBLISHED,
-      ...(search
+      ...(searchVariants.length > 0
         ? {
-            OR: [
+            OR: searchVariants.flatMap((variant) => [
               {
                 displayName: {
-                  contains: search,
+                  contains: variant,
                   mode: 'insensitive' as const,
                 },
               },
               {
                 occupation: {
-                  contains: search,
+                  contains: variant,
                   mode: 'insensitive' as const,
                 },
               },
               {
                 instagramHandle: {
-                  contains: search,
+                  contains: variant,
                   mode: 'insensitive' as const,
                 },
               },
-            ],
+            ]),
           }
         : {}),
       ...(query.category ? { primaryCategory: query.category } : {}),
@@ -206,9 +254,41 @@ export class NotablePeopleService {
       );
     }
 
+    const normalizedInstagramHandle = person.instagramHandle
+      ?.trim()
+      .replace(/^@/, '');
+    const videos = normalizedInstagramHandle
+      ? await this.prisma.video.findMany({
+          where: {
+            OR: [
+              {
+                instagramUsername: {
+                  equals: normalizedInstagramHandle,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                instagramUsername: {
+                  equals: `@${normalizedInstagramHandle}`,
+                  mode: 'insensitive',
+                },
+              },
+            ],
+            publicationStatus: PublicationStatus.PUBLISHED,
+          },
+          orderBy: [{ publishedDate: 'desc' }, { id: 'asc' }],
+          select: personVideoSelect,
+        })
+      : [];
+
     return {
       data: {
         ...person,
+        videos: videos.map(({ destinations, hotels, ...video }) => ({
+          ...video,
+          destinations: destinations.map(({ destination }) => destination),
+          hotels: hotels.map(({ hotel }) => hotel),
+        })),
         associations: person.associations.map(
           ({ evidence, ...association }) => ({
             ...association,

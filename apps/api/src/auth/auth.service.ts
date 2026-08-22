@@ -22,6 +22,7 @@ import sharp from 'sharp';
 import { EnvironmentVariables } from '../config/environment';
 import { PrismaService } from '../database/prisma.service';
 import { UserStatus } from '../generated/prisma/enums';
+import { SmsService } from '../sms/sms.service';
 import { LoginWithPasswordDto } from './dto/login-with-password.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RequestRegistrationOtpDto } from './dto/request-registration-otp.dto';
@@ -45,6 +46,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService<EnvironmentVariables, true>,
+    private readonly sms: SmsService,
   ) {}
 
   async requestLoginOtp(identifier: string) {
@@ -330,13 +332,24 @@ export class AuthService {
       },
     });
 
+    try {
+      await this.sms.sendOtp(mobile, code);
+    } catch (error) {
+      await this.prisma.otpChallenge
+        .deleteMany({
+          where: { id: challengeId, consumedAt: null },
+        })
+        .catch(() => undefined);
+      throw error;
+    }
+
     return {
       data: {
         mobile,
         expiresInSeconds: ttlMinutes * 60,
         resendAfterSeconds: resendSeconds,
         delivery: 'SMS' as const,
-        ...(this.config.get('NODE_ENV', { infer: true }) !== 'production'
+        ...(this.sms.usesDevelopmentDelivery()
           ? { developmentCode: code }
           : {}),
       },

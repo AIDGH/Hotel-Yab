@@ -89,6 +89,7 @@ export type NotablePersonDetail = Omit<
   "associationCount" | "verifiedAssociationCount"
 > & {
   biography: string | null;
+  videos: TravelVideo[];
   associations: Array<
     PublicAssociation & {
       hotel: Pick<

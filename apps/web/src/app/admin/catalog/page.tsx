@@ -6,6 +6,8 @@ import { type FormEvent, useCallback, useEffect, useRef, useState } from "react"
 import { useAuth } from "@/components/auth-provider";
 import { browserApi } from "@/lib/browser-api";
 import type { Destination, TravelVideo } from "@/lib/types";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { SiteIcon } from "@/components/site-icon";
 
 type CatalogData = {
   destinations: Destination[];
@@ -54,6 +56,7 @@ export default function CatalogAdminPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: "error" | "success"; text: string } | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const loadCatalog = useCallback(async () => {
     setLoading(true);
@@ -69,7 +72,7 @@ export default function CatalogAdminPage() {
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      if (user?.role === "ADMIN") void loadCatalog();
+      if (user?.role === "ADMIN" || user?.role === "MODERATOR") void loadCatalog();
       else if (!authLoading) setLoading(false);
     }, 0);
     return () => window.clearTimeout(timeout);
@@ -116,8 +119,7 @@ export default function CatalogAdminPage() {
 
   async function deleteSelected() {
     if (!selectedEditId) return;
-    const selectedLabel = editItems?.find((item) => item.id === selectedEditId)?.label ?? "این مورد";
-    if (!window.confirm(`«${selectedLabel}» برای همیشه حذف شود؟ ارتباط‌ها و محتوای وابسته نیز ممکن است حذف شوند.`)) return;
+    setDeleteConfirmOpen(false);
     const endpoint = activeSection === "people" ? "notable-people" : activeSection;
     setSubmitting(true);
     setFeedback(null);
@@ -143,17 +145,18 @@ export default function CatalogAdminPage() {
   const selectedDestination = catalog?.destinations.find((item) => item.id === selectedEditId);
   const selectedHotel = catalog?.hotels.find((item) => item.id === selectedEditId);
   const selectedPerson = catalog?.notablePeople.find((item) => item.id === selectedEditId);
+  const selectedEditLabel = editItems?.find((item) => item.id === selectedEditId)?.label ?? "این مورد";
 
   if (authLoading || loading) {
     return <main className="section container admin-page"><p>در حال دریافت پنل مدیریت…</p></main>;
   }
-  if (!user || user.role !== "ADMIN") {
+  if (!user || (user.role !== "ADMIN" && user.role !== "MODERATOR")) {
     return (
       <main className="section container admin-page">
         <section className="admin-empty">
           <span className="section-eyebrow">مدیریت داده‌ها</span>
-          <h1>دسترسی مدیر لازم است</h1>
-          <p>افزودن داده‌های اصلی سایت فقط برای مدیر امکان‌پذیر است.</p>
+          <h1>دسترسی مدیریت لازم است</h1>
+          <p>افزودن داده‌های اصلی سایت فقط برای مدیر یا ناظر محتوا امکان‌پذیر است.</p>
           <Link className="button" href="/">بازگشت به سایت</Link>
         </section>
       </main>
@@ -161,6 +164,7 @@ export default function CatalogAdminPage() {
   }
 
   return (
+    <>
     <main className="section container admin-page catalog-admin-page">
       <header className="admin-heading catalog-admin-heading">
         <div>
@@ -209,11 +213,22 @@ export default function CatalogAdminPage() {
           {activeSection === "hotels" && (mode === "create" || selectedHotel) ? <HotelForm key={selectedEditId || "new-hotel"} catalog={catalog} disabled={submitting} onSubmit={submit} mode={mode} initial={selectedHotel} /> : null}
           {activeSection === "people" && (mode === "create" || selectedPerson) ? <PersonForm key={selectedEditId || "new-person"} disabled={submitting} onSubmit={submit} mode={mode} initial={selectedPerson} /> : null}
           {activeSection === "videos" && mode === "create" ? <VideoForm catalog={catalog} disabled={submitting} onSubmit={submit} /> : null}
-          {mode === "edit" && selectedEditId ? <button className="catalog-delete" type="button" disabled={submitting} onClick={() => void deleteSelected()}>{submitting ? "در حال حذف…" : "حذف دائمی این مورد"}</button> : null}
+          {mode === "edit" && selectedEditId ? <button className="catalog-delete" type="button" disabled={submitting} onClick={() => setDeleteConfirmOpen(true)}>{submitting ? "در حال حذف…" : "حذف دائمی این مورد"}</button> : null}
         </div>
         <CatalogSummary section={activeSection} catalog={catalog} />
       </section>
     </main>
+    <ConfirmDialog
+      open={deleteConfirmOpen}
+      title="حذف دائمی داده"
+      description={`«${selectedEditLabel}» برای همیشه حذف شود؟ ارتباط‌ها و محتوای وابسته نیز ممکن است حذف شوند.`}
+      confirmLabel="حذف دائمی"
+      danger
+      busy={submitting}
+      onCancel={() => setDeleteConfirmOpen(false)}
+      onConfirm={() => void deleteSelected()}
+    />
+    </>
   );
 }
 
@@ -457,6 +472,7 @@ function CatalogMediaField({ name, label, slug, kind, value, suggestedValue, onC
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [overwriteConfirmOpen, setOverwriteConfirmOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectFile = useCallback((file: File) => {
@@ -508,7 +524,6 @@ function CatalogMediaField({ name, label, slug, kind, value, suggestedValue, onC
       setUploadFeedback("ابتدا Slug را وارد کنید.");
       return;
     }
-    if (!window.confirm("اگر فایل هم‌نامی وجود داشته باشد با تصویر جدید جایگزین می‌شود. ادامه می‌دهید؟")) return;
     const body = new FormData();
     body.append("file", file);
     body.append("kind", kind);
@@ -564,7 +579,7 @@ function CatalogMediaField({ name, label, slug, kind, value, suggestedValue, onC
                 if (file) selectFile(file);
               }}
             >
-              {previewUrl ? <Image src={previewUrl} alt="پیش‌نمایش تصویر انتخاب‌شده" width={360} height={190} unoptimized /> : <span className="catalog-upload-icon" aria-hidden="true">＋</span>}
+              {previewUrl ? <Image src={previewUrl} alt="پیش‌نمایش تصویر انتخاب‌شده" width={360} height={190} unoptimized /> : <span className="catalog-upload-icon"><SiteIcon name="image" /></span>}
               <strong>{selectedFile ? selectedFile.name || "تصویر کپی‌شده" : "تصویر را اینجا رها کنید"}</strong>
               <span>یا برای انتخاب از دستگاه کلیک کنید</span>
               <span>تصویر کپی‌شده را نیز می‌توانید اینجا بچسبانید</span>
@@ -574,11 +589,24 @@ function CatalogMediaField({ name, label, slug, kind, value, suggestedValue, onC
             {uploadFeedback ? <small className="catalog-field-error" role="alert">{uploadFeedback}</small> : null}
             <footer>
               <button type="button" className="button button-secondary" disabled={uploading} onClick={closeDialog}>انصراف</button>
-              <button type="button" className="button" disabled={uploading || !selectedFile} onClick={() => { if (selectedFile) void upload(selectedFile); }}>{uploading ? "در حال تبدیل و ذخیره…" : "تبدیل و ذخیره تصویر"}</button>
+              <button type="button" className="button" disabled={uploading || !selectedFile} onClick={() => { if (selectedFile) setOverwriteConfirmOpen(true); }}>{uploading ? "در حال تبدیل و ذخیره…" : "تبدیل و ذخیره تصویر"}</button>
             </footer>
           </section>
         </div>
       ) : null}
+      <ConfirmDialog
+        open={overwriteConfirmOpen}
+        title="ذخیره تصویر"
+        description="اگر فایل هم‌نامی وجود داشته باشد با تصویر جدید جایگزین می‌شود. ادامه می‌دهید؟"
+        confirmLabel="تبدیل و ذخیره"
+        busy={uploading}
+        onCancel={() => setOverwriteConfirmOpen(false)}
+        onConfirm={() => {
+          if (!selectedFile) return;
+          setOverwriteConfirmOpen(false);
+          void upload(selectedFile);
+        }}
+      />
     </div>
   );
 }

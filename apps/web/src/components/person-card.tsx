@@ -5,6 +5,7 @@ import { MediaTile } from "./media-tile";
 import { PersonDisplayName } from "./person-display-name";
 import { PersonProfileMeta } from "./person-profile-meta";
 import { EntityLibraryActions } from "./entity-library-actions";
+import { SiteIcon } from "./site-icon";
 
 export function PersonCard({ person }: { person: NotablePersonListItem }) {
   return (
@@ -31,7 +32,7 @@ export function PersonCard({ person }: { person: NotablePersonListItem }) {
               {person.associationCount.toLocaleString("fa-IR")} هتل مرتبط
               {person.verifiedAssociationCount === 0 ? " · در حال تکمیل" : ""}
             </span>
-            <strong aria-hidden="true">←</strong>
+            <SiteIcon name="arrow-left" />
           </div>
         </div>
       </Link>

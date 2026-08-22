@@ -6,16 +6,17 @@ import { EntityLibraryActions } from "@/components/entity-library-actions";
 import { MediaTile } from "@/components/media-tile";
 import { PersonDisplayName } from "@/components/person-display-name";
 import { PersonProfileMeta } from "@/components/person-profile-meta";
+import { ProgressiveVideoList } from "@/components/progressive-video-list";
 import { SourceList } from "@/components/source-list";
 import { TravelVideoCard } from "@/components/travel-video-card";
 import { VideoDestinationLinks } from "@/components/video-destination-links";
+import { SiteIcon } from "@/components/site-icon";
 import { getNotablePerson } from "@/lib/api";
 import {
   associationLabel,
   categoryLabel,
   formatDate,
 } from "@/lib/labels";
-import { getTravelVideosForInstagramUsername } from "@/lib/travel-videos";
 
 export const dynamic = "force-dynamic";
 
@@ -51,11 +52,17 @@ export default async function PersonPage({ params }: PersonPageProps) {
   }
 
   const person = result.value.data;
-  const hasVerifiedAssociations = person.associations.some(
-    ({ verificationStatus }) => verificationStatus === "VERIFIED",
-  );
-  const personTravelVideos = await getTravelVideosForInstagramUsername(
-    person.instagramHandle,
+  const hotelVideosByHotelId = new Map<string, typeof person.videos>();
+  for (const video of person.videos) {
+    if (video.videoCategory !== "HOTEL") continue;
+    for (const hotel of video.hotels) {
+      const currentVideos = hotelVideosByHotelId.get(hotel.id) ?? [];
+      currentVideos.push(video);
+      hotelVideosByHotelId.set(hotel.id, currentVideos);
+    }
+  }
+  const travelVideos = person.videos.filter(
+    (video) => video.videoCategory === "TRAVEL",
   );
   return (
     <main className="detail-page">
@@ -95,17 +102,16 @@ export default async function PersonPage({ params }: PersonPageProps) {
       </section>
 
       <section className="section section-tint">
-        <div className="container detail-content">
+        <div className="container detail-content detail-content-single">
           <div className="detail-main">
             <span className="section-eyebrow">هتل‌های مرتبط</span>
-            <h2>
-              {hasVerifiedAssociations
-                ? "ارتباط‌های این چهره"
-                : "ارتباط‌های در حال تکمیل این چهره"}
-            </h2>
+            <h2>ارتباط‌های این چهره</h2>
             <div className="association-list">
-              {person.associations.map((association) => (
-                <article className="association-card" key={association.id}>
+              {person.associations.map((association) => {
+                const hotelVideos =
+                  hotelVideosByHotelId.get(association.hotel.id) ?? [];
+                return (
+                  <article className="association-card" key={association.id}>
                   <div className="association-person association-hotel">
                     <MediaTile
                       imageUrl={association.hotel.imageUrl}
@@ -119,10 +125,13 @@ export default async function PersonPage({ params }: PersonPageProps) {
                           {association.hotel.name}
                         </Link>
                       </h3>
-                      <small>⌖ {association.hotel.city}</small>
-                      <p>{association.summary}</p>
+                      <small><SiteIcon name="location" /> {association.hotel.city}</small>
+                      {hotelVideos.length > 0 || association.sources.length > 0 ? (
+                        <p>{association.summary}</p>
+                      ) : null}
                     </div>
                   </div>
+                  {association.verificationStatus === "VERIFIED" || hotelVideos.length > 0 ? (
                   <div className="verification-row">
                     <span
                       className={
@@ -131,9 +140,8 @@ export default async function PersonPage({ params }: PersonPageProps) {
                           : "verification-pending"
                       }
                     >
-                      {association.verificationStatus === "VERIFIED"
-                        ? "✓ تأییدشده"
-                        : "◇ در حال تکمیل"}
+                      <SiteIcon name={association.verificationStatus === "VERIFIED" ? "check" : "clock"} />
+                      {association.verificationStatus === "VERIFIED" ? "تأییدشده" : "در حال تکمیل"}
                     </span>
                     <small>
                       {association.verifiedAt
@@ -141,58 +149,77 @@ export default async function PersonPage({ params }: PersonPageProps) {
                         : "هنوز تأیید نهایی نشده"}
                     </small>
                   </div>
-                  <SourceList sources={association.sources} />
+                  ) : null}
+                  {hotelVideos.length > 0 ? (
+                    <ProgressiveVideoList
+                      className="association-hotel-videos"
+                      key={`hotel-videos-${association.hotel.id}`}
+                    >
+                      {hotelVideos.map((video) => (
+                        <TravelVideoCard
+                          key={video.id}
+                          videoId={video.id}
+                          title={video.title}
+                          mediaUrl={video.mediaUrl}
+                          thumbnailUrl={video.thumbnailUrl}
+                          sourceUrl={video.sourceUrl}
+                          instagramUsername={video.instagramUsername}
+                        />
+                      ))}
+                    </ProgressiveVideoList>
+                  ) : null}
+                  {association.sources.length > 0 ? (
+                    <SourceList sources={association.sources} />
+                  ) : null}
                 </article>
-              ))}
+                );
+              })}
             </div>
           </div>
-          <aside className="detail-aside">
-            <h3>ویدیو هم یک مدرک است</h3>
-            <p>
-              اگر منبع رابطه پست یا ویدیو باشد، در کارت منبع با نشانه‌ی پخش
-              مشخص می‌شود و کاربر مستقیماً به محتوای اصلی می‌رود.
-            </p>
-          </aside>
         </div>
       </section>
 
+      {travelVideos.length > 0 ? (
       <section className="section container person-video-section">
         <div className="results-header">
           <div>
-            <span className="section-eyebrow">ویدیوهای سفر</span>
-            <h2>سفرهای ثبت‌شده این چهره</h2>
+            <span className="section-eyebrow">ویدیوهای این چهره</span>
+            <h2>سفرها و مقصدها</h2>
           </div>
-          {personTravelVideos.length > 0 ? (
-            <span>
-              {personTravelVideos.length.toLocaleString("fa-IR")} ویدیو
-            </span>
-          ) : null}
+          <span>{travelVideos.length.toLocaleString("fa-IR")} ویدیو</span>
         </div>
 
-        {personTravelVideos.length > 0 ? (
-          <div className="person-video-list">
-            {personTravelVideos.map(({ video, destinations: videoDestinations }) => (
-              <div className="person-video-item" key={video.videoId}>
+        <ProgressiveVideoList
+            className="person-video-list"
+            key={`travel-videos-${person.slug}`}
+          >
+            {travelVideos.map((video) => (
+              <div className="person-video-item" key={video.id}>
                 <TravelVideoCard
-                  videoId={video.videoId}
+                  videoId={video.id}
                   title={video.title}
                   mediaUrl={video.mediaUrl}
                   thumbnailUrl={video.thumbnailUrl}
                   sourceUrl={video.sourceUrl}
                   instagramUsername={video.instagramUsername}
                 />
-                <VideoDestinationLinks destinations={videoDestinations} />
+                <VideoDestinationLinks
+                  destinations={video.destinations.map((destination) => {
+                    const routeType = destination.type === "CITY" ? "cities" : "provinces";
+                    return {
+                      destinationType: destination.type,
+                      routeType,
+                      slug: destination.slug,
+                      name: destination.name,
+                      href: `/destinations/${routeType}/${destination.slug}`,
+                    };
+                  })}
+                />
               </div>
             ))}
-          </div>
-        ) : (
-          <EmptyState
-            kind="empty"
-            title="ویدیوی سفری برای این چهره ثبت نشده"
-            description="پس از اتصال ویدیو به نام کاربری اینستاگرام، مقصدهای مرتبط آن در این بخش نمایش داده می‌شوند."
-          />
-        )}
+        </ProgressiveVideoList>
       </section>
+      ) : null}
     </main>
   );
 }

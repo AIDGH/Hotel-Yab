@@ -6,7 +6,46 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
+- Added a mobile Reels-style snap feed for Explore and desktop fullscreen video controls with button and double-click toggling; also refined mobile drawer alignment and account-trigger visibility.
+- Refined account navigation by moving «فعالیت‌های من» below the saved-items entry, compacting mobile drawers, aligning the mobile account identity row, animating menu exits, simplifying account field guidance, and hiding the public Footer on account routes.
+
 ### Added
+
+- Added a reusable SVG icon set for Header, account navigation, entity cards, status/location states, Footer contact details, and mobile drawers.
+- Added responsive site-owned confirmation dialogs for account-activity deletion, catalog deletion, and media replacement instead of native browser confirmations.
+- Added debounced two-character live search plus shared Persian normalization for Arabic letter forms, alef variants, diacritics, whitespace, and half-space.
+- Added the approved Najva `HotelYabOTPTemplate` adapter for registration/login
+  OTP delivery, including server-only API-key/sender/origin configuration,
+  Tehran send-time and WebOTP tokens, explicit development delivery mode,
+  provider timeout handling, failed-challenge cleanup, and unit coverage.
+- Added `/admin/users` for non-admin account management and a separate moderator-only `/admin/administrators` page for reviewing administrator accounts.
+- Added inline-confirmed permanent deletion for hotel reviews and video comments directly inside the moderation queue.
+- Added reusable six-at-a-time progressive rendering to destination, hotel, and notable-person video sections.
+- Added published travel and hotel videos directly to notable-person detail responses.
+- Deployed the first live Hotel-Yab production prototype to an ArvanCloud Ubuntu 24.04 VPS, with Nginx as the public entry point and enabled systemd services for Next.js and NestJS.
+- Added the production PostgreSQL 17 runtime, restored the canonical application data, and verified deployment-time counts of 18 hotels, 157 notable people, 35 destinations, and 38 videos.
+- Added a daily systemd PostgreSQL custom-format backup at 03:00 UTC with local retention under `/var/backups/hotel-yab`.
+- Added production firewall rules that keep application/database ports private while allowing SSH, HTTP, and future HTTPS.
+- Provisioned ignored hotel/person/travel/hotel-video media to the VPS filesystem separately from Git.
+- Completed `import_approved.py --apply` through the protected Admin Catalog API and successfully imported the first 32 approved Instagram travel/hotel videos.
+- Added production same-origin API routing in Nginx so `/api/*` reaches NestJS while normal routes reach Next.js.
+- Added a browser-based Instagram follower collector under
+  `tools/instagram-follower-tracker` using a persistent local Playwright
+  profile, sequential public-profile reads, read-only bulk scans, JSON reports,
+  and an explicit `--apply` mode.
+- Added `NotablePerson.followersUpdatedAt` and daily `FollowerSnapshot` history
+  with a uniqueness constraint on person + snapshot date.
+- Added administrator-only `POST /admin/catalog/followers` to transactionally
+  update the latest follower count/timestamp and upsert daily snapshots; the
+  first full applied scan refreshed all 149 current notable-person records after
+  correcting two invalid Instagram handles.
+- Added Instagram travel-discovery tooling under
+  `tools/instagram-travel-finder`: GraphQL timeline collection,
+  checkpoint/resume, high-recall detector scoring with HOTEL priority,
+  JSON-to-XLSX human review, approved-row dry-run diagnostics, and the protected
+  approved-row Admin API apply path.
+- Added catalog API update routes for destinations, hotels, and notable people,
+  catalog deletion routes, and a catalog media-upload endpoint.
 
 - Technical documentation under `docs/`
 - `ARCHITECTURE.md`
@@ -83,6 +122,23 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ### Changed
 
+- Darkened the primary purple palette, widened the desktop account form into two columns, and replaced the mobile navigation/account popovers with mutually exclusive full-height left drawers and a dimmed backdrop.
+- Replaced the Footer transparency block with phone/Instagram contact details, expanded homepage quick destinations, and hid the homepage process/data-contribution sections.
+- Removed incomplete evidence, research-status, and empty travel-video copy from notable-person associations that have no connected media/source.
+- Made mobile authentication inputs use a Safari-safe 16px font size to prevent focus zoom.
+- Split Hotel Detail into a video-first introduction section and a compact notable-guest grid.
+- Removed the two-published-comment threshold; clean user comments now publish immediately while risk signals still enter moderation.
+- Made `ADMIN` and `MODERATOR` hotel reviews and video comments bypass premoderation.
+- Made hotel logos fill and inherit the rounded clipping of their frame without a separate white inset, and removed the Instagram verification note from the account form.
+- Embedded hotel-category videos inside their matching hotel association on notable-person pages, compacted the account form card, removed research-state copy from hotel guest cards, and opened catalog/user management to moderators.
+- Split hotel guest occupation and follower count onto separate lines and removed the generic guest label.
+- Reduced `NotablePersonCategory` to the active five-value taxonomy:
+  `ACTOR`, `ATHLETE`, `INFLUENCER`, `MUSICIAN`, and `PUBLIC_FIGURE`; the unused
+  `CREATOR`, `ENTREPRENEUR`, `POLITICIAN`, and `OTHER` enum values were removed
+  after confirming no current person rows used them.
+- Changed follower maintenance from manually stale snapshot values to a
+  timestamped refresh workflow that preserves the latest value on
+  `NotablePerson` and daily history in `FollowerSnapshot`.
 - Improved hotel and notable-person listing UI
 - Unified pagination button styles
 - Improved RTL/LTR handling for Persian and Latin content
@@ -136,6 +192,8 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ### Fixed
 
+- Normalized production media references that still used `http://localhost:3000/...` into stable relative paths before serving them publicly.
+- Corrected the production Web `API_BASE_URL` to include `/api/v1`, avoiding server-side requests to the wrong NestJS path.
 - Removed an accidentally tracked hotel video and thumbnail from the current repository tree, and ignored all local public content-media directories to prevent future commits.
 - Closed the Header account menu automatically after client-side route changes.
 - Fixed the footer destination link to use `/destinations` instead of the removed `/cities` route.

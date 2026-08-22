@@ -8,7 +8,16 @@ import { PersonProfileMeta } from "./person-profile-meta";
 
 type TravelVideoPersonCardProps = {
   instagramUsername: string;
-  person: NotablePersonListItem | null;
+  person: Pick<
+    NotablePersonListItem,
+    | "slug"
+    | "displayName"
+    | "instagramHandle"
+    | "primaryCategory"
+    | "occupation"
+    | "followerCount"
+    | "imageUrl"
+  > | null;
 };
 
 export function TravelVideoPersonCard({

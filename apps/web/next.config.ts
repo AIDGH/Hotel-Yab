@@ -5,7 +5,7 @@ const internalApiBaseUrl = (
 ).replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["10.215.216.104"],
+  allowedDevOrigins: ["10.215.216.104", "10.215.160.135"],
   async rewrites() {
     return [
       {

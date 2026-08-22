@@ -48,27 +48,26 @@ export function ExploreVideoList({ items }: { items: ExploreVideoItem[] }) {
             <VideoDestinationLinks destinations={destinations} />
           </div>
         ))}
+        {remainingCount > 0 ? (
+          <div className="explore-load-more">
+            <button
+              className="button pagination-secondary"
+              type="button"
+              aria-controls="explore-video-list"
+              onClick={() =>
+                setVisibleCount((currentCount) =>
+                  Math.min(currentCount + VIDEO_BATCH_SIZE, items.length),
+                )
+              }
+            >
+              نمایش {Math.min(VIDEO_BATCH_SIZE, remainingCount).toLocaleString("fa-IR")} ویدیوی دیگر
+            </button>
+            <span>
+              {visibleItems.length.toLocaleString("fa-IR")} از {items.length.toLocaleString("fa-IR")}
+            </span>
+          </div>
+        ) : null}
       </div>
-
-      {remainingCount > 0 ? (
-        <div className="explore-load-more">
-          <button
-            className="button pagination-secondary"
-            type="button"
-            aria-controls="explore-video-list"
-            onClick={() =>
-              setVisibleCount((currentCount) =>
-                Math.min(currentCount + VIDEO_BATCH_SIZE, items.length),
-              )
-            }
-          >
-            نمایش {Math.min(VIDEO_BATCH_SIZE, remainingCount).toLocaleString("fa-IR")} ویدیوی دیگر
-          </button>
-          <span>
-            {visibleItems.length.toLocaleString("fa-IR")} از {items.length.toLocaleString("fa-IR")}
-          </span>
-        </div>
-      ) : null}
     </>
   );
 }

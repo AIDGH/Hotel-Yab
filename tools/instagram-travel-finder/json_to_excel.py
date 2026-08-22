@@ -204,8 +204,11 @@ def sort_key(
     )
 
     score = item.get(
-        "signal_score",
-        0,
+        "ranking_score",
+        item.get(
+            "signal_score",
+            0,
+        ),
     )
 
     published_at = item.get(
@@ -395,8 +398,11 @@ def row_values(
             item
         ),
         "امتیاز": item.get(
-            "signal_score",
-            0,
+            "ranking_score",
+            item.get(
+                "signal_score",
+                0,
+            ),
         ),
         "اینستاگرام": item.get(
             "instagram_username",

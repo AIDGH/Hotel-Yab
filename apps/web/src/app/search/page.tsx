@@ -7,6 +7,8 @@ import { HotelCard } from "@/components/hotel-card";
 import { PersonCard } from "@/components/person-card";
 import { getHotels, getNotablePeople } from "@/lib/api";
 import { getDestinationCatalog } from "@/lib/destination-catalog";
+import { LiveSearchForm } from "@/components/live-search-form";
+import { normalizePersianSearchText } from "@/lib/search-text";
 
 export const metadata: Metadata = {
   title: "جست‌وجوی هتل‌یاب",
@@ -22,7 +24,7 @@ type SearchPageProps = {
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const query = params.query?.trim() ?? "";
-  const normalizedQuery = query.toLocaleLowerCase("fa-IR");
+  const normalizedQuery = normalizePersianSearchText(query);
   const destinations = await getDestinationCatalog();
   const searchResults = query
     ? await Promise.all([
@@ -44,7 +46,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               city.description,
               provinceMap.get(city.parentProvinceSlug) ?? "",
             ].some((value) =>
-              value.toLocaleLowerCase("fa-IR").includes(normalizedQuery),
+              normalizePersianSearchText(value).includes(normalizedQuery),
             ),
           )
           .map((city) => ({
@@ -58,7 +60,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         ...destinations.provinces
           .filter((province) =>
             [province.name, province.description].some((value) =>
-              value.toLocaleLowerCase("fa-IR").includes(normalizedQuery),
+              normalizePersianSearchText(value).includes(normalizedQuery),
             ),
           )
           .map((province) => ({
@@ -94,20 +96,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             یک عبارت بنویسید تا نتیجه‌های مرتبط از همه بخش‌های هتل‌یاب
             کنار هم نمایش داده شوند.
           </p>
-          <form className="filter-bar global-search-bar" method="get">
-            <label>
-              <span>عبارت جست‌وجو</span>
-              <input
-                name="query"
-                defaultValue={query}
-                placeholder="مثلاً تهران، هتل عباسی یا نام یک چهره"
-                autoFocus
-              />
-            </label>
-            <button className="button" type="submit">
-              جست‌وجو
-            </button>
-          </form>
+          <LiveSearchForm variant="results" initialQuery={query} />
         </div>
       </section>
 

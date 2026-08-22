@@ -67,7 +67,7 @@ export class VideoCommentsService {
     const now = new Date();
     const rateWindowStart = new Date(now.getTime() - COMMENT_RATE_WINDOW_MS);
     const repeatedSince = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const [user, recentCommentCount, publishedCommentCount, repeatedComment] =
+    const [user, recentCommentCount, repeatedComment] =
       await this.prisma.$transaction([
         this.prisma.user.findUniqueOrThrow({
           where: { id: userId },
@@ -75,12 +75,6 @@ export class VideoCommentsService {
         }),
         this.prisma.videoComment.count({
           where: { userId, createdAt: { gte: rateWindowStart } },
-        }),
-        this.prisma.videoComment.count({
-          where: {
-            userId,
-            status: ContentModerationStatus.PUBLISHED,
-          },
         }),
         this.prisma.videoComment.findFirst({
           where: {
@@ -116,7 +110,6 @@ export class VideoCommentsService {
     const moderation = decideCommentModeration({
       body: normalizeCommentBody(body),
       role: user.role,
-      publishedCommentCount,
       repeated: Boolean(repeatedComment),
     });
     const status = moderation.publishImmediately

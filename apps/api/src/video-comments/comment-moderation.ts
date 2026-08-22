@@ -1,6 +1,5 @@
 import { UserRole } from '../generated/prisma/enums';
 
-export const TRUSTED_PUBLISHED_COMMENT_COUNT = 2;
 export const COMMENT_RATE_LIMIT = 5;
 export const COMMENT_RATE_WINDOW_MS = 60_000;
 export const AUTO_HIDE_REPORT_COUNT = 3;
@@ -77,11 +76,14 @@ const riskyTerms = [
 export type CommentModerationInput = {
   body: string;
   role: UserRole;
-  publishedCommentCount: number;
   repeated: boolean;
 };
 
 export function decideCommentModeration(input: CommentModerationInput) {
+  const isStaff =
+    input.role === UserRole.ADMIN || input.role === UserRole.MODERATOR;
+  if (isStaff) return { publishImmediately: true, reasons: [] };
+
   const reasons: string[] = [];
   const normalizedBody = normalizeCommentBody(input.body);
 
@@ -91,15 +93,8 @@ export function decideCommentModeration(input: CommentModerationInput) {
   }
   if (input.repeated) reasons.push('متن تکراری');
 
-  const trusted =
-    input.role === UserRole.ADMIN ||
-    input.role === UserRole.MODERATOR ||
-    input.publishedCommentCount >= TRUSTED_PUBLISHED_COMMENT_COUNT;
-
-  if (!trusted) reasons.push('کمتر از دو دیدگاه تأییدشده');
-
   return {
-    publishImmediately: trusted && reasons.length === 0,
+    publishImmediately: reasons.length === 0,
     reasons,
   };
 }

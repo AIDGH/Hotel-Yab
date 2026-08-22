@@ -32,9 +32,11 @@ Keep `displayName` for the real public name and `instagramHandle` for the
 optional Instagram username without the `@` prefix. Do not derive the handle
 from `slug`; the slug is only Hotel-Yab's stable URL identifier.
 
-Keep `occupation` limited to the person's professional role. Store the
-follower snapshot in `followerCount` as a non-negative integer, or leave it
-empty when unknown.
+Keep `occupation` limited to the person's professional role. `followerCount`
+may still be present in the workbook as seed/research data, but runtime follower
+maintenance is now handled by the Instagram follower tracker. Leave workbook
+counts empty when unknown rather than guessing them; do not manually maintain
+the workbook as a daily follower-history source.
 
 ### Associations
 
@@ -111,3 +113,70 @@ The tracked transition JSON can still be imported idempotently with
 `pnpm --filter @hotel-yab/api data:import-travel`. This is for migration or
 recovery, not the routine add workflow. Future large batches should use a
 dry-run converter/import report rather than returning to manual JSON editing.
+
+## Instagram Travel Review Workbook
+
+The current bulk Instagram discovery tooling lives under:
+
+```text
+tools/instagram-travel-finder/
+```
+
+The review flow is:
+
+```text
+GraphQL crawler
+    ↓
+JSON + checkpoint
+    ↓
+candidate detector
+    ↓
+json_to_excel.py
+    ↓
+human review in XLSX
+    ↓
+import_approved.py --dry-run
+    ↓
+explicit reviewed apply
+    ↓
+Admin API / PostgreSQL
+```
+
+The generated review sheet uses human-readable Persian columns. The importer
+resolves fields by header name rather than column position, so moving columns or
+changing row colors does not change import semantics. The required review/import
+headers are:
+
+```text
+اینستاگرام
+لینک پست
+وضعیت بررسی
+هتل
+شهر نهایی
+استان نهایی
+```
+
+Important rules:
+
+1. Only `approved` rows are eligible for database import.
+2. `لینک پست` must be the original Instagram `/p/.../` or `/reel/.../` URL.
+3. At least one final city or province is required.
+4. Multiple final destinations are separated with ` | `.
+5. A blank hotel is valid and means no `VideoHotel`; reviewed hotel content uses
+   the hotel-video media root.
+6. A named hotel or destination that cannot be resolved must block the row
+   rather than be silently created.
+7. Existing `sourceUrl` values are reported as already existing instead of
+   creating duplicates.
+8. Running `json_to_excel.py` regenerates the workbook from JSON and can erase
+   manual review edits, so reviewed XLSX files must be backed up before
+   regeneration.
+9. `tools/instagram-travel-finder/output/`, captured `query.json`, and
+   `query.rtf` are local working artifacts and are not committed.
+
+The approved-row importer now supports the protected Admin Catalog apply path.
+The first production-reviewed batch successfully applied 32 approved travel/hotel
+videos. Future batches should keep the same order: back up the reviewed workbook,
+run dry-run, fix all blocked rows, ensure the required MP4/thumbnail media is
+provisioned, then run explicit apply and verify the resulting PostgreSQL/public
+website records.

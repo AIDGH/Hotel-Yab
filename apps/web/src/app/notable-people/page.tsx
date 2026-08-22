@@ -5,6 +5,7 @@ import { PersonCard } from "@/components/person-card";
 import { getNotablePeople } from "@/lib/api";
 import { notableCategories } from "@/lib/labels";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
+import { AutoSubmitInput } from "@/components/auto-submit-input";
 
 export const metadata: Metadata = {
   title: "کشف چهره‌ها",
@@ -75,7 +76,7 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
           <form className="filter-bar filter-bar-four" method="get">
             <label>
               <span>نام یا حرفه</span>
-              <input name="query" defaultValue={query} placeholder="نام چهره را بنویسید" />
+              <AutoSubmitInput name="query" defaultValue={query} placeholder="نام چهره را بنویسید" autoComplete="off" />
             </label>
             <label>
               <span>دسته‌بندی</span>

@@ -4,7 +4,7 @@
 
 Hotel-Yab is a web application for discovering hotels through documented relationships with notable people.
 
-Current architecture:
+Current logical architecture:
 
 ```text
 User / Browser
@@ -20,6 +20,25 @@ PostgreSQL
 
 The frontend never connects directly to the database.
 
+Current production runtime (first VPS deployment):
+
+```text
+Browser
+  ↓ HTTP :80
+Nginx
+  ├── /api/* ───────────────→ NestJS :4000
+  └── all other routes ─────→ Next.js :3000
+                                  │
+                                  └── Server Components → NestJS :4000
+
+NestJS → Prisma → PostgreSQL 17 :5432
+```
+
+Next.js, NestJS, and the database run on the same Ubuntu 24.04 VPS today.
+`systemd` keeps the Web/API services alive across SSH disconnects and server
+reboots. Nginx is the only public application entry point; application and
+database ports are not intended to be publicly exposed.
+
 ---
 
 ## Repository Structure
@@ -29,6 +48,9 @@ Hotel-Yab/
 ├── apps/
 │   ├── web/        # Next.js frontend
 │   └── api/        # Backend API
+├── tools/
+│   ├── instagram-travel-finder/
+│   └── instagram-follower-tracker/
 ├── docs/           # Project documentation
 ├── PROJECT_CONTEXT.md
 └── package.json
@@ -56,23 +78,24 @@ Main responsibilities:
 
 - rendering public pages;
 - hotel and notable-person listings;
-- search and filtering;
+- search and filtering, including two-character debounced search and shared Persian text normalization;
 - pagination;
 - hotel and person cards;
 - RTL Persian interface;
 - displaying images and public metadata;
-- maintaining client authentication state and the account modal, including closing the account menu after route changes;
-- rendering the responsive account sidebar, optional avatar controls, and compact profile form;
+- maintaining client authentication state and the account modal, including mutually exclusive responsive navigation/account drawers;
+- rendering a shared SVG icon system, site-owned confirmation dialogs, the responsive account sidebar, optional avatar controls, and a wide two-column profile form;
 - rendering hotel reviews and collapsed-on-demand video comments;
 - rendering the authenticated user's review/comment activity and ownership actions;
 - rendering shared hotel/person like-save controls and the private account library;
 - communicating with the backend API.
 
-Server-rendered data uses the internal `API_BASE_URL`. Browser-side account,
-review, and comment requests default to same-origin `/api/v1`; a Next.js rewrite
-proxies those requests to the internal API. This avoids exposing a browser-side
-`localhost:4000` URL and keeps session cookies on the frontend host when the
-site is opened through a LAN IP.
+Server-rendered data uses the internal `API_BASE_URL` and the value must include
+the `/api/v1` base path. Browser-side requests default to same-origin `/api/v1`.
+In local development a Next.js rewrite can forward that path to NestJS; in the
+current production deployment Nginx routes `/api/` directly to NestJS while
+normal page traffic goes to Next.js. The browser still sees one origin, so
+HttpOnly session cookies stay attached to the visible site host.
 
 Main routes currently include:
 
@@ -123,6 +146,7 @@ Main responsibilities:
 - validating request parameters;
 - applying filtering and publication rules;
 - issuing and verifying OTP challenges and session cookies;
+- delivering production OTP codes through Najva's approved template endpoint;
 - accepting moderated hotel reviews and video comments;
 - pagination;
 - querying application data;
@@ -166,6 +190,7 @@ Core domain concepts currently include:
 
 - Hotel
 - Notable Person
+- Follower Snapshot history
 - Hotel–Person Association
 - User, User Avatar, User Session, and OTP Challenge
 - Hotel Review
@@ -210,6 +235,32 @@ Frontend renders HotelCard components
 ```
 
 The notable-person listing follows the same general architecture.
+
+Instagram follower refresh is a separate ingestion flow and never runs inside
+the public frontend:
+
+```text
+Admin bootstrap / NotablePerson IDs + handles
+        ↓
+Playwright persistent Instagram browser session
+        ↓
+Sequential public profile reads
+        ↓
+track_all.py scan result
+        ↓
+POST /api/v1/admin/catalog/followers   (only with --apply)
+        ↓
+CatalogService / Prisma transaction
+        ├── NotablePerson.followerCount
+        ├── NotablePerson.followersUpdatedAt
+        └── daily FollowerSnapshot upsert
+```
+
+The default bulk scan is read-only and writes a local JSON report. `--apply`
+sends only successful observations. Browser-session state and local scan output
+are ignored by Git. The first complete applied run on 2026-08-16 refreshed all
+149 current notable-person records after two incorrect Instagram handles were
+corrected.
 
 Global search is currently federated in the Next.js server route:
 
@@ -351,6 +402,8 @@ Current capabilities include:
 - pagination;
 - reusable hotel/person cards;
 - destination detail pages with related hotel cards below travel videos;
+- reusable client-side progressive video lists for destination, hotel, and
+  notable-person sections, revealing at most six cards per batch;
 - filtered travel-video Explore page with creator and multi-destination context
   plus client-side progressive reveal in batches of six;
 - federated global search across hotels, notable people, cities, and provinces;
@@ -365,20 +418,53 @@ Current capabilities include:
 
 ---
 
-## Planned Architecture
+## Current Extensions and Planned Architecture
 
-The following components are planned but are not yet part of the stable architecture.
+Some data/admin extensions are now implemented while the remaining production
+automation and ingestion work is still planned.
 
-### Data Sync Pipeline
+### Data Sync and Research Tooling
 
-Planned flow:
+The data pipeline is now partially implemented as tooling outside the public
+frontend.
+
+Travel discovery/review flow:
+
+```text
+Public Instagram posts
+        ↓
+tools/instagram-travel-finder/graphql_client.py
+        ↓
+crawl_graphql.py + checkpoint/resume
+        ↓
+detector.py (high-recall candidate scoring, HOTEL priority)
+        ↓
+JSON output
+        ↓
+json_to_excel.py
+        ↓
+Human review in XLSX (approved / rejected / pending)
+        ↓
+import_approved.py --dry-run
+        ↓
+Admin API / PostgreSQL write path   (next step)
+```
+
+The approved-row importer now supports the protected Admin API write path. The
+first reviewed production batch was applied successfully and created the approved
+travel/hotel video data in PostgreSQL; 32 approved videos were imported in that
+batch. Dry-run remains the required preflight before future applies.
+
+The long-term normalized flow remains:
 
 ```text
 Research Data / Spreadsheet
            ↓
-Normalization
+Normalization + Review
            ↓
-Sync Script
+Validated Ingestion
+           ↓
+Backend API / Prisma
            ↓
 PostgreSQL
            ↓
@@ -394,6 +480,14 @@ Register: Mobile → OTP Challenge → Verify + unique username/password → Use
 Login:    Mobile/Username + Password → scrypt verification → Session
 Fallback: Mobile/Username → OTP Challenge → Verify existing User → Session
 ```
+
+OTP delivery is provider-aware: `development` returns the generated code for
+local testing, while `najva` sends it server-to-server through the approved
+`HotelYabOTPTemplate` using an API key and sender line. `%token` is the code,
+`%token2` is the Tehran send time, and `%token3` is the configured hostname used
+by the final `@host #code` WebOTP line. Provider secrets never reach the browser.
+The challenge is stored before delivery and removed if Najva rejects or times
+out, preventing a failed send from creating a false resend cooldown.
 
 The website keeps registration minimal: an `09…` mobile, username, and a strong
 new password. Name, family name, email, Instagram, and avatar are completed
@@ -424,20 +518,24 @@ The current protected moderation layer supports:
 - queues for hotel reviews and video comments by status plus unresolved reports;
 - publish, reject, hide, and return-to-pending actions;
 - private notes plus moderator identity and decision timestamps;
-- hybrid comment classification after two published comments, plus simple risk signals;
+- immediate publication for clean comments plus simple link/repetition/risk signals;
 - a five-comments-per-minute per-user limit;
 - automatic hiding after three independent unresolved reports;
-- administrator-only user blocking/reactivation with session revocation.
-- administrator-only permanent deletion controls for published hotel reviews
-  and video comments/replies, exposed beside public content with an inline
-  confirmation step.
+- role-aware user management with session revocation on block;
+- staff permanent-deletion controls for hotel reviews and video
+  comments/replies, exposed inside moderation with inline confirmation.
 
 The administration layer is split by responsibility:
 
 - `/admin/moderation` is available to `ADMIN` and `MODERATOR` for user content;
-- `/admin/catalog` is restricted to `ADMIN` and creates canonical destination,
+- `/admin/users` lets `ADMIN` and `MODERATOR` search/manage non-admin accounts;
+- `/admin/administrators` is the separate moderator-only administrator review
+  surface; self-editing, admin peer-management, and blocking the final active
+  admin are prevented;
+- `/admin/catalog` is available to `ADMIN` and `MODERATOR` and creates canonical destination,
   hotel, notable-person, and categorized `TRAVEL`/`HOTEL` video records directly
-  in PostgreSQL;
+  in PostgreSQL; the current catalog API also updates destinations, hotels, and
+  notable people and exposes protected delete routes for canonical records;
 - the catalog video form provides searchable click-to-toggle multi-selection,
   generates editable media-path suggestions from stable slugs, offers
   initially empty free-typing datalist suggestions for content/place/creator
@@ -457,8 +555,9 @@ The administration layer may later expand to:
 - editing existing records and managing publication status;
 - reviewing submitted sources.
 
-The first admin role is bootstrapped with the local `user:set-role` command;
-role-management UI is not implemented yet.
+The first admin role is bootstrapped with the local `user:set-role` command.
+After bootstrap, `/admin/users` provides the deliberately scoped account and
+role-management UI described above.
 
 ---
 
@@ -472,8 +571,10 @@ Responsible for:
 - rendering;
 - navigation;
 - frontend API calls;
-- composing published hotel-linked videos into the matching notable-person
-  association card by normalized Instagram handle;
+- composing published hotel-linked videos into a dedicated hotel-video section
+  and keeping notable guests without matching videos in a compact separate grid;
+- embedding published hotel videos in their matching notable-person hotel
+  association while keeping travel videos in the destination-linked section;
 - collapsed comment loading, report forms, and moderation/admin controls.
 
 Must not contain:
@@ -506,19 +607,52 @@ Responsible for:
 
 ### Data Pipeline
 
-Future ingestion logic should be responsible for:
+Ingestion tooling is responsible for:
 
 ```text
-Raw Data
+Raw/Public Research Data
    ↓
-Normalization
+Normalization + Candidate Detection
    ↓
-Validation
+Human Review / Validation
    ↓
-Database
+Admin API
+   ↓
+Prisma / PostgreSQL
 ```
 
-and remain separate from the public frontend.
+The Instagram travel finder and follower tracker live under `tools/` and remain
+separate from the public frontend. The follower tracker already supports
+database writes through the protected Admin Catalog API. The approved-travel
+XLSX importer is still dry-run-first; its write path is the next implementation
+step.
+
+---
+
+## Production Operations
+
+The first production deployment currently uses:
+
+- ArvanCloud VPS, Ubuntu 24.04;
+- Node.js `v24.19.0` through NVM and pnpm `11.18.0`;
+- PostgreSQL 17 as the active production database major version;
+- `hotel-yab-api.service` and `hotel-yab-web.service` managed by systemd;
+- Nginx as the public reverse proxy;
+- UFW allowing SSH, HTTP, and HTTPS while keeping application/database ports private;
+- filesystem content media under the same `apps/web/public/...` paths, provisioned
+  separately from Git;
+- a daily custom-format PostgreSQL backup timer at 03:00 UTC under
+  `/var/backups/hotel-yab`.
+
+The site is currently reachable through the VPS IP. Domain/HTTPS, off-server
+backup, monitoring, and production Najva credentials/live-delivery validation
+remain follow-up work. A production auth
+session-refresh issue is also still open and must be fixed before broader launch.
+
+The intended code-update flow is development/testing on the Mac, commit/push to
+Git, `git pull` on the VPS, dependency/migration/build steps as required, then
+controlled systemd service restart. Direct production code editing is not the
+normal workflow.
 
 ---
 

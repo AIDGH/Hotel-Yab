@@ -30,3 +30,23 @@ export function VideoDestinationLinks({
     </aside>
   );
 }
+
+export function VideoHotelLinks({
+  hotels,
+}: {
+  hotels: Array<{ id: string; slug: string; name: string }>;
+}) {
+  return (
+    <aside className="video-destination-card">
+      <span>هتل‌های این ویدیو</span>
+      <div className="video-destination-links">
+        {hotels.map((hotel) => (
+          <Link href={`/hotels/${hotel.slug}`} key={hotel.id}>
+            <small>هتل</small>
+            {hotel.name}
+          </Link>
+        ))}
+      </div>
+    </aside>
+  );
+}

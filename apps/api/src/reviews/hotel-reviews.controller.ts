@@ -42,7 +42,12 @@ export class HotelReviewsController {
     @Req() request: AuthenticatedRequest,
     @Body() dto: UpsertHotelReviewDto,
   ) {
-    return this.reviewsService.upsert(slug, request.user.id, dto);
+    return this.reviewsService.upsert(
+      slug,
+      request.user.id,
+      request.user.role,
+      dto,
+    );
   }
 
   @Delete('me')

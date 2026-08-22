@@ -6,6 +6,7 @@ import { SectionHeading } from "@/components/section-heading";
 import { getHotels, getNotablePeople } from "@/lib/api";
 import { DestinationCard } from "@/components/destination-card";
 import { getDestinationCatalog } from "@/lib/destination-catalog";
+import { LiveSearchForm } from "@/components/live-search-form";
 
 export const dynamic = "force-dynamic";
 
@@ -60,27 +61,17 @@ export default async function Home() {
               را همراه منبع و وضعیت بررسی، شفاف و قابل پیگیری می‌کند.
             </p>
 
-            <form className="hero-search" action="/search" method="get">
-              <label className="sr-only" htmlFor="hero-query">
-                جست‌وجوی هتل، شهر یا چهره
-              </label>
-              <span className="search-icon" aria-hidden="true">
-                ⌕
-              </span>
-              <input
-                id="hero-query"
-                name="query"
-                placeholder="نام هتل، چهره، شهر یا استان..."
-                autoComplete="off"
-              />
-              <button type="submit">جست‌وجو</button>
-            </form>
+            <LiveSearchForm variant="hero" />
 
             <div className="quick-links" aria-label="شهرهای پیشنهادی">
               <span>جست‌وجوی سریع:</span>
               <Link href="/hotels?city=تهران">تهران</Link>
               <Link href="/hotels?city=اصفهان">اصفهان</Link>
               <Link href="/hotels?city=مشهد">مشهد</Link>
+              <Link href="/hotels?city=شیراز">شیراز</Link>
+              <Link href="/hotels?city=کیش">کیش</Link>
+              <Link href="/hotels?city=تبریز">تبریز</Link>
+              <Link href="/hotels?city=رشت">رشت</Link>
             </div>
           </div>
 
@@ -214,50 +205,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="section container" id="how-it-works">
-        <SectionHeading
-          align="center"
-          eyebrow="چرا هتل‌یاب؟"
-          title="از یک ادعا تا یک رابطه‌ی قابل اعتماد"
-          description="فرایند انتشار طوری طراحی شده که هر نتیجه را بتوان دوباره بررسی کرد."
-        />
-        <div className="process-grid">
-          <article className="process-card">
-            <span>۰۱</span>
-            <div className="process-icon">⌁</div>
-            <h3>پیدا کردن سرنخ</h3>
-            <p>پست، ویدیو، خبر یا صفحه‌ی رسمی به‌عنوان سرنخ ثبت می‌شود.</p>
-          </article>
-          <article className="process-card featured">
-            <span>۰۲</span>
-            <div className="process-icon">✓</div>
-            <h3>بررسی و تطبیق</h3>
-            <p>هتل، فرد، نوع ارتباط و اعتبار منبع به‌صورت جدا بررسی می‌شوند.</p>
-          </article>
-          <article className="process-card">
-            <span>۰۳</span>
-            <div className="process-icon">↗</div>
-            <h3>انتشار شفاف</h3>
-            <p>رابطه همراه خلاصه، زمان بررسی و لینک منبع در دسترس قرار می‌گیرد.</p>
-          </article>
-        </div>
-      </section>
-
-      <section className="section container">
-        <div className="cta-panel">
-          <div>
-            <span className="eyebrow eyebrow-light">داده‌ای برای تکمیل دارید؟</span>
-            <h2>هر مدرک می‌تواند یک مقصد را معتبرتر کند.</h2>
-            <p>
-              امکان گزارش اطلاعات نادرست و پیشنهاد منبع تازه در نسخه‌های بعدی
-              اضافه می‌شود.
-            </p>
-          </div>
-          <Link className="button button-light" href="/hotels">
-            شروع کشف هتل‌ها
-          </Link>
-        </div>
-      </section>
+      {/* بخش معرفی فرایند و فراخوان تکمیل داده فعلاً نمایش داده نمی‌شوند. */}
     </main>
   );
 }

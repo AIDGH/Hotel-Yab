@@ -96,7 +96,6 @@ export default function AccountPage() {
           <div className="account-profile-fields">
           <label>
             نام
-            <small>اختیاری؛ برای نمایش نام در نظرها و دیدگاه‌ها</small>
             <input
               name="firstName"
               defaultValue={user.firstName ?? ""}
@@ -146,7 +145,7 @@ export default function AccountPage() {
           <label>
             رمز عبور جدید
             <small>
-              اختیاری؛ حداقل ۸ و شامل حرف کوچک و بزرگ لاتین، عدد و نماد مثل @
+              حداقل ۸ و شامل حرف کوچک و بزرگ لاتین، عدد و نماد مثل @
             </small>
             <PasswordInput
               name="password"
@@ -161,12 +160,7 @@ export default function AccountPage() {
             <p className="account-linked-person">
               ✓ این حساب به چهرهٔ «{user.notablePerson.displayName}» متصل است.
             </p>
-          ) : (
-            <p className="auth-field-note">
-              ثبت آیدی اینستاگرام به معنای تأیید چهره بودن نیست؛ اتصال پس از
-              بررسی انجام می‌شود.
-            </p>
-          )}
+          ) : null}
           {feedback ? (
             <p
               className={`form-feedback form-feedback-${feedback.tone}`}

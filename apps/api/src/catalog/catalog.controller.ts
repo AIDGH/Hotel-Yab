@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AdminGuard } from '../auth/admin.guard';
+import { ModeratorGuard } from '../auth/moderator.guard';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { DestinationType } from '../generated/prisma/enums';
 import { CatalogService } from './catalog.service';
@@ -25,7 +25,7 @@ import { ApplyFollowerUpdatesDto } from './dto/apply-follower-updates.dto';
 
 @Controller('admin/catalog')
 @ApiTags('Admin Catalog')
-@UseGuards(SessionAuthGuard, AdminGuard)
+@UseGuards(SessionAuthGuard, ModeratorGuard)
 export class CatalogController {
   constructor(private readonly catalogService: CatalogService) {}
 

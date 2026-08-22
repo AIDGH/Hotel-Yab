@@ -8,6 +8,10 @@ import {
 import { createPaginationMeta, PaginatedResponse } from '../common/pagination';
 import { PrismaService } from '../database/prisma.service';
 import { HotelQueryDto } from './dto/hotel-query.dto';
+import {
+  createPersianSearchVariants,
+  normalizePersianSearchText,
+} from '../common/search-text';
 
 const verifiedAssociationWhere = {
   verificationStatus: VerificationStatus.VERIFIED,
@@ -51,7 +55,7 @@ export class HotelsService {
   ): Promise<PaginatedResponse<HotelListItem>> {
     const { page, pageSize } = query;
     const searchTokens = query.query
-      ? normalizeSearchText(query.query).split(/\s+/).filter(Boolean)
+      ? normalizePersianSearchText(query.query).split(/\s+/).filter(Boolean)
       : [];
     const city = query.city?.trim();
     const countryCode = query.countryCode?.toUpperCase();
@@ -66,8 +70,12 @@ export class HotelsService {
         ? {
             AND: searchTokens.map((token) => ({
               OR: [
-                { name: { contains: token, mode: 'insensitive' as const } },
-                { city: { contains: token, mode: 'insensitive' as const } },
+                ...createPersianSearchVariants(token).map((variant) => ({
+                  name: { contains: variant, mode: 'insensitive' as const },
+                })),
+                ...createPersianSearchVariants(token).map((variant) => ({
+                  city: { contains: variant, mode: 'insensitive' as const },
+                })),
               ],
             })),
           }
@@ -250,12 +258,4 @@ export class HotelsService {
       },
     };
   }
-}
-
-function normalizeSearchText(value: string): string {
-  return value
-    .replace(/[يى]/g, 'ی')
-    .replace(/ك/g, 'ک')
-    .replace(/\u200c/g, ' ')
-    .trim();
 }

@@ -425,11 +425,15 @@ inside destination records.
 ## 18. Separate Follower Count from Occupation
 
 **Decision:** Store `followerCount` as an optional non-negative integer instead
-of appending it to `occupation`.
+of appending it to `occupation`. The latest successful count remains on
+`NotablePerson`; capture time is stored in `followersUpdatedAt`, while daily
+history is stored separately in `FollowerSnapshot`.
 
 **Reason:** Occupation is stable descriptive metadata, while follower count is
-a time-sensitive number used for display and sorting. Keeping them separate
-avoids string parsing in the API and preserves people whose count is unknown.
+a time-sensitive number used for display and sorting. Keeping the latest value
+on the person avoids expensive history joins on normal listing pages, while a
+separate daily history preserves change over time without string parsing or
+overwriting historical observations.
 
 **Status:** Active
 
@@ -467,7 +471,9 @@ existing creator, player, and destination-link components. Filtering uses the
 resolved title, Instagram username, destination type, and destination slug;
 changing destination type clears an incompatible destination selection. The
 client initially reveals six matched videos and adds six more per explicit
-button press without navigation or refresh.
+button press without navigation or refresh. The same reusable progressive-list
+rule applies to destination, hotel, and notable-person video sections so only
+the current six-card batch is mounted at first.
 
 **Reason:** A person's profile data can change independently, and one video may
 belong to several destinations. Relationship keys prevent stale copies and
@@ -549,35 +555,37 @@ them would misrepresent both values.
 
 **Status:** Active
 
-## 26. Proxy Browser API Requests Through the Frontend Origin
+## 26. Keep Browser API Requests on the Visible Site Origin
 
-**Decision:** Browser-side authentication, review, and comment requests use
-relative `/api/v1` URLs. Next.js rewrites them to the internal API URL. Server
-Components continue to use `API_BASE_URL` directly.
+**Decision:** Browser-side authentication, account, review, comment, and admin
+requests use relative `/api/v1` URLs. Server Components use `API_BASE_URL`
+directly. Local development may use the Next.js rewrite; the current production
+Nginx config routes `/api/` directly to NestJS and sends normal page traffic to
+Next.js.
 
 **Reason:** A browser-side `localhost:4000` address points to the visitor's own
-device when the site is opened through a LAN IP. Same-origin proxying works on
-localhost and network addresses, avoids unnecessary CORS coupling, and keeps
-HttpOnly session cookies attached to the visible frontend host.
+device. Keeping `/api/v1` same-origin works in development and production and
+keeps HttpOnly session cookies on the visible host while allowing the reverse
+proxy implementation to differ by environment.
 
 **Status:** Active
 
 ## 27. Use Hybrid Moderation for Video Comments
 
 **Decision:** A new video comment or reply is classified before insertion. A
-clean comment from a user with at least two published comments is published
-immediately. New users, links, exact recent repeats, and baseline risky terms go
-to `PENDING`. Each user is limited to five comment submissions per 60 seconds.
+clean normal-user comment is published immediately. Links, exact recent repeats,
+and baseline risky terms go to `PENDING`; staff comments bypass premoderation.
+Each user is limited to five comment submissions per 60 seconds.
 Users may report someone else's published comment once; three distinct open
 reports hide it automatically. Staff can resolve reports through the existing
-content-status workflow, while only administrators can block/reactivate users.
+content-status workflow; account-management permissions follow Decision 44.
 
 **Reason:** Premoderating every comment does not scale, but fully unmoderated
-publication creates avoidable abuse risk. Derived trust avoids a fragile manual
-badge, simple risk signals catch common cases, reports provide community input,
-and automatic hiding limits exposure until staff review.
+publication creates avoidable abuse risk. Simple risk signals catch common
+cases, reports provide community input, and automatic hiding limits exposure
+until staff review.
 
-**Status:** Active
+**Status:** Superseded and simplified by Decision 44.
 
 ## 28. Federate Global Search Across Current Canonical Sources
 
@@ -667,7 +675,7 @@ converter with validation and dry-run output.
 a strong password. Name and family name are optional profile fields completed
 from `/account`. Avatar bytes live in a one-to-one `UserAvatar` relation instead
 of the main `User` row; the authenticated upload accepts signature-validated
-JPEG/PNG/WebP up to 1 MB.
+common image inputs up to 15 MB, then normalizes them to a bounded WebP image.
 
 **Reason:** A three-field signup reduces friction without weakening account
 ownership or uniqueness. A separate avatar relation avoids loading binary data
@@ -695,14 +703,204 @@ the shared provider avoids N-per-card network requests across listing pages.
 
 **Decision:** Any authenticated active account may comment without completing
 first and last name. Public serialization uses `کاربر هتل‌یاب` when both names
-are missing. Only `ADMIN`, not `MODERATOR`, receives permanent-delete endpoints
-and inline confirmed deletion controls for hotel reviews and video comments.
+are missing. `ADMIN` and `MODERATOR` receive inline-confirmed permanent-delete
+controls for hotel reviews and video comments in the moderation queue.
 
 **Reason:** Registration intentionally requires only mobile, username, and
 password, so requiring names at comment time contradicted the new signup flow.
 The neutral author label preserves privacy without blocking participation.
-Status moderation remains the normal staff workflow, while permanent deletion
-is reserved for administrators because it is destructive and parent-comment
-deletion cascades to replies.
+Status moderation remains the normal workflow. Permanent deletion is explicit,
+requires a second confirmation, and warns staff because parent-comment deletion
+cascades to replies.
 
 **Status:** Active; implemented without a database migration.
+
+## 36. Collect Public Follower Counts Through a Browser Session and Write Through the Admin API
+
+**Decision:** Use a dedicated persistent Playwright browser profile to read the
+publicly visible Instagram follower count sequentially. The bulk tool reads
+canonical people from `GET /admin/catalog/bootstrap`. Scans are read-only by
+default; `--apply` sends only successful observations to
+`POST /admin/catalog/followers`, which updates the latest person value and
+upserts the daily snapshot through Prisma.
+
+**Reason:** Replaying Instagram's private GraphQL request directly required
+volatile session-bound fields and proved brittle even when a copied browser
+cURL succeeded. Letting the browser construct the request preserves the same
+public page behavior without hard-coding short-lived request tokens. Keeping
+writes behind the Hotel-Yab API preserves the Frontend/API/Prisma/PostgreSQL
+boundary. Failed reads must not erase the previous count.
+
+Operational browser profiles, cookies, scan output, and captured request dumps
+remain local and ignored by Git. The collector processes profiles sequentially
+and does not implement rate-limit evasion.
+
+**Status:** Active; first full applied scan refreshed 149 current people on
+2026-08-16 after two incorrect Instagram handles were corrected.
+
+## 37. Require Human Approval Between Instagram Travel Discovery and Database Writes
+
+**Decision:** Keep Instagram travel discovery as a multi-stage research
+pipeline:
+
+```text
+GraphQL crawl
+    ↓
+high-recall candidate detection
+    ↓
+JSON/checkpoint
+    ↓
+XLSX review
+    ↓
+approved-row validation
+    ↓
+Admin API / PostgreSQL
+```
+
+HOTEL-tagged candidates receive priority, but detector score/priority is not a
+publication decision. Only explicit `approved` rows may progress to import.
+Unresolved named destinations or hotels block a row; missing destinations are
+not silently created. A blank hotel remains valid travel content. The original
+Instagram `sourceUrl` is retained as the canonical source identity.
+
+**Reason:** Automated collection should optimize recall, while publication
+requires deliberate structured review. Separating detection from approved
+ingestion prevents false-positive crawler output from becoming canonical data
+and keeps routine writes behind the existing Admin Catalog boundary.
+
+**Status:** Active end-to-end for crawl/review/dry-run/apply. The first reviewed
+production batch successfully imported 32 approved travel/hotel videos through
+the protected Admin Catalog API.
+
+## 38. Run the First Production Version as a Single-VPS Modular Monolith
+
+**Decision:** Run Nginx, Next.js, NestJS, Prisma/PostgreSQL, and the current
+filesystem media on one Ubuntu VPS for the first production phase. Manage Web
+and API with enabled systemd services.
+
+**Reason:** The current traffic and team size do not justify Docker orchestration,
+Kubernetes, microservices, or multiple application hosts. A single VPS keeps the
+operational surface understandable while preserving the existing application
+boundaries.
+
+**Status:** Active for the current production phase.
+
+## 39. Use PostgreSQL 17 as the Production Database Major Version
+
+**Decision:** Production uses PostgreSQL 17 on port 5432. Prisma migrations are
+applied before restoring/importing canonical application data.
+
+**Reason:** The local canonical dump was produced by PostgreSQL 17 tooling and
+was not safely restorable into the initially installed PostgreSQL 16 server.
+Production was still empty, so aligning the server major version was simpler and
+safer than rewriting the dump.
+
+**Status:** Active. The old PostgreSQL 16 cluster remains stopped for now and may
+be removed after the production environment has remained stable.
+
+## 40. Keep Production Content Media Outside Git and Provision It Separately
+
+**Decision:** For the current production phase, hotel/person images and
+travel/hotel video binaries remain under `apps/web/public/...` on the VPS but are
+not tracked by Git. Deployments provision/synchronize those directories
+separately. PostgreSQL stores stable relative media paths.
+
+**Reason:** The existing application already depends on these paths, the media
+set is much larger than appropriate Git content, and introducing object storage
+was intentionally separated from the first server launch.
+
+**Status:** Active interim decision; object storage/CDN remains future work.
+
+## 41. Back Up PostgreSQL Daily on the VPS and Add Off-Server Backup Later
+
+**Decision:** Run a daily custom-format `pg_dump` through systemd timer at 03:00
+UTC, keep a short rolling local retention window, and treat an off-server copy as
+separate follow-up work.
+
+**Reason:** A tested automatic database backup is required immediately, while
+external backup storage can be added after the deployment workflow is stable.
+An on-box backup does not protect against complete VPS loss, so it is not the
+final disaster-recovery design.
+
+**Status:** Active for local VPS backups; off-server backup is pending.
+
+## 42. Develop Locally and Deploy Through Git Instead of Editing Production Code
+
+**Decision:** Normal development happens on the Mac, is tested locally, committed
+and pushed, then pulled and built on production. Production code is not edited
+directly except for an explicit emergency.
+
+**Reason:** This keeps the server reproducible, preserves reviewable history, and
+reduces drift between the laptop and the deployed application.
+
+**Status:** Active operational workflow.
+
+## 43. Separate Hotel Videos from Notable-Guest Associations
+
+**Decision:** Hotel Detail renders published `VideoHotel` content first in the
+same creator-plus-video composition used by destination pages. Associations
+whose people have no matching hotel video render afterward as a compact guest
+grid. Notable-person detail resolves both `TRAVEL` and `HOTEL` videos directly
+from PostgreSQL by normalized Instagram handle, embeds hotel videos in their
+matching hotel association, and keeps travel videos in the destination section.
+
+**Reason:** A hotel-introduction video is primary visual content, while a known
+person merely visiting the hotel is a different claim. Mixing both into one
+large association card made the page harder to scan and hid useful videos.
+
+**Status:** Active.
+
+## 44. Publish Clean Comments Immediately and Scope Staff User Management
+
+**Decision:** Clean normal-user video comments publish immediately without a
+two-approved-comment threshold; link, repetition, and risky-term signals still
+queue a comment. `ADMIN` and `MODERATOR` reviews/comments bypass premoderation.
+`ADMIN` and `MODERATOR` manage non-admin accounts, while `MODERATOR` receives a
+separate administrator-review page and can access catalog management. Staff
+cannot manage themselves, admins cannot manage admin peers, and the last active
+admin cannot be blocked.
+
+**Reason:** The old threshold created unnecessary queue volume. Risk signals and
+reports still cover common abuse, while explicit role scoping prevents ordinary
+admin peer lockout and preserves the requested moderator oversight path.
+
+**Status:** Active.
+
+## 45. Deliver Production OTP Through a Najva Approved Template
+
+**Decision:** Keep OTP generation, HMAC storage, expiry, attempt limits, and
+verification inside Hotel-Yab. Use Najva only as the delivery channel through
+`GET https://sms.najva.com/v1/{API-KEY}/verify/lookup.json`, using the approved
+`HotelYabOTPTemplate` and a configured sender line. The template maps the code
+to `%token`, Tehran send time to `%token2`, and the site's WebOTP hostname to
+`%token3`. Local development uses an explicit `development` provider and may
+return `developmentCode`; Najva mode never returns the raw code, and production
+environment validation permits only the `najva` provider. The API uses a
+bounded request timeout without automatic retries and removes a newly created
+challenge when delivery fails.
+
+**Reason:** The existing authentication model already owns the OTP lifecycle,
+so delegating only delivery avoids duplicating verification state. Explicit
+provider selection prevents accidental code exposure, while removing a failed
+challenge avoids trapping the user behind a cooldown for a message that was not
+accepted by the provider. Avoiding automatic retries reduces duplicate SMS
+risk.
+
+**Status:** Adapter and automated tests are active. Production token, sender
+configuration, account credit, and live delivery verification are pending.
+
+## 46. Keep Core Interaction Feedback Inside the Site UI
+
+**Decision:** Use a shared local SVG icon set and site-owned responsive dialogs
+for destructive confirmations. Mobile navigation and account controls use two
+mutually exclusive full-height drawers. Search fields may submit automatically
+after two characters and normalize common Persian/Arabic letter variants, while
+canonical stored values remain unchanged.
+
+**Reason:** Browser-native confirmation UI is inconsistent on mobile Safari,
+emoji glyphs vary by platform, and exact Persian Unicode matching makes ordinary
+search input unnecessarily fragile. Shared components keep behavior, visual
+language, keyboard handling, and responsive layout consistent without adding a
+third-party UI or icon dependency.
+
+**Status:** Active.

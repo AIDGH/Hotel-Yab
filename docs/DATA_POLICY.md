@@ -129,8 +129,9 @@ Notable-person records may include:
 - occupation;
 - biography;
 - image;
-- Instagram handle.
-- follower count snapshot.
+- Instagram handle;
+- latest follower count;
+- follower refresh timestamp and daily follower snapshots.
 
 Information should be based on publicly available and reasonably reliable sources.
 
@@ -172,9 +173,25 @@ Only publicly available information should be collected.
 Instagram handles should be verified when possible to reduce incorrect profile matching.
 
 `followerCount` is stored as a non-negative integer when known and remains
-separate from `occupation`. It is an approximate, time-sensitive snapshot used
-for display and sorting, not evidence for a hotel-person association. Unknown
-counts stay `null` rather than being guessed.
+separate from `occupation`. It is an approximate, time-sensitive value used for
+display and sorting, not evidence for a hotel-person association. Unknown counts
+stay `null` rather than being guessed.
+
+Follower refresh policy:
+
+- counts are read only from the publicly visible Instagram profile;
+- collection uses a dedicated authenticated test/browser session because the
+  public web application does not expose a stable unauthenticated API contract;
+- browser cookies, session state, captured request tokens, and raw GraphQL
+  request dumps are local secrets and must never be committed;
+- the collector processes profiles sequentially and avoids aggressive retry or
+  rate-limit-evasion behavior;
+- a successful read updates the latest count and `followersUpdatedAt`;
+- a daily `FollowerSnapshot` records the successful observation time/count;
+- a failed read does not overwrite the previous known count and does not create
+  a synthetic snapshot;
+- repeating the applied collector in one UTC day upserts the same person's daily
+  snapshot rather than creating duplicates.
 
 ## Travel Videos
 
@@ -185,6 +202,34 @@ normalized published `instagramHandle`; similar display names are not enough.
 Destination relationships use destination type and slug. One video may belong
 to multiple destinations, and destination/person metadata must be resolved
 from their canonical records rather than copied into the video dataset.
+
+The current Instagram travel research pipeline intentionally separates
+collection from publication:
+
+```text
+Public Instagram timeline
+        ↓
+candidate detection
+        ↓
+local JSON/checkpoint
+        ↓
+XLSX human review
+        ↓
+approved-row dry-run validation
+        ↓
+explicit `--apply`
+        ↓
+Admin API / PostgreSQL write
+```
+
+Only rows explicitly marked `approved` are eligible for import. `source_url`
+must remain the original public Instagram post/reel URL, never a temporary CDN
+URL. An unresolved city/province or a non-empty unresolved hotel blocks the row;
+the importer must not silently invent destinations or hotels. A blank hotel is
+valid travel content and creates no `VideoHotel`. A reviewed hotel value changes
+the intended media class to `/hotel-videos/...`; otherwise the media belongs
+under `/travel-videos/...`. Duplicate canonical `sourceUrl` values are skipped
+and reported rather than re-created.
 
 Destination and full video records are now canonical in PostgreSQL. New records
 created through `/admin/catalog` must keep the original public source URL,
@@ -285,7 +330,7 @@ Information may change over time.
 Examples include:
 
 - Instagram usernames;
-- follower counts;
+- follower counts and their capture timestamps;
 - hotel information;
 - websites;
 - publication status.
@@ -346,6 +391,13 @@ Website
 
 Raw spreadsheet data should not bypass validation and be published directly.
 
+Generated review workbooks and crawler output under `tools/.../output/` are
+local working artifacts and are ignored by Git. Regenerating an XLSX from JSON
+must not overwrite a manually reviewed workbook unless a backup is intentionally
+made first. The approved-row write path is now implemented through the protected
+Admin API; the first applied production batch contained 32 approved travel/hotel
+videos. Dry-run remains mandatory before later batch applies.
+
 For the private destination/video workbook, `parent_province_slug` and every
 `destination_slug` must be normalized slugs rather than Persian display names.
 City and province `displayOrder` values are validated independently. Destination
@@ -361,19 +413,40 @@ versioned or stored in PostgreSQL as appropriate.
 
 ---
 
+## Production Data and Backup Policy
+
+Production PostgreSQL is the canonical runtime store. Development data on the
+Mac and production data on the VPS are separate environments; routine production
+changes should go through the Admin API/import workflow or an intentional Prisma
+migration rather than replacing the production database from an arbitrary local
+copy.
+
+Content media remains outside Git. For the current VPS phase, reviewed media
+binaries are provisioned separately under the stable frontend `public` media
+paths and database values should prefer stable relative paths instead of
+`localhost` URLs.
+
+The VPS creates a daily custom-format PostgreSQL backup. This protects against
+many application/data mistakes but not total VPS loss; an off-server backup copy
+remains required before Hotel-Yab depends on the VPS as its only durable copy.
+
+---
+
 ## User-Submitted Data
 
 Hotel-Yab accepts hotel reviews and video comments from authenticated users.
-Hotel reviews never become public automatically. Video comments use a hybrid
-trust/risk policy: new or risky submissions wait for review, while clean
-submissions from trusted users may publish immediately.
+Normal-user hotel reviews require moderation; staff reviews publish immediately.
+Video comments use a risk policy: linked, repeated, or risky submissions wait
+for review, while every clean submission publishes immediately. Staff comments
+bypass premoderation.
 
 Current flow:
 
 ```text
-Hotel Review → PENDING → PUBLISHED / REJECTED / HIDDEN
+Normal Hotel Review → PENDING → PUBLISHED / REJECTED / HIDDEN
+Staff Hotel Review  → PUBLISHED
 
-Video Comment → trust/risk/rate checks → PENDING or PUBLISHED
+Video Comment → risk/rate checks → PENDING or PUBLISHED
                                       ↓
                        reports/moderator decision → HIDDEN / REJECTED / PUBLISHED
 ```
@@ -384,9 +457,9 @@ Video Comment → trust/risk/rate checks → PENDING or PUBLISHED
 - Website registration collects only an Iranian `09…` mobile, username, and
   password. Name, family name, optional email, optional Instagram, and avatar
   are added later from the account page.
-- Account avatars are private authenticated media in the current MVP. Only
-  JPEG, PNG, and WebP with a verified signature and a maximum size of 1 MB are
-  accepted. The binary is not embedded in normal account JSON responses.
+- Account avatars are private authenticated media in the current MVP. Common
+  image inputs up to 15 MB are decoded and normalized to a bounded WebP image.
+  The binary is not embedded in normal account JSON responses.
 - New passwords must be 8–72 characters and include lowercase and uppercase
   Latin letters, a digit, and a non-alphanumeric symbol. Existing password
   verification remains backward-compatible; the stronger rule applies when a
@@ -446,3 +519,7 @@ Video Comment → trust/risk/rate checks → PENDING or PUBLISHED
 8. Conflicting information should be reviewed rather than silently overwritten.
 9. Raw research data should pass through validation before publication.
 10. Data quality is more important than maximizing the number of records.
+11. Time-sensitive values such as follower counts should be timestamped, and a
+    failed refresh must preserve the last known good value.
+12. Authentication/session material used only for collection is operational
+    secret state and must not enter Git or public datasets.

@@ -1,12 +1,13 @@
 import { formatDate, sourceLabel } from "@/lib/labels";
 import type { EvidenceSource } from "@/lib/types";
+import { SiteIcon } from "./site-icon";
 
 export function SourceList({ sources }: { sources: EvidenceSource[] }) {
   if (sources.length === 0) {
     return (
       <div className="evidence-placeholder">
-        <span className="source-icon" aria-hidden="true">
-          ▶
+        <span className="source-icon">
+          <SiteIcon name="video" />
         </span>
         <span>
           <strong>جای عکس، ویدئو یا لینک منبع</strong>
@@ -30,8 +31,8 @@ export function SourceList({ sources }: { sources: EvidenceSource[] }) {
             rel="noreferrer noopener"
             key={source.id}
           >
-            <span className="source-icon" aria-hidden="true">
-              {isMedia ? "▶" : "↗"}
+            <span className="source-icon">
+              <SiteIcon name={isMedia ? "video" : "external-link"} />
             </span>
             <span className="source-copy">
               <span className="source-type">

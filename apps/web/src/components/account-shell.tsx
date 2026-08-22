@@ -13,6 +13,7 @@ import {
 import { browserApi } from "@/lib/browser-api";
 import { formatIranianMobile } from "@/lib/labels";
 import { useAuth, type AuthUser } from "./auth-provider";
+import { SiteIcon } from "./site-icon";
 
 type AccountSection = "profile" | "activity" | "library";
 
@@ -194,7 +195,7 @@ export function AccountShell({
                     if (file) selectAvatar(file);
                   }}
                 >
-                  {avatarPreviewUrl ? <Image src={avatarPreviewUrl} alt="پیش‌نمایش عکس پروفایل" width={360} height={190} unoptimized /> : <span className="catalog-upload-icon" aria-hidden="true">＋</span>}
+                  {avatarPreviewUrl ? <Image src={avatarPreviewUrl} alt="پیش‌نمایش عکس پروفایل" width={360} height={190} unoptimized /> : <span className="catalog-upload-icon"><SiteIcon name="image" /></span>}
                   <strong>{selectedAvatar ? selectedAvatar.name || "تصویر کپی‌شده" : "تصویر را اینجا رها کنید"}</strong>
                   <span>یا برای انتخاب از دستگاه کلیک کنید</span>
                   <span>تصویر کپی‌شده را نیز می‌توانید اینجا بچسبانید</span>
@@ -216,43 +217,55 @@ export function AccountShell({
             href="/account"
             className={active === "profile" ? "account-section-active" : ""}
           >
-            <span aria-hidden="true">○</span>
+            <SiteIcon name="account" />
             اطلاعات حساب
-          </Link>
-          <Link
-            href="/account/activity"
-            className={active === "activity" ? "account-section-active" : ""}
-          >
-            <span aria-hidden="true">↻</span>
-            فعالیت‌های من
           </Link>
           <Link
             href="/account/library"
             className={active === "library" ? "account-section-active" : ""}
           >
-            <span aria-hidden="true">♡</span>
+            <SiteIcon name="heart" />
             پسندیده‌ها و ذخیره‌ها
           </Link>
+          <Link
+            href="/account/activity"
+            className={active === "activity" ? "account-section-active" : ""}
+          >
+            <SiteIcon name="activity" />
+            فعالیت‌های من
+          </Link>
+          {user.role === "ADMIN" || user.role === "MODERATOR" ? (
+            <Link href="/admin/users">
+              <SiteIcon name="users" />
+              مدیریت کاربران
+            </Link>
+          ) : null}
+          {user.role === "MODERATOR" ? (
+            <Link href="/admin/administrators">
+              <SiteIcon name="administrator" />
+              بررسی مدیران
+            </Link>
+          ) : null}
           {user.role === "ADMIN" || user.role === "MODERATOR" ? (
             <Link href="/admin/moderation">
-              <span aria-hidden="true">◇</span>
+              <SiteIcon name="moderation" />
               بررسی محتوا
             </Link>
           ) : null}
-          {user.role === "ADMIN" ? (
+          {user.role === "ADMIN" || user.role === "MODERATOR" ? (
             <Link href="/admin/catalog">
-              <span aria-hidden="true">＋</span>
+              <SiteIcon name="catalog" />
               مدیریت داده‌ها
             </Link>
           ) : null}
           {user.notablePerson ? (
             <Link href={`/notable-people/${user.notablePerson.slug}`}>
-              <span aria-hidden="true">☆</span>
+              <SiteIcon name="profile" />
               پروفایل چهرهٔ من
             </Link>
           ) : null}
           <button type="button" onClick={() => void logout()}>
-            <span aria-hidden="true">←</span>
+            <SiteIcon name="logout" />
             خروج از حساب
           </button>
         </nav>

@@ -400,6 +400,31 @@ def resolve_graphql_connection(
         "No supported profile media connection was found."
     )
 
+def classify_content(
+    node: dict,
+) -> tuple[str, int]:
+    product_type = str(
+        node.get("product_type", "")
+    ).lower()
+
+    media_type = node.get(
+        "media_type"
+    )
+
+    if product_type == "clips":
+        return "REEL", 30
+
+    if media_type in (2, "2"):
+        return "VIDEO_POST", 20
+
+    if (
+        product_type
+        == "carousel_container"
+        or media_type in (8, "8")
+    ):
+        return "CAROUSEL", 5
+
+    return "POST", 0
 
 def parse_graphql_response(
     payload: dict,
@@ -471,6 +496,15 @@ def parse_graphql_response(
             extract_media_metadata(
                 node
             )
+        )
+
+        content_type, content_bonus = (
+            classify_content(node)
+        )
+
+        ranking_score = (
+            detection["signalScore"]
+            + content_bonus
         )
 
         posts.append(
@@ -598,6 +632,9 @@ def parse_graphql_response(
                         "isIranTravel"
                     ]
                 ),
+                "content_type": content_type,
+                "content_bonus": content_bonus,
+                "ranking_score": ranking_score,
             }
         )
 
