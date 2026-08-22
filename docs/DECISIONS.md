@@ -875,9 +875,11 @@ verification inside Hotel-Yab. Use Najva only as the delivery channel through
 to `%token`, Tehran send time to `%token2`, and the site's WebOTP hostname to
 `%token3`. Local development uses an explicit `development` provider and may
 return `developmentCode`; Najva mode never returns the raw code, and production
-environment validation permits only the `najva` provider. The API uses a
-bounded request timeout without automatic retries and removes a newly created
-challenge when delivery fails.
+environment validation permits `disabled` or `najva`, but never `development`.
+Disabled mode is a temporary safe state that keeps the rest of the API and
+password login online while rejecting OTP with `503` and exposing no code. The
+API uses a bounded request timeout without automatic retries and removes a newly
+created challenge when delivery fails.
 
 **Reason:** The existing authentication model already owns the OTP lifecycle,
 so delegating only delivery avoids duplicating verification state. Explicit
@@ -886,8 +888,9 @@ challenge avoids trapping the user behind a cooldown for a message that was not
 accepted by the provider. Avoiding automatic retries reduces duplicate SMS
 risk.
 
-**Status:** Adapter and automated tests are active. Production token, sender
-configuration, account credit, and live delivery verification are pending.
+**Status:** Adapter and automated tests are active. Production currently uses
+the safe disabled mode; token, sender configuration, account credit, and live
+delivery verification are pending.
 
 ## 46. Keep Core Interaction Feedback Inside the Site UI
 

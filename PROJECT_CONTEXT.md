@@ -907,7 +907,9 @@ SMS_OTP_ORIGIN_HOST=""
 کد دیگر در پاسخ API نمایش داده نمی‌شود. قالب تاییدشده
 `HotelYabOTPTemplate` از `%token` برای کد، `%token2` برای ساعت تهران و `%token3`
 برای hostname خط WebOTP استفاده می‌کند. اعتبارسنجی environment در production
-فقط provider `najva` را می‌پذیرد.
+providerهای `disabled` و `najva` را می‌پذیرد؛ حالت `disabled` برای فاصلهٔ امن تا
+دریافت credential واقعی است، API را بالا نگه می‌دارد و درخواست OTP را بدون
+نمایش کد آزمایشی با `503` رد می‌کند.
 
 ### Migration
 
@@ -1310,6 +1312,8 @@ docs/TODO.md
   واقعی نیاز دارد.
 - نمایش `developmentCode` فقط با `SMS_PROVIDER=development` فعال است، نه صرفاً
   بر اساس غیر-production بودن محیط.
+- تا قبل از تحویل credential نجوا، production با `SMS_PROVIDER=disabled` اجرا
+  می‌شود تا API و ورود با رمز فعال بمانند و فقط OTP موقتاً `503` برگرداند.
 - account activity و library پیاده‌سازی شده‌اند؛ باگ production session بعد refresh هنوز باز است.
 - Follower refresh به‌صورت command + Admin API عملیاتی است، اما scheduler
   production هنوز ساخته نشده است.

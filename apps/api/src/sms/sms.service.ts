@@ -34,6 +34,13 @@ export class SmsService {
   async sendOtp(mobile: string, code: string): Promise<void> {
     if (this.usesDevelopmentDelivery()) return;
 
+    if (this.config.get('SMS_PROVIDER', { infer: true }) === 'disabled') {
+      this.logger.warn('SMS delivery is disabled');
+      throw new ServiceUnavailableException(
+        'ارسال کد ورود موقتاً در دسترس نیست؛ از ورود با رمز استفاده کنید',
+      );
+    }
+
     const apiBaseUrl = this.config.get('NAJVA_API_BASE_URL', { infer: true });
     const apiKey = this.config.get('NAJVA_API_KEY', { infer: true });
     const sender = this.config.get('NAJVA_SENDER', { infer: true });

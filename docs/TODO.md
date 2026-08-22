@@ -26,6 +26,7 @@ This file tracks open product and technical work for Hotel-Yab.
 ## 2. Production Authentication
 
 - [x] Integrate the approved Najva OTP template for registration/login delivery.
+- [x] Keep production API/password login available with a safe disabled SMS mode until Najva credentials arrive.
 - [ ] Configure the Najva API key/sender/WebOTP hostname on production and verify account credit and real delivery.
 - [ ] Test OTP resend cooldown, provider failure handling, and production delivery end-to-end.
 - [ ] Decide whether email is actually required for MVP before integrating a provider.

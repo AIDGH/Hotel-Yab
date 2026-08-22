@@ -226,7 +226,10 @@ not return it to the client. The template receives the code as `token`, Tehran
 send time as `token2`, and the configured WebOTP hostname as `token3`. A
 rejected or timed-out provider request returns `503` and removes the newly
 created challenge so a failed delivery does not leave the user behind the
-resend cooldown.
+resend cooldown. With `SMS_PROVIDER=disabled`, the API remains available but
+OTP requests return a controlled `503`; this production-safe holding mode never
+returns `developmentCode`, so password login remains usable while provider
+credentials are pending.
 The default resend cooldown is 60 seconds and the client must use the returned
 `resendAfterSeconds` rather than starting an unrelated timer.
 

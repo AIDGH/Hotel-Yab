@@ -30,6 +30,15 @@ describe('environmentValidationSchema', () => {
     expect(result.error).toBeDefined();
   });
 
+  it('accepts disabled OTP delivery in production', () => {
+    const result = environmentValidationSchema.validate({
+      ...productionEnvironment,
+      SMS_PROVIDER: 'disabled',
+    });
+
+    expect(result.error).toBeUndefined();
+  });
+
   it('accepts complete Najva production configuration', () => {
     const result = environmentValidationSchema.validate({
       ...productionEnvironment,
