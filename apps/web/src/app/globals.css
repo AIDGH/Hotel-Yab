@@ -3651,6 +3651,10 @@ img {
   font-size: 0.8rem;
 }
 
+.explore-results > .results-header {
+  width: min(100%, 1068px);
+}
+
 .global-search-summary {
   margin-bottom: 58px;
 }
@@ -5623,15 +5627,16 @@ img {
     place-items: center;
     padding: 0;
     border: 0;
-    border-radius: 50%;
+    border-radius: 0;
     color: #fff;
-    background: rgba(0, 0, 0, .32);
+    background: transparent;
     pointer-events: auto;
   }
 
   .mobile-reels-header button .site-icon {
-    width: 26px;
-    height: 26px;
+    width: 32px;
+    height: 32px;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, .75));
   }
 
   .mobile-reels-header strong {
@@ -5688,21 +5693,54 @@ img {
     top: 50%;
     left: 50%;
     display: grid;
-    width: 64px;
-    height: 64px;
+    width: 92px;
+    height: 92px;
     place-items: center;
-    border: 1px solid rgba(255, 255, 255, .35);
+    border: 0;
     border-radius: 50%;
     color: #fff;
-    background: rgba(0, 0, 0, .42);
-    backdrop-filter: blur(8px);
+    background: transparent;
     transform: translate(-50%, -50%);
     pointer-events: none;
   }
 
   .mobile-reel-play-indicator .site-icon {
-    width: 30px;
-    height: 30px;
+    width: 62px;
+    height: 62px;
+    filter: drop-shadow(0 3px 9px rgba(0, 0, 0, .72));
+  }
+
+  .mobile-reel-fast-forward {
+    position: absolute;
+    z-index: 22;
+    top: calc(68px + env(safe-area-inset-top));
+    left: 50%;
+    padding: 6px 11px;
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(0, 0, 0, .42);
+    font-size: .82rem;
+    font-weight: 900;
+    backdrop-filter: blur(7px);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .mobile-reel-hold-zones {
+    position: absolute;
+    z-index: 5;
+    inset: 64px 0 100px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    direction: ltr;
+  }
+
+  .mobile-reel-hold-zones button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .mobile-reel-actions {
@@ -5753,6 +5791,10 @@ img {
     font-size: .6rem;
     white-space: nowrap;
     text-shadow: 0 1px 5px rgba(0, 0, 0, .8);
+  }
+
+  .video-comments-sheet > .video-comments-toggle .site-icon {
+    transform: translateX(-2px);
   }
 
   .video-comments-sheet-backdrop {

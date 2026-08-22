@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   type MouseEvent,
+  type PointerEvent,
   useCallback,
   useEffect,
   useRef,
@@ -177,8 +178,11 @@ function MobileReelSlide({
 }) {
   const { video, person, destinations } = item;
   const videoRef = useRef<HTMLVideoElement>(null);
+  const speedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fastForwardRef = useRef(false);
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
+  const [fastForwarding, setFastForwarding] = useState(false);
   const creatorName = person?.displayName ?? `@${video.instagramUsername}`;
 
   useEffect(() => {
@@ -208,6 +212,49 @@ function MobileReelSlide({
     setMuted(nextMuted);
   }
 
+  function startPress(event: PointerEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    if (speedTimerRef.current) clearTimeout(speedTimerRef.current);
+    speedTimerRef.current = setTimeout(() => {
+      const player = videoRef.current;
+      if (!player) return;
+      fastForwardRef.current = true;
+      player.playbackRate = 2;
+      setFastForwarding(true);
+      if (player.paused) void player.play();
+    }, 180);
+  }
+
+  function finishPress(event: PointerEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    if (speedTimerRef.current) clearTimeout(speedTimerRef.current);
+    speedTimerRef.current = null;
+    const player = videoRef.current;
+    if (player) player.playbackRate = 1;
+
+    if (fastForwardRef.current) {
+      fastForwardRef.current = false;
+      setFastForwarding(false);
+    } else {
+      togglePlay();
+    }
+  }
+
+  function cancelPress(event: PointerEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    if (speedTimerRef.current) clearTimeout(speedTimerRef.current);
+    speedTimerRef.current = null;
+    const player = videoRef.current;
+    if (player) player.playbackRate = 1;
+    fastForwardRef.current = false;
+    setFastForwarding(false);
+  }
+
+  useEffect(() => () => {
+    if (speedTimerRef.current) clearTimeout(speedTimerRef.current);
+  }, []);
+
   return (
     <article className="mobile-reel-slide" onClick={togglePlay}>
       <video
@@ -227,6 +274,29 @@ function MobileReelSlide({
           <SiteIcon name="play" />
         </span>
       ) : null}
+
+      {fastForwarding ? (
+        <span className="mobile-reel-fast-forward" aria-live="polite">۲×</span>
+      ) : null}
+
+      <div className="mobile-reel-hold-zones">
+        <button
+          type="button"
+          aria-label="برای پخش دو برابر نگه دارید"
+          onPointerDown={startPress}
+          onPointerUp={finishPress}
+          onPointerCancel={cancelPress}
+          onClick={(event) => event.stopPropagation()}
+        />
+        <button
+          type="button"
+          aria-label="برای پخش دو برابر نگه دارید"
+          onPointerDown={startPress}
+          onPointerUp={finishPress}
+          onPointerCancel={cancelPress}
+          onClick={(event) => event.stopPropagation()}
+        />
+      </div>
 
       <div className="mobile-reel-actions" onClick={(event) => event.stopPropagation()}>
         <button type="button" aria-label={muted ? "فعال کردن صدا" : "قطع صدا"} onClick={toggleMute}>

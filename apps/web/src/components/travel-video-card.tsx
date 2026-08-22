@@ -5,6 +5,7 @@ import {
   type CSSProperties,
   type FormEvent,
   type MouseEvent,
+  useCallback,
   useEffect,
   useId,
   useRef,
@@ -14,6 +15,8 @@ import { SiteIcon } from "./site-icon";
 import { VideoComments } from "./video-comments";
 
 const TRAVEL_VIDEO_PLAY_EVENT = "hotel-yab:travel-video-play";
+let suppressTravelVideoClickUntil = 0;
+let fullscreenNavigationLocked = false;
 
 type TravelVideoCardProps = {
   videoId: string;
@@ -77,7 +80,7 @@ export function TravelVideoCard({
   }
 
   function handleMediaClick(event: MouseEvent<HTMLDivElement>) {
-    if (event.detail > 1) return;
+    if (event.detail > 1 || Date.now() < suppressTravelVideoClickUntil) return;
 
     if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
     clickTimerRef.current = setTimeout(() => {
@@ -100,11 +103,8 @@ export function TravelVideoCard({
     }
   }
 
-  async function navigateFullscreen(
-    direction: -1 | 1,
-    event: MouseEvent<HTMLButtonElement>,
-  ) {
-    event.stopPropagation();
+  const navigateFullscreen = useCallback(async (direction: -1 | 1) => {
+    if (fullscreenNavigationLocked) return;
     const currentMedia = mediaRef.current;
     if (!currentMedia) return;
 
@@ -119,14 +119,20 @@ export function TravelVideoCard({
     const nextMedia = mediaItems[nextIndex];
     const nextVideo = nextMedia.querySelector("video");
 
+    fullscreenNavigationLocked = true;
+    suppressTravelVideoClickUntil = Date.now() + 650;
     videoRef.current?.pause();
     try {
       await nextMedia.requestFullscreen();
       await nextVideo?.play();
     } catch (error) {
       console.error("Fullscreen navigation failed:", error);
+    } finally {
+      window.setTimeout(() => {
+        fullscreenNavigationLocked = false;
+      }, 420);
     }
-  }
+  }, []);
 
   function handleMediaDoubleClick(event: MouseEvent<HTMLDivElement>) {
     if (window.matchMedia("(max-width: 760px)").matches) return;
@@ -222,12 +228,25 @@ export function TravelVideoCard({
       setIsFullscreen(document.fullscreenElement === mediaRef.current);
     }
 
+    function navigateWithKeyboard(event: KeyboardEvent) {
+      if (document.fullscreenElement !== mediaRef.current) return;
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        void navigateFullscreen(1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        void navigateFullscreen(-1);
+      }
+    }
+
     document.addEventListener("fullscreenchange", syncFullscreenState);
+    document.addEventListener("keydown", navigateWithKeyboard);
     return () => {
       document.removeEventListener("fullscreenchange", syncFullscreenState);
+      document.removeEventListener("keydown", navigateWithKeyboard);
       if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
     };
-  }, []);
+  }, [navigateFullscreen]);
 
   return (
     <article className="travel-video-card">
@@ -353,7 +372,10 @@ export function TravelVideoCard({
             type="button"
             className="travel-video-fullscreen-previous"
             aria-label="ویدیوی قبلی"
-            onClick={(event) => void navigateFullscreen(-1, event)}
+            onClick={(event) => {
+              event.stopPropagation();
+              void navigateFullscreen(1);
+            }}
           >
             <SiteIcon name="arrow-left" />
           </button>
@@ -361,7 +383,10 @@ export function TravelVideoCard({
             type="button"
             className="travel-video-fullscreen-next"
             aria-label="ویدیوی بعدی"
-            onClick={(event) => void navigateFullscreen(1, event)}
+            onClick={(event) => {
+              event.stopPropagation();
+              void navigateFullscreen(-1);
+            }}
           >
             <SiteIcon name="arrow-left" />
           </button>
