@@ -5519,7 +5519,7 @@ img {
   .explore-results {
     width: 100%;
     max-width: none;
-    padding-block: 0 48px;
+    padding-block: 112px 48px;
     padding-inline: 0;
   }
 
@@ -5710,22 +5710,6 @@ img {
     filter: drop-shadow(0 3px 9px rgba(0, 0, 0, .72));
   }
 
-  .mobile-reel-fast-forward {
-    position: absolute;
-    z-index: 22;
-    top: calc(68px + env(safe-area-inset-top));
-    left: 50%;
-    padding: 6px 11px;
-    border-radius: 999px;
-    color: #fff;
-    background: rgba(0, 0, 0, .42);
-    font-size: .82rem;
-    font-weight: 900;
-    backdrop-filter: blur(7px);
-    transform: translateX(-50%);
-    pointer-events: none;
-  }
-
   .mobile-reel-hold-zones {
     position: absolute;
     z-index: 5;
@@ -5794,7 +5778,7 @@ img {
   }
 
   .video-comments-sheet > .video-comments-toggle .site-icon {
-    transform: translateX(-2px);
+    transform: translateX(-10px);
   }
 
   .video-comments-sheet-backdrop {

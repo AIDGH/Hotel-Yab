@@ -144,15 +144,23 @@ export function MobileExploreReels({ items }: { items: MobileExploreItem[] }) {
             onScroll={(event) => {
               const feed = event.currentTarget;
               if (!feed.clientHeight) return;
-              setCurrentIndex(
-                Math.max(
-                  0,
-                  Math.min(
-                    visibleItems.length - 1,
-                    Math.round(feed.scrollTop / feed.clientHeight),
-                  ),
+              const nextIndex = Math.max(
+                0,
+                Math.min(
+                  visibleItems.length - 1,
+                  Math.round(feed.scrollTop / feed.clientHeight),
                 ),
               );
+              setCurrentIndex(nextIndex);
+
+              if (
+                nextIndex === visibleItems.length - 1 &&
+                visibleCount < items.length
+              ) {
+                setVisibleCount((count) =>
+                  Math.min(count + MOBILE_VIDEO_BATCH_SIZE, items.length),
+                );
+              }
             }}
           >
             {visibleItems.map((item, index) => (
@@ -182,7 +190,6 @@ function MobileReelSlide({
   const fastForwardRef = useRef(false);
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
-  const [fastForwarding, setFastForwarding] = useState(false);
   const creatorName = person?.displayName ?? `@${video.instagramUsername}`;
 
   useEffect(() => {
@@ -221,7 +228,6 @@ function MobileReelSlide({
       if (!player) return;
       fastForwardRef.current = true;
       player.playbackRate = 2;
-      setFastForwarding(true);
       if (player.paused) void player.play();
     }, 180);
   }
@@ -235,7 +241,6 @@ function MobileReelSlide({
 
     if (fastForwardRef.current) {
       fastForwardRef.current = false;
-      setFastForwarding(false);
     } else {
       togglePlay();
     }
@@ -248,7 +253,6 @@ function MobileReelSlide({
     const player = videoRef.current;
     if (player) player.playbackRate = 1;
     fastForwardRef.current = false;
-    setFastForwarding(false);
   }
 
   useEffect(() => () => {
@@ -273,10 +277,6 @@ function MobileReelSlide({
         <span className="mobile-reel-play-indicator" aria-hidden="true">
           <SiteIcon name="play" />
         </span>
-      ) : null}
-
-      {fastForwarding ? (
-        <span className="mobile-reel-fast-forward" aria-live="polite">۲×</span>
       ) : null}
 
       <div className="mobile-reel-hold-zones">

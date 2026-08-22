@@ -48,6 +48,7 @@ export function TravelVideoCard({
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wasFullscreenRef = useRef(false);
   const playbackId = useId();
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -225,7 +226,14 @@ export function TravelVideoCard({
 
   useEffect(() => {
     function syncFullscreenState() {
-      setIsFullscreen(document.fullscreenElement === mediaRef.current);
+      const nextIsFullscreen = document.fullscreenElement === mediaRef.current;
+
+      if (wasFullscreenRef.current && !nextIsFullscreen) {
+        videoRef.current?.pause();
+      }
+
+      wasFullscreenRef.current = nextIsFullscreen;
+      setIsFullscreen(nextIsFullscreen);
     }
 
     function navigateWithKeyboard(event: KeyboardEvent) {

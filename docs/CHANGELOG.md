@@ -8,6 +8,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 - Added a compact three-column, 12-item mobile Explore thumbnail grid that opens into a full-screen vertical Reels viewer with browser-back handling and a bottom-sheet comments panel; desktop fullscreen playback now also supports previous/next navigation.
 - Refined video navigation with correctly mapped desktop fullscreen arrows, keyboard left/right support and click suppression during transitions; mobile Reels now supports hold-to-play-at-2× zones and lighter Instagram-style overlay controls.
+- Refined the mobile Explore flow by separating its grid from the search filters, centering the comments glyph, removing the visible 2× badge and automatically appending the next 12 reels at the end of the feed; desktop videos now pause when fullscreen exits.
 - Refined account navigation by moving «فعالیت‌های من» below the saved-items entry, compacting mobile drawers, aligning the mobile account identity row, animating menu exits, simplifying account field guidance, and hiding the public Footer on account routes.
 
 ### Added
