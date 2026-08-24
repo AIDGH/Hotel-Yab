@@ -14,6 +14,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Fixed mobile hotel-detail horizontal overflow, hid all Reels overlays during hold-to-2× playback, disabled unstable search-as-you-type navigation in favor of explicit form submission, and shortened public destination-type options to «شهر» and «استان».
 - Fixed the catalog image replacement confirmation appearing behind the upload dialog and cleared its pending state when the upload dialog is dismissed, so later save attempts remain responsive.
 - Replaced the desktop Explore card list with a four-column thumbnail grid and full-screen vertical Reels viewer, loading 16 videos per batch, and arranged mobile hotel detail actions into two balanced rows.
+- Removed public «در حال تکمیل» labels and placeholder copy from person/hotel cards, person details, and destination empty states; pending records remain functional without exposing completion-status wording.
 
 ### Added
 

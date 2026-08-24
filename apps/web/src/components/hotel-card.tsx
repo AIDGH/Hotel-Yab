@@ -27,11 +27,11 @@ export function HotelCard({ hotel }: { hotel: HotelListItem }) {
               hasVerifiedAssociations ? "" : " status-badge-neutral"
             }`}
           >
-            <SiteIcon name={hasVerifiedAssociations ? "check" : "clock"} />
+            <SiteIcon name={hasVerifiedAssociations ? "check" : "hotel"} />
             {hasVerifiedAssociations
               ? "دارای ارتباط تأییدشده"
               : hasAssociations
-                ? "روابط در حال تکمیل"
+                ? "دارای چهره مرتبط"
                 : "هتل ثبت‌شده"}
           </span>
         </div>
@@ -45,7 +45,7 @@ export function HotelCard({ hotel }: { hotel: HotelListItem }) {
             {hotel.description ??
               (hasAssociations
                 ? "ارتباط‌های مستند این هتل با چهره‌های شناخته‌شده را ببینید."
-                : "اطلاعات و ارتباط‌های این هتل در حال تکمیل است.")}
+                : "اطلاعات این هتل را ببینید.")}
           </p>
           <div className="card-meta">
             <span>{hotel.associationCount.toLocaleString("fa-IR")} چهره مرتبط</span>

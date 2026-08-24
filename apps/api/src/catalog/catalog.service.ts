@@ -695,7 +695,7 @@ export class CatalogService {
                 hotelId: hotel.id,
                 notablePersonId: person.id,
                 type: AssociationType.VISITED,
-                summary: `ارتباط ${person.displayName} با ${hotel.name} از طریق ویدیوی «${dto.title.trim()}» ثبت شده و در انتظار تکمیل بررسی است.`,
+                summary: `ارتباط ${person.displayName} با ${hotel.name} از طریق ویدیوی «${dto.title.trim()}» ثبت شده و در انتظار بررسی است.`,
                 verificationStatus: VerificationStatus.PENDING,
               },
             });

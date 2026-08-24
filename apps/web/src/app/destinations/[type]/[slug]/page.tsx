@@ -159,7 +159,7 @@ export default async function DestinationPage({
         ) : (
           <EmptyState
             kind="empty"
-            title="ویدیوهای سفر در حال تکمیل است"
+            title="هنوز ویدیوی سفری ثبت نشده است"
             description={`به‌زودی ویدیوهای مربوط به ${destination.name} در این صفحه نمایش داده می‌شوند.`}
           />
         )}
@@ -189,7 +189,7 @@ export default async function DestinationPage({
             kind={hotelsAvailable ? "empty" : "unavailable"}
             title={
               hotelsAvailable
-                ? `هتل‌های ${destinationKindLabel} ${destination.name} در حال تکمیل است`
+                ? `هنوز هتلی برای ${destinationKindLabel} ${destination.name} ثبت نشده است`
                 : "اطلاعات هتل‌ها در دسترس نیست"
             }
             description={

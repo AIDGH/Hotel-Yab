@@ -52,6 +52,9 @@ export default async function PersonPage({ params }: PersonPageProps) {
   }
 
   const person = result.value.data;
+  const visibleBiography = person.biography?.includes("در حال تکمیل")
+    ? null
+    : person.biography;
   const hotelVideosByHotelId = new Map<string, typeof person.videos>();
   for (const video of person.videos) {
     if (video.videoCategory !== "HOTEL") continue;
@@ -86,7 +89,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
             primaryCategory={person.primaryCategory}
           />
           <p>
-            {person.biography ??
+            {visibleBiography ??
               "هتل‌های مرتبط با این فرد نمایش داده می‌شوند و وضعیت بررسی هر رابطه به‌صورت شفاف مشخص است."}
           </p>
           <div className="detail-actions">
@@ -110,6 +113,9 @@ export default async function PersonPage({ params }: PersonPageProps) {
               {person.associations.map((association) => {
                 const hotelVideos =
                   hotelVideosByHotelId.get(association.hotel.id) ?? [];
+                const visibleSummary = association.summary.includes("تکمیل")
+                  ? null
+                  : association.summary;
                 return (
                   <article className="association-card" key={association.id}>
                   <div className="association-person association-hotel">
@@ -126,29 +132,22 @@ export default async function PersonPage({ params }: PersonPageProps) {
                         </Link>
                       </h3>
                       <small><SiteIcon name="location" /> {association.hotel.city}</small>
-                      {hotelVideos.length > 0 || association.sources.length > 0 ? (
-                        <p>{association.summary}</p>
+                      {visibleSummary &&
+                      (hotelVideos.length > 0 || association.sources.length > 0) ? (
+                        <p>{visibleSummary}</p>
                       ) : null}
                     </div>
                   </div>
-                  {association.verificationStatus === "VERIFIED" || hotelVideos.length > 0 ? (
-                  <div className="verification-row">
-                    <span
-                      className={
-                        association.verificationStatus === "VERIFIED"
-                          ? ""
-                          : "verification-pending"
-                      }
-                    >
-                      <SiteIcon name={association.verificationStatus === "VERIFIED" ? "check" : "clock"} />
-                      {association.verificationStatus === "VERIFIED" ? "تأییدشده" : "در حال تکمیل"}
-                    </span>
-                    <small>
-                      {association.verifiedAt
-                        ? `بررسی در ${formatDate(association.verifiedAt)}`
-                        : "هنوز تأیید نهایی نشده"}
-                    </small>
-                  </div>
+                  {association.verificationStatus === "VERIFIED" ? (
+                    <div className="verification-row">
+                      <span>
+                        <SiteIcon name="check" />
+                        تأییدشده
+                      </span>
+                      {association.verifiedAt ? (
+                        <small>بررسی در {formatDate(association.verifiedAt)}</small>
+                      ) : null}
+                    </div>
                   ) : null}
                   {hotelVideos.length > 0 ? (
                     <ProgressiveVideoList

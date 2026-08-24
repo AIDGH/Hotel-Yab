@@ -70,8 +70,8 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
           <span className="eyebrow">فهرست چهره‌ها</span>
           <h1>از آدم‌های مورد علاقه‌تان به هتل برسید</h1>
           <p>
-            پروفایل‌های در حال تکمیل هم نمایش داده می‌شوند؛ وضعیت تأیید و
-            منابع هر رابطه به‌صورت شفاف مشخص است.
+            پروفایل‌های ثبت‌شده همراه حرفه، تعداد دنبال‌کننده و ارتباط‌های
+            هتلی نمایش داده می‌شوند.
           </p>
           <form className="filter-bar filter-bar-four" method="get">
             <label>
