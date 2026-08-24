@@ -4,7 +4,7 @@ export function compactPersonOccupation(
   value: string | null,
   category: string,
 ): string | null {
-  if (!value || value === category) {
+  if (!value) {
     return null;
   }
   
