@@ -157,7 +157,7 @@ export function ExploreReels({
   return (
     <div className={variant === "desktop" ? "desktop-explore" : "mobile-explore"}>
       <div className="mobile-explore-grid" aria-live="polite">
-        {visibleItems.map(({ video }, index) => (
+        {visibleItems.map(({ video, destinations }, index) => (
           <button
             className="mobile-explore-tile"
             type="button"
@@ -174,6 +174,15 @@ export function ExploreReels({
             />
             <span className="mobile-explore-tile-icon">
               <SiteIcon name="video" />
+            </span>
+            <span className="mobile-explore-tile-meta">
+              <strong>{video.title}</strong>
+              {destinations.length > 0 ? (
+                <small>
+                  <SiteIcon name="location" />
+                  {destinations.map((destination) => destination.name).join("، ")}
+                </small>
+              ) : null}
             </span>
           </button>
         ))}
