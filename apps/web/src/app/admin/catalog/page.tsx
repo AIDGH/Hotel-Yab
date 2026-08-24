@@ -79,6 +79,9 @@ export default function CatalogAdminPage() {
   }, [authLoading, loadCatalog, user]);
 
   async function submit(endpoint: string, payload: Record<string, unknown>, form: HTMLFormElement, method: "POST" | "PATCH" = "POST") {
+    const nextPersonId = method === "PATCH" && activeSection === "people"
+      ? getNextPersonId(catalog?.notablePeople ?? [], selectedEditId)
+      : null;
     setSubmitting(true);
     setFeedback(null);
     try {
@@ -89,6 +92,7 @@ export default function CatalogAdminPage() {
       if (method === "POST") form.reset();
       setFeedback({ tone: "success", text: method === "POST" ? "اطلاعات با موفقیت در PostgreSQL ثبت شد." : "تغییرات با موفقیت ذخیره شد." });
       await loadCatalog();
+      if (nextPersonId) setSelectedEditId(nextPersonId);
       return true;
     } catch (caught) {
       setFeedback({
@@ -140,7 +144,9 @@ export default function CatalogAdminPage() {
     : activeSection === "hotels"
       ? catalog?.hotels.map((item) => ({ id: item.id, value: item.id, label: `${item.name} · ${item.city}` }))
       : activeSection === "people"
-        ? catalog?.notablePeople.map((item) => ({ id: item.id, value: item.id, label: `${item.displayName}${item.instagramHandle ? ` · @${item.instagramHandle}` : ""}` }))
+        ? [...(catalog?.notablePeople ?? [])]
+          .sort(comparePeopleAlphabetically)
+          .map((item) => ({ id: item.id, value: item.id, label: `${item.displayName}${item.instagramHandle ? ` · @${item.instagramHandle}` : ""}` }))
         : catalog?.videos.map((item) => ({ id: item.id, value: item.id, label: item.title || item.id }));
   const selectedDestination = catalog?.destinations.find((item) => item.id === selectedEditId);
   const selectedHotel = catalog?.hotels.find((item) => item.id === selectedEditId);
@@ -722,4 +728,16 @@ function normalizeSearch(value: string): string {
     .replace(/ك/g, "ک")
     .replace(/\u200c/g, " ")
     .trim();
+}
+
+function comparePeopleAlphabetically(left: CatalogPerson, right: CatalogPerson): number {
+  return left.displayName.localeCompare(right.displayName, "fa", {
+    sensitivity: "base",
+  }) || left.slug.localeCompare(right.slug, "en");
+}
+
+function getNextPersonId(people: CatalogPerson[], currentId: string): string | null {
+  const orderedPeople = [...people].sort(comparePeopleAlphabetically);
+  const currentIndex = orderedPeople.findIndex((person) => person.id === currentId);
+  return currentIndex >= 0 ? orderedPeople[currentIndex + 1]?.id ?? null : null;
 }
