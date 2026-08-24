@@ -33,6 +33,7 @@ export function PersonCard({ person }: { person: NotablePersonListItem }) {
             followerCount={person.followerCount}
             primaryCategory={person.primaryCategory}
             showOccupation={false}
+            reserveSpace
           />
           <div className="card-meta">
             <span>{person.associationCount.toLocaleString("fa-IR")} هتل مرتبط</span>

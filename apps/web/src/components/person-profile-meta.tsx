@@ -12,6 +12,7 @@ type PersonProfileMetaProps = {
   primaryCategory: string;
   className?: string;
   showOccupation?: boolean;
+  reserveSpace?: boolean;
 };
 
 export function PersonProfileMeta({
@@ -21,6 +22,7 @@ export function PersonProfileMeta({
   primaryCategory,
   className = "",
   showOccupation = true,
+  reserveSpace = false,
 }: PersonProfileMetaProps) {
   const compactOccupation = compactPersonOccupation(
     occupation,
@@ -41,7 +43,12 @@ export function PersonProfileMeta({
     .join(" · ");
 
   if (!instagramHandle && !occupationLine) {
-    return null;
+    return reserveSpace ? (
+      <div
+        className={`person-profile-meta ${className}`.trim()}
+        aria-hidden="true"
+      />
+    ) : null;
   }
 
   return (

@@ -16,6 +16,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Replaced the desktop Explore card list with a four-column thumbnail grid and full-screen vertical Reels viewer, loading 16 videos per batch, and arranged mobile hotel detail actions into two balanced rows.
 - Removed public «در حال تکمیل» labels and placeholder copy from person/hotel cards, person details, and destination empty states; pending records remain functional without exposing completion-status wording.
 - Replaced public notable-person category badges with their actual occupations and removed the repeated occupation from the follower metadata line, while retaining category data for filtering and administration.
+- Preserved the person-card metadata slot when Instagram/follower data is absent so hotel-association rows stay aligned across the people grid.
 
 ### Added
 
