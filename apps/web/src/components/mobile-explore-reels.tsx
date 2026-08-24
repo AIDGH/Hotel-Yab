@@ -31,6 +31,7 @@ export function MobileExploreReels({ items }: { items: MobileExploreItem[] }) {
   const [visibleCount, setVisibleCount] = useState(MOBILE_VIDEO_BATCH_SIZE);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [fastForwarding, setFastForwarding] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
   const historyEntryRef = useRef(false);
   const visibleItems = items.slice(0, visibleCount);
@@ -38,6 +39,7 @@ export function MobileExploreReels({ items }: { items: MobileExploreItem[] }) {
 
   const dismissReels = useCallback(() => {
     setOpenIndex(null);
+    setFastForwarding(false);
     historyEntryRef.current = false;
   }, []);
 
@@ -51,6 +53,7 @@ export function MobileExploreReels({ items }: { items: MobileExploreItem[] }) {
 
   function openReels(index: number) {
     setCurrentIndex(index);
+    setFastForwarding(false);
     setOpenIndex(index);
     window.history.pushState(
       { hotelYabMobileReel: true },
@@ -127,7 +130,7 @@ export function MobileExploreReels({ items }: { items: MobileExploreItem[] }) {
 
       {openIndex !== null ? (
         <section
-          className="mobile-reels-modal"
+          className={`mobile-reels-modal${fastForwarding ? " is-fast-forwarding" : ""}`}
           role="dialog"
           aria-modal="true"
           aria-label="نمایش ویدیوها"
@@ -151,6 +154,7 @@ export function MobileExploreReels({ items }: { items: MobileExploreItem[] }) {
                   Math.round(feed.scrollTop / feed.clientHeight),
                 ),
               );
+              if (nextIndex !== currentIndex) setFastForwarding(false);
               setCurrentIndex(nextIndex);
 
               if (
@@ -167,6 +171,7 @@ export function MobileExploreReels({ items }: { items: MobileExploreItem[] }) {
               <MobileReelSlide
                 item={item}
                 active={currentIndex === index}
+                onFastForwardChange={setFastForwarding}
                 key={item.video.videoId}
               />
             ))}
@@ -180,9 +185,11 @@ export function MobileExploreReels({ items }: { items: MobileExploreItem[] }) {
 function MobileReelSlide({
   item,
   active,
+  onFastForwardChange,
 }: {
   item: MobileExploreItem;
   active: boolean;
+  onFastForwardChange: (fastForwarding: boolean) => void;
 }) {
   const { video, person, destinations } = item;
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -228,6 +235,7 @@ function MobileReelSlide({
       if (!player) return;
       fastForwardRef.current = true;
       player.playbackRate = 2;
+      onFastForwardChange(true);
       if (player.paused) void player.play();
     }, 180);
   }
@@ -241,6 +249,7 @@ function MobileReelSlide({
 
     if (fastForwardRef.current) {
       fastForwardRef.current = false;
+      onFastForwardChange(false);
     } else {
       togglePlay();
     }
@@ -253,6 +262,7 @@ function MobileReelSlide({
     const player = videoRef.current;
     if (player) player.playbackRate = 1;
     fastForwardRef.current = false;
+    onFastForwardChange(false);
   }
 
   useEffect(() => () => {

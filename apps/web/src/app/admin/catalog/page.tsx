@@ -513,6 +513,7 @@ function CatalogMediaField({ name, label, slug, kind, value, suggestedValue, onC
 
   function closeDialog() {
     if (uploading) return;
+    setOverwriteConfirmOpen(false);
     setDialogOpen(false);
     setSelectedFile(null);
     setPreviewUrl(null);

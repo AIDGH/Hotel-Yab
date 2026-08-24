@@ -129,8 +129,8 @@ export default async function ExplorePage({
                 resetFields={["destination"]}
               >
                 <option value="all">همه مقصدها</option>
-                <option value="cities">شهرها</option>
-                <option value="provinces">استان‌ها</option>
+                <option value="cities">شهر</option>
+                <option value="provinces">استان</option>
               </AutoSubmitSelect>
             </label>
             <label>

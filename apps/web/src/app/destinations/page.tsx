@@ -99,8 +99,8 @@ export default async function DestinationsPage({
                 name="type"
                 defaultValue={type}
               >
-                <option value="cities">شهرها</option>
-                <option value="provinces">استان‌ها</option>
+                <option value="cities">شهر</option>
+                <option value="provinces">استان</option>
               </AutoSubmitSelect>
             </label>
 
