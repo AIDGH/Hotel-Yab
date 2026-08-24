@@ -20,6 +20,7 @@ import { SiteIcon } from "./site-icon";
 import { VideoComments } from "./video-comments";
 
 const MOBILE_VIDEO_BATCH_SIZE = 12;
+const DESKTOP_VIDEO_BATCH_SIZE = 16;
 
 export type MobileExploreItem = {
   video: TravelVideo;
@@ -27,8 +28,18 @@ export type MobileExploreItem = {
   person: NotablePersonListItem | null;
 };
 
-export function MobileExploreReels({ items }: { items: MobileExploreItem[] }) {
-  const [visibleCount, setVisibleCount] = useState(MOBILE_VIDEO_BATCH_SIZE);
+export function ExploreReels({
+  items,
+  variant,
+}: {
+  items: MobileExploreItem[];
+  variant: "mobile" | "desktop";
+}) {
+  const batchSize =
+    variant === "desktop"
+      ? DESKTOP_VIDEO_BATCH_SIZE
+      : MOBILE_VIDEO_BATCH_SIZE;
+  const [visibleCount, setVisibleCount] = useState(batchSize);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [fastForwarding, setFastForwarding] = useState(false);
@@ -87,8 +98,64 @@ export function MobileExploreReels({ items }: { items: MobileExploreItem[] }) {
     };
   }, [openIndex]);
 
+  useEffect(() => {
+    if (openIndex === null || variant !== "desktop") return;
+
+    function scrollToVideo(index: number) {
+      const feed = feedRef.current;
+      if (!feed) return;
+      feed.scrollTo({ top: index * feed.clientHeight, behavior: "smooth" });
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target?.matches("input, textarea, select")) return;
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeReels();
+        return;
+      }
+
+      const direction =
+        event.key === "ArrowRight" || event.key === "ArrowDown"
+          ? 1
+          : event.key === "ArrowLeft" || event.key === "ArrowUp"
+            ? -1
+            : 0;
+      if (direction === 0) return;
+
+      event.preventDefault();
+      const targetIndex = Math.max(
+        0,
+        Math.min(currentIndex + direction, items.length - 1),
+      );
+      if (targetIndex >= visibleCount) {
+        setVisibleCount((count) =>
+          Math.min(Math.max(count + batchSize, targetIndex + 1), items.length),
+        );
+        window.requestAnimationFrame(() =>
+          window.requestAnimationFrame(() => scrollToVideo(targetIndex)),
+        );
+        return;
+      }
+      scrollToVideo(targetIndex);
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [
+    batchSize,
+    closeReels,
+    currentIndex,
+    items.length,
+    openIndex,
+    variant,
+    visibleCount,
+  ]);
+
   return (
-    <div className="mobile-explore">
+    <div className={variant === "desktop" ? "desktop-explore" : "mobile-explore"}>
       <div className="mobile-explore-grid" aria-live="polite">
         {visibleItems.map(({ video }, index) => (
           <button
@@ -102,7 +169,7 @@ export function MobileExploreReels({ items }: { items: MobileExploreItem[] }) {
               src={video.thumbnailUrl}
               alt=""
               fill
-              sizes="33vw"
+              sizes={variant === "desktop" ? "25vw" : "33vw"}
               unoptimized
             />
             <span className="mobile-explore-tile-icon">
@@ -119,11 +186,11 @@ export function MobileExploreReels({ items }: { items: MobileExploreItem[] }) {
             type="button"
             onClick={() =>
               setVisibleCount((count) =>
-                Math.min(count + MOBILE_VIDEO_BATCH_SIZE, items.length),
+                Math.min(count + batchSize, items.length),
               )
             }
           >
-            نمایش {Math.min(MOBILE_VIDEO_BATCH_SIZE, remainingCount).toLocaleString("fa-IR")} ویدیوی دیگر
+            نمایش {Math.min(batchSize, remainingCount).toLocaleString("fa-IR")} ویدیوی دیگر
           </button>
         </div>
       ) : null}
@@ -162,7 +229,7 @@ export function MobileExploreReels({ items }: { items: MobileExploreItem[] }) {
                 visibleCount < items.length
               ) {
                 setVisibleCount((count) =>
-                  Math.min(count + MOBILE_VIDEO_BATCH_SIZE, items.length),
+                  Math.min(count + batchSize, items.length),
                 );
               }
             }}

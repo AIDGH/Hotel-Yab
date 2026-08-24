@@ -1,18 +1,9 @@
-"use client";
-
-import { useState } from "react";
-
 import type {
   ResolvedTravelDestination,
   TravelVideo,
 } from "@/lib/travel-videos";
 import type { NotablePersonListItem } from "@/lib/types";
-import { MobileExploreReels } from "./mobile-explore-reels";
-import { TravelVideoCard } from "./travel-video-card";
-import { TravelVideoPersonCard } from "./travel-video-person-card";
-import { VideoDestinationLinks } from "./video-destination-links";
-
-const VIDEO_BATCH_SIZE = 6;
+import { ExploreReels } from "./mobile-explore-reels";
 
 type ExploreVideoItem = {
   video: TravelVideo;
@@ -21,55 +12,10 @@ type ExploreVideoItem = {
 };
 
 export function ExploreVideoList({ items }: { items: ExploreVideoItem[] }) {
-  const [visibleCount, setVisibleCount] = useState(VIDEO_BATCH_SIZE);
-  const visibleItems = items.slice(0, visibleCount);
-  const remainingCount = Math.max(0, items.length - visibleItems.length);
-
   return (
     <>
-      <div
-        className="explore-video-list explore-video-list-desktop"
-        id="explore-video-list"
-        aria-live="polite"
-      >
-        {visibleItems.map(({ video, destinations, person }) => (
-          <div className="explore-video-item" key={video.videoId}>
-            <TravelVideoPersonCard
-              instagramUsername={video.instagramUsername}
-              person={person}
-            />
-            <TravelVideoCard
-              videoId={video.videoId}
-              title={video.title}
-              mediaUrl={video.mediaUrl}
-              thumbnailUrl={video.thumbnailUrl}
-              sourceUrl={video.sourceUrl}
-              instagramUsername={video.instagramUsername}
-            />
-            <VideoDestinationLinks destinations={destinations} />
-          </div>
-        ))}
-        {remainingCount > 0 ? (
-          <div className="explore-load-more">
-            <button
-              className="button pagination-secondary"
-              type="button"
-              aria-controls="explore-video-list"
-              onClick={() =>
-                setVisibleCount((currentCount) =>
-                  Math.min(currentCount + VIDEO_BATCH_SIZE, items.length),
-                )
-              }
-            >
-              نمایش {Math.min(VIDEO_BATCH_SIZE, remainingCount).toLocaleString("fa-IR")} ویدیوی دیگر
-            </button>
-            <span>
-              {visibleItems.length.toLocaleString("fa-IR")} از {items.length.toLocaleString("fa-IR")}
-            </span>
-          </div>
-        ) : null}
-      </div>
-      <MobileExploreReels items={items} />
+      <ExploreReels items={items} variant="desktop" />
+      <ExploreReels items={items} variant="mobile" />
     </>
   );
 }

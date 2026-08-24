@@ -142,7 +142,7 @@ export default async function HotelPage({ params }: HotelPageProps) {
                 ? "افراد مرتبط با این هتل نمایش داده می‌شوند و وضعیت بررسی هر رابطه به‌صورت شفاف مشخص است."
                 : "این هتل در فهرست عمومی ثبت شده و ارتباط‌های آن در حال بررسی و منبع‌دهی است.")}
           </p>
-          <div className="detail-actions">
+          <div className="detail-actions hotel-detail-actions">
             <EntityLibraryActions
               entity="hotel"
               slug={hotel.slug}
