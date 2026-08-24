@@ -3652,7 +3652,8 @@ img {
 }
 
 .explore-results > .results-header {
-  width: min(100%, 1068px);
+  width: min(100%, 1080px);
+  margin-inline: auto;
 }
 
 .global-search-summary {
@@ -4924,6 +4925,9 @@ img {
 
 .desktop-explore {
   display: block;
+  width: min(100%, 1080px);
+  margin-inline: auto;
+  --desktop-reel-width: min(100vw, calc(100dvh * 9 / 16), 560px);
 }
 
 .desktop-explore .mobile-explore-grid {
@@ -5003,7 +5007,7 @@ img {
   top: 0;
   left: 50%;
   display: flex;
-  width: min(100%, 620px);
+  width: var(--desktop-reel-width);
   min-height: 64px;
   align-items: center;
   gap: 16px;
@@ -5035,7 +5039,7 @@ img {
 }
 
 .desktop-explore .mobile-reels-feed {
-  width: min(100%, 620px);
+  width: var(--desktop-reel-width);
   height: 100dvh;
   margin-inline: auto;
   overflow-x: hidden;
@@ -5122,7 +5126,7 @@ img {
   bottom: 132px;
   display: grid;
   justify-items: center;
-  gap: 15px;
+  gap: 8px;
   transition: opacity 150ms ease;
 }
 
@@ -5145,6 +5149,12 @@ img {
 .desktop-explore .mobile-reel-actions .site-icon {
   width: 25px;
   height: 25px;
+}
+
+.desktop-explore .video-comments-sheet > .video-comments-toggle .site-icon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
 }
 
 .desktop-explore .video-comments-sheet {
@@ -5184,7 +5194,7 @@ img {
   right: 50%;
   bottom: 0;
   display: grid;
-  width: min(100%, 620px);
+  width: var(--desktop-reel-width);
   max-height: min(68dvh, 620px);
   overflow-y: auto;
   padding: 0 16px 18px;
@@ -5194,7 +5204,7 @@ img {
   background: #fff;
   box-shadow: 0 -20px 50px rgba(0, 0, 0, .28);
   transform: translateX(50%);
-  animation: video-comments-sheet-in 210ms cubic-bezier(.2, .8, .2, 1);
+  animation: desktop-video-comments-sheet-in 210ms cubic-bezier(.2, .8, .2, 1);
 }
 
 .desktop-explore .video-comments-sheet-header {
@@ -6387,6 +6397,11 @@ img {
 @keyframes video-comments-sheet-in {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
+}
+
+@keyframes desktop-video-comments-sheet-in {
+  from { transform: translate(50%, 100%); }
+  to { transform: translate(50%, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
