@@ -3,11 +3,17 @@ import { categoryLabel } from "@/lib/labels";
 import type { NotablePersonListItem } from "@/lib/types";
 import { MediaTile } from "./media-tile";
 import { PersonDisplayName } from "./person-display-name";
+import { compactPersonOccupation } from "./person-occupation";
 import { PersonProfileMeta } from "./person-profile-meta";
 import { EntityLibraryActions } from "./entity-library-actions";
 import { SiteIcon } from "./site-icon";
 
 export function PersonCard({ person }: { person: NotablePersonListItem }) {
+  const displayedOccupation = compactPersonOccupation(
+    person.occupation,
+    categoryLabel(person.primaryCategory),
+  );
+
   return (
     <article className="person-card">
       <Link href={`/notable-people/${person.slug}`}>
@@ -17,7 +23,7 @@ export function PersonCard({ person }: { person: NotablePersonListItem }) {
           variant="person"
         />
         <div className="person-card-copy">
-          <span>{categoryLabel(person.primaryCategory)}</span>
+          {displayedOccupation ? <span>{displayedOccupation}</span> : null}
           <h3>
             <PersonDisplayName name={person.displayName} />
           </h3>
@@ -26,6 +32,7 @@ export function PersonCard({ person }: { person: NotablePersonListItem }) {
             occupation={person.occupation}
             followerCount={person.followerCount}
             primaryCategory={person.primaryCategory}
+            showOccupation={false}
           />
           <div className="card-meta">
             <span>{person.associationCount.toLocaleString("fa-IR")} هتل مرتبط</span>

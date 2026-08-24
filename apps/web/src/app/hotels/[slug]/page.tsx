@@ -9,6 +9,7 @@ import { HotelStars } from "@/components/hotel-stars";
 import { MediaTile } from "@/components/media-tile";
 import { PersonDisplayName } from "@/components/person-display-name";
 import { PersonInstagramHandle } from "@/components/person-instagram-handle";
+import { compactPersonOccupation } from "@/components/person-occupation";
 import { ProgressiveVideoList } from "@/components/progressive-video-list";
 import { SourceList } from "@/components/source-list";
 import { TravelVideoCard } from "@/components/travel-video-card";
@@ -224,7 +225,12 @@ export default async function HotelPage({ params }: HotelPageProps) {
             <span>{guestAssociations.length.toLocaleString("fa-IR")} چهره</span>
           </div>
           <div className="hotel-guest-grid">
-            {guestAssociations.map((association) => (
+            {guestAssociations.map((association) => {
+              const displayedOccupation = compactPersonOccupation(
+                association.notablePerson.occupation,
+                categoryLabel(association.notablePerson.primaryCategory),
+              );
+              return (
               <article className="hotel-guest-card" key={association.id}>
                 <Link href={`/notable-people/${association.notablePerson.slug}`}>
                   <div className="hotel-guest-avatar">
@@ -239,10 +245,7 @@ export default async function HotelPage({ params }: HotelPageProps) {
                       <PersonDisplayName name={association.notablePerson.displayName} />
                     </h3>
                     <div className="hotel-guest-meta">
-                      <span>
-                        {association.notablePerson.occupation ||
-                          categoryLabel(association.notablePerson.primaryCategory)}
-                      </span>
+                      {displayedOccupation ? <span>{displayedOccupation}</span> : null}
                       {formatFollowerCount(
                         association.notablePerson.followerCount,
                       ) ? (
@@ -267,7 +270,8 @@ export default async function HotelPage({ params }: HotelPageProps) {
                 </Link>
                 {association.sources.length > 0 ? <SourceList sources={association.sources} /> : null}
               </article>
-            ))}
+              );
+            })}
           </div>
         </section>
       ) : null}

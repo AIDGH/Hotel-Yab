@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { EntityLibraryActions } from "@/components/entity-library-actions";
 import { MediaTile } from "@/components/media-tile";
 import { PersonDisplayName } from "@/components/person-display-name";
+import { compactPersonOccupation } from "@/components/person-occupation";
 import { PersonProfileMeta } from "@/components/person-profile-meta";
 import { ProgressiveVideoList } from "@/components/progressive-video-list";
 import { SourceList } from "@/components/source-list";
@@ -55,6 +56,10 @@ export default async function PersonPage({ params }: PersonPageProps) {
   const visibleBiography = person.biography?.includes("در حال تکمیل")
     ? null
     : person.biography;
+  const displayedOccupation = compactPersonOccupation(
+    person.occupation,
+    categoryLabel(person.primaryCategory),
+  );
   const hotelVideosByHotelId = new Map<string, typeof person.videos>();
   for (const video of person.videos) {
     if (video.videoCategory !== "HOTEL") continue;
@@ -77,7 +82,9 @@ export default async function PersonPage({ params }: PersonPageProps) {
           <Link className="back-link" href="/notable-people">
             بازگشت به چهره‌ها ←
           </Link>
-          <span className="section-eyebrow">{categoryLabel(person.primaryCategory)}</span>
+          {displayedOccupation ? (
+            <span className="section-eyebrow">{displayedOccupation}</span>
+          ) : null}
           <h1>
             <PersonDisplayName name={person.displayName} />
           </h1>
@@ -87,6 +94,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
             occupation={person.occupation}
             followerCount={person.followerCount}
             primaryCategory={person.primaryCategory}
+            showOccupation={false}
           />
           <p>
             {visibleBiography ??

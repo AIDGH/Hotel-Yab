@@ -6,6 +6,7 @@ import { AccountShell } from "@/components/account-shell";
 import { EntityLibraryActions } from "@/components/entity-library-actions";
 import { HotelStars } from "@/components/hotel-stars";
 import { MediaTile } from "@/components/media-tile";
+import { compactPersonOccupation } from "@/components/person-occupation";
 import {
   type LibraryHotel,
   type LibraryNotablePerson,
@@ -143,6 +144,10 @@ function HotelLibraryCard({ hotel }: { hotel: LibraryHotel }) {
 
 function PersonLibraryCard({ person }: { person: LibraryNotablePerson }) {
   const followerCount = formatFollowerCount(person.followerCount);
+  const displayedOccupation = compactPersonOccupation(
+    person.occupation,
+    categoryLabel(person.primaryCategory),
+  );
   return (
     <article className="account-library-item">
       <Link href={`/notable-people/${person.slug}`}>
@@ -154,12 +159,10 @@ function PersonLibraryCard({ person }: { person: LibraryNotablePerson }) {
           />
         </div>
         <div>
-          <small>چهره · {categoryLabel(person.primaryCategory)}</small>
+          {displayedOccupation ? <small>{displayedOccupation}</small> : null}
           <h3>{person.displayName}</h3>
           <p>
-            {[person.occupation, followerCount ? `${followerCount} دنبال‌کننده` : null]
-              .filter(Boolean)
-              .join(" · ")}
+            {followerCount ? `${followerCount} دنبال‌کننده` : ""}
           </p>
         </div>
       </Link>

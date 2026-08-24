@@ -11,6 +11,7 @@ type PersonProfileMetaProps = {
   followerCount: number | null;
   primaryCategory: string;
   className?: string;
+  showOccupation?: boolean;
 };
 
 export function PersonProfileMeta({
@@ -19,14 +20,16 @@ export function PersonProfileMeta({
   followerCount,
   primaryCategory,
   className = "",
+  showOccupation = true,
 }: PersonProfileMetaProps) {
   const compactOccupation = compactPersonOccupation(
     occupation,
     categoryLabel(primaryCategory),
   );
 
-  const displayedOccupation =
-    compactOccupation ?? (!instagramHandle ? occupation : null);
+  const displayedOccupation = showOccupation
+    ? compactOccupation ?? (!instagramHandle ? occupation : null)
+    : null;
   const displayedFollowerCount = formatFollowerCount(followerCount);
   const occupationLine = [
     displayedOccupation,
