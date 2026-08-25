@@ -123,6 +123,10 @@ export async function importDataset(
       });
     }
 
+    await transaction.destination.updateMany({
+      data: { displayOrder: null },
+    });
+
     for (const destination of dataset.destinations.filter(
       ({ type }) => type === DestinationType.PROVINCE,
     )) {

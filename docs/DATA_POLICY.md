@@ -426,6 +426,9 @@ creates the import-compatible JSON and the production importer upserts only the
 catalog domain. Existing users, sessions, hotel reviews, video comments, reports,
 likes, and saves are not replaced. A production backup is required before each
 bulk import.
+Destination display positions are cleared and reapplied inside the same catalog
+transaction, preventing temporary uniqueness collisions and guaranteeing rollback
+if the imported order cannot be completed.
 
 Content media remains outside Git. For the current VPS phase, reviewed media
 binaries are provisioned separately under the stable frontend `public` media
