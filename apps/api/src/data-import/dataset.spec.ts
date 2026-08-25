@@ -82,6 +82,52 @@ describe('validateDataset', () => {
     });
   });
 
+  it('accepts stable root-relative catalog media paths', () => {
+    const dataset = structuredClone(validDataset);
+    Object.assign(dataset.hotels[0], {
+      imageUrl: '/images/hotels/example-hotel.webp',
+      logoUrl: '/images/hotels/example-hotel-logo.webp',
+    });
+    Object.assign(dataset.notablePeople[0], {
+      imageUrl: '/images/people/example-person.webp',
+    });
+
+    expect(validateDataset(dataset)).toMatchObject({
+      hotels: [
+        {
+          imageUrl: '/images/hotels/example-hotel.webp',
+          logoUrl: '/images/hotels/example-hotel-logo.webp',
+        },
+      ],
+      notablePeople: [{ imageUrl: '/images/people/example-person.webp' }],
+    });
+  });
+
+  it('accepts Unicode characters in an HTTP source URL', () => {
+    const dataset = structuredClone(validDataset);
+    Object.assign(dataset, {
+      destinations: [
+        {
+          type: 'PROVINCE',
+          slug: 'example-province',
+          name: 'Example Province',
+          primarySourceUrl: 'https://fa.wikipedia.org/wiki/استان_نمونه',
+        },
+      ],
+    });
+
+    expect(validateDataset(dataset).destinations[0].primarySourceUrl).toBe(
+      'https://fa.wikipedia.org/wiki/استان_نمونه',
+    );
+  });
+
+  it('rejects unsafe catalog media schemes', () => {
+    const dataset = structuredClone(validDataset);
+    Object.assign(dataset.hotels[0], { imageUrl: 'javascript:alert(1)' });
+
+    expect(() => validateDataset(dataset)).toThrow('imageUrl');
+  });
+
   it('rejects a hotel star rating outside the official 1–5 range', () => {
     const dataset = structuredClone(validDataset);
     Object.assign(dataset.hotels[0], { starRating: 6 });

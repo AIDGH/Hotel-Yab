@@ -1055,6 +1055,10 @@ curl -I http://87.247.170.136/
 می‌شود. این خروجی فقط هتل، چهره، مقصد، منبع، ارتباط و ویدیو را شامل می‌شود و
 نباید جای backup کامل production را بگیرد:
 
+فیلدهای رسانه در این round-trip می‌توانند URL کامل `http(s)` یا مسیر پایدار
+root-relative مانند `/images/people/slug.webp` باشند؛ لینک منبع و مدرک همچنان
+باید URL کامل `http(s)` باشد.
+
 ```bash
 pnpm api:data:export
 scp apps/api/prisma/data/import.json jaryan@87.247.170.136:/tmp/hotel-yab-import.json

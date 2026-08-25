@@ -8,6 +8,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 - Added a repeatable import-compatible catalog export command and documented the safe code/catalog/media production deployment workflow without replacing production user data.
 - Added an explicit temporary production OTP preview mode, a dedicated mobile-number step before passwordless login, LTR login identifiers, and right-aligned password visibility controls.
+- Fixed import validation so stable root-relative catalog media paths and valid Unicode HTTP source URLs round-trip through the database export/import workflow.
 - Added 10 internationally recognized Hotel Abbasi guests from the hotel's official guest-testimonial page as published notable people with verified, evidence-backed hotel associations and locally prepared profile portraits.
 - Added an address tooltip to the hotel-detail location label, available through pointer hover and keyboard focus when the hotel has a stored address.
 - Balanced hotel-detail hero typography to match the more restrained notable-person detail hierarchy, with a slightly smaller hotel name.

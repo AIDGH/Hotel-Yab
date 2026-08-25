@@ -237,6 +237,10 @@ credentials are pending.
 The default resend cooldown is 60 seconds and the client must use the returned
 `resendAfterSeconds` rather than starting an unrelated timer.
 
+Catalog import accepts either `http(s)` URLs or stable root-relative paths for
+media fields such as hotel images/logos and notable-person images. Source and
+evidence links remain restricted to `http(s)` URLs.
+
 ## POST /auth/login/otp/verify
 
 ```json

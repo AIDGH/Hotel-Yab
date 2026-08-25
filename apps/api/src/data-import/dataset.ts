@@ -120,11 +120,13 @@ export type ImportDataset = {
 
 const optionalText = Joi.string().trim().allow(null);
 const optionalUrl = Joi.string()
-  .uri({ scheme: ['http', 'https'] })
+  .trim()
+  .pattern(/^https?:\/\/\S+$/i)
   .allow(null);
 const optionalIsoDate = Joi.string().isoDate().allow(null);
 const optionalMediaPath = Joi.string()
-  .pattern(/^(?:\/|https?:\/\/)/)
+  .trim()
+  .pattern(/^(?:\/(?!\/)\S*|https?:\/\/\S+)$/i)
   .allow(null);
 
 const datasetSchema = Joi.object<ImportDataset>({
@@ -143,8 +145,8 @@ const datasetSchema = Joi.object<ImportDataset>({
         latitude: Joi.number().min(-90).max(90).allow(null),
         longitude: Joi.number().min(-180).max(180).allow(null),
         websiteUrl: optionalUrl,
-        imageUrl: optionalUrl,
-        logoUrl: optionalUrl,
+        imageUrl: optionalMediaPath,
+        logoUrl: optionalMediaPath,
         starRating: Joi.number().integer().min(1).max(5).allow(null),
         publicationStatus: Joi.string().valid(
           ...Object.values(PublicationStatus),
@@ -173,7 +175,7 @@ const datasetSchema = Joi.object<ImportDataset>({
           .pattern(countryCodePattern)
           .length(2)
           .allow(null),
-        imageUrl: optionalUrl,
+        imageUrl: optionalMediaPath,
         publicationStatus: Joi.string().valid(
           ...Object.values(PublicationStatus),
         ),
@@ -185,7 +187,8 @@ const datasetSchema = Joi.object<ImportDataset>({
     .items(
       Joi.object<SourceImportRecord>({
         url: Joi.string()
-          .uri({ scheme: ['http', 'https'] })
+          .trim()
+          .pattern(/^https?:\/\/\S+$/i)
           .required(),
         type: Joi.string()
           .valid(...Object.values(SourceType))
@@ -229,7 +232,8 @@ const datasetSchema = Joi.object<ImportDataset>({
           .items(
             Joi.object<AssociationEvidenceImportRecord>({
               sourceUrl: Joi.string()
-                .uri({ scheme: ['http', 'https'] })
+                .trim()
+                .pattern(/^https?:\/\/\S+$/i)
                 .required(),
               isPrimary: Joi.boolean().default(false),
               note: optionalText,
