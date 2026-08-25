@@ -482,13 +482,15 @@ Fallback: Mobile/Username → OTP Challenge → Verify existing User → Session
 ```
 
 OTP delivery is provider-aware: `development` returns the generated code for
-local testing, `disabled` keeps production API/password login available while
+local testing, explicit `preview` temporarily exposes the code on a controlled
+server without sending SMS, `disabled` keeps production API/password login available while
 rejecting OTP delivery with a controlled `503`, and `najva` sends it
 server-to-server through the approved `HotelYabOTPTemplate` using an API key and
 sender line. `%token` is the code, `%token2` is the Tehran send time, and
 `%token3` is the configured hostname used by the final `@host #code` WebOTP
-line. Provider secrets never reach the browser, and disabled mode never exposes
-the generated code.
+line. Provider secrets never reach the browser, and disabled/Najva modes never
+expose the generated code. Preview must be replaced by Najva as soon as the
+provider credentials are delivered.
 The challenge is stored before delivery and removed if Najva rejects or times
 out, preventing a failed send from creating a false resend cooldown.
 

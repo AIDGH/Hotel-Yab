@@ -24,6 +24,16 @@ describe('SmsService', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('does not call Najva and exposes the code in preview delivery mode', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch');
+    const service = createService({ SMS_PROVIDER: 'preview' });
+
+    await service.sendOtp('+989121234567', '123456');
+
+    expect(service.usesDevelopmentDelivery()).toBe(true);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('rejects OTP delivery without exposing a development code when disabled', async () => {
     const fetchSpy = jest.spyOn(global, 'fetch');
     const service = createService({ SMS_PROVIDER: 'disabled' });

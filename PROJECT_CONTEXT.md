@@ -242,7 +242,6 @@ NestJS → Prisma → PostgreSQL 17 :5432
 پس از reboot خودکار برمی‌گردند. Browser API روی `/api/v1` same-origin است؛
 در production این مسیر را Nginx مستقیم به NestJS می‌فرستد.
 
-
 ---
 
 ## 5. مدل داده
@@ -407,7 +406,7 @@ Public Website
 
 - Hotel فقط در صورت `PUBLISHED` بودن در discovery دیده می‌شود.
 - NotablePerson فقط در صورت `PUBLISHED` بودن دیده می‌شود.
-- Association با وضعیت `PENDING` می‌تواند با برچسب واضح نمایش داده شود.
+- Association با وضعیت `PENDING` می‌تواند بدون نشان وضعیت در فهرست ارتباط‌های هتل نمایش داده شود.
 - Association با وضعیت `VERIFIED` باید evidence معتبر داشته باشد.
 - Association با وضعیت `REJECTED` نمایش داده نمی‌شود.
 - URL یا evidence جعلی برای پرکردن جای خالی ساخته نمی‌شود.
@@ -435,6 +434,10 @@ Public Website
 متفاوت dataset هستند و نباید با snapshot production یکی فرض شوند. شمارش
 association/source فقط وقتی از خود production دوباره query شود باید به‌عنوان
 عدد جاری نوشته شود.
+
+در dataset محلی، ۱۰ مهمان بین‌المللی هتل عباسی با استناد مستقیم به صفحه رسمی
+دست‌نوشته مهمانان هتل، به‌صورت `VERIFIED` و همراه Source/Evidence ثبت شده‌اند؛
+این افزوده تا زمان deploy و import در شمارش production بالا منظور نمی‌شود.
 
 دیتای runtime خصوصی:
 
@@ -599,45 +602,45 @@ Base path:
 
 Endpointهای فعلی:
 
-| Method         | Path                                                           | توضیح                                |
-| -------------- | -------------------------------------------------------------- | ------------------------------------ |
-| GET            | `/api/v1/health`                                               | سلامت API و دیتابیس                  |
-| GET            | `/api/v1/hotels`                                               | فهرست هتل‌ها                         |
-| GET            | `/api/v1/hotels/:slug`                                         | جزئیات هتل، ارتباط‌ها و ویدیوهای متصل منتشرشده |
-| GET            | `/api/v1/notable-people`                                       | فهرست چهره‌ها                        |
-| GET            | `/api/v1/notable-people/:slug`                                 | جزئیات چهره                          |
-| GET            | `/api/v1/destinations[/:type/:slug]`                           | فهرست یا جزئیات مقصدهای منتشرشده    |
-| GET            | `/api/v1/travel-videos`                                       | فهرست ویدیوهای سفر منتشرشده         |
-| POST           | `/api/v1/auth/login/password`                                  | ورود با شماره/نام‌کاربری و رمز       |
-| POST           | `/api/v1/auth/login/otp/request`                               | درخواست OTP برای حساب موجود          |
-| POST           | `/api/v1/auth/login/otp/verify`                                | ورود حساب موجود با OTP               |
-| POST           | `/api/v1/auth/register/otp/request`                            | اعتبارسنجی کامل فرم و سپس درخواست کد |
-| POST           | `/api/v1/auth/register`                                        | ساخت حساب پس از تأیید شماره          |
-| GET/PATCH      | `/api/v1/auth/me[/profile]`                                    | دریافت یا ویرایش پروفایل             |
-| GET/POST/DELETE | `/api/v1/auth/me/avatar`                                      | دریافت، آپلود یا حذف عکس پروفایل     |
-| POST           | `/api/v1/auth/logout`                                          | خروج و ابطال session                 |
-| GET            | `/api/v1/hotels/:slug/reviews`                                 | امتیاز و نظرهای منتشرشده هتل         |
-| GET/PUT/DELETE | `/api/v1/hotels/:slug/reviews/me`                              | مدیریت نظر کاربر جاری                |
-| GET            | `/api/v1/account/activity`                                    | فعالیت‌های نظر و دیدگاه کاربر جاری   |
-| DELETE         | `/api/v1/account/activity/video-comments/:id`                  | حذف دیدگاه بدون پاسخِ کاربر جاری     |
-| GET            | `/api/v1/account/library`                                     | پسندیده‌ها و ذخیره‌های کاربر جاری    |
-| PUT/DELETE     | `/api/v1/account/library/{hotels\|notable-people}/:slug/{like\|save}` | افزودن یا حذف پسند/ذخیره      |
-| GET            | `/api/v1/videos/:videoId/comments[/count]`                     | کامنت‌های منتشرشده یا شمارش آن‌ها    |
-| POST           | `/api/v1/videos/:videoId/comments`                             | ثبت کامنت یا پاسخ کاربر              |
-| POST           | `/api/v1/videos/:videoId/comments/:commentId/reports`          | گزارش یک کامنت منتشرشده              |
-| GET            | `/api/v1/admin/moderation/queue`                               | صف Review، Comment و گزارش‌ها        |
-| PATCH          | `/api/v1/admin/moderation/{hotel-reviews\|video-comments}/:id` | ثبت تصمیم moderation                 |
-| DELETE         | `/api/v1/admin/moderation/{hotel-reviews\|video-comments}/:id` | حذف دائمی محتوا توسط مدیر یا ناظر    |
-| PATCH          | `/api/v1/admin/moderation/users/:id/status`                    | مسدود/فعال‌کردن کاربر توسط مدیر      |
-| GET/PATCH      | `/api/v1/admin/moderation/users[/:id]`                         | جست‌وجو و ویرایش role-aware کاربران |
-| GET            | `/api/v1/admin/moderation/administrators`                      | فهرست جداگانه مدیران برای Moderator |
-| GET            | `/api/v1/admin/catalog/bootstrap`                              | داده‌های لازم پنل کاتالوگ            |
-| POST           | `/api/v1/admin/catalog/{destinations\|hotels\|notable-people\|videos}` | افزودن رکورد canonical توسط مدیر یا ناظر |
-| PATCH          | `/api/v1/admin/catalog/{destinations\|hotels\|notable-people}/:id` | ویرایش رکوردهای موجود             |
-| DELETE         | `/api/v1/admin/catalog/{destinations\|hotels\|notable-people\|videos}/:id` | حذف رکورد Catalog توسط مدیر یا ناظر |
-| POST           | `/api/v1/admin/catalog/media`                                  | آپلود رسانه Catalog                  |
-| POST           | `/api/v1/admin/catalog/followers`                              | ثبت followerهای موفق و snapshot روزانه |
-| GET            | `/api/v1/admin/catalog/export`                                 | خروجی JSON قابل ورود مجدد            |
+| Method          | Path                                                                       | توضیح                                          |
+| --------------- | -------------------------------------------------------------------------- | ---------------------------------------------- |
+| GET             | `/api/v1/health`                                                           | سلامت API و دیتابیس                            |
+| GET             | `/api/v1/hotels`                                                           | فهرست هتل‌ها                                   |
+| GET             | `/api/v1/hotels/:slug`                                                     | جزئیات هتل، ارتباط‌ها و ویدیوهای متصل منتشرشده |
+| GET             | `/api/v1/notable-people`                                                   | فهرست چهره‌ها                                  |
+| GET             | `/api/v1/notable-people/:slug`                                             | جزئیات چهره                                    |
+| GET             | `/api/v1/destinations[/:type/:slug]`                                       | فهرست یا جزئیات مقصدهای منتشرشده               |
+| GET             | `/api/v1/travel-videos`                                                    | فهرست ویدیوهای سفر منتشرشده                    |
+| POST            | `/api/v1/auth/login/password`                                              | ورود با شماره/نام‌کاربری و رمز                 |
+| POST            | `/api/v1/auth/login/otp/request`                                           | درخواست OTP برای حساب موجود                    |
+| POST            | `/api/v1/auth/login/otp/verify`                                            | ورود حساب موجود با OTP                         |
+| POST            | `/api/v1/auth/register/otp/request`                                        | اعتبارسنجی کامل فرم و سپس درخواست کد           |
+| POST            | `/api/v1/auth/register`                                                    | ساخت حساب پس از تأیید شماره                    |
+| GET/PATCH       | `/api/v1/auth/me[/profile]`                                                | دریافت یا ویرایش پروفایل                       |
+| GET/POST/DELETE | `/api/v1/auth/me/avatar`                                                   | دریافت، آپلود یا حذف عکس پروفایل               |
+| POST            | `/api/v1/auth/logout`                                                      | خروج و ابطال session                           |
+| GET             | `/api/v1/hotels/:slug/reviews`                                             | امتیاز و نظرهای منتشرشده هتل                   |
+| GET/PUT/DELETE  | `/api/v1/hotels/:slug/reviews/me`                                          | مدیریت نظر کاربر جاری                          |
+| GET             | `/api/v1/account/activity`                                                 | فعالیت‌های نظر و دیدگاه کاربر جاری             |
+| DELETE          | `/api/v1/account/activity/video-comments/:id`                              | حذف دیدگاه بدون پاسخِ کاربر جاری               |
+| GET             | `/api/v1/account/library`                                                  | پسندیده‌ها و ذخیره‌های کاربر جاری              |
+| PUT/DELETE      | `/api/v1/account/library/{hotels\|notable-people}/:slug/{like\|save}`      | افزودن یا حذف پسند/ذخیره                       |
+| GET             | `/api/v1/videos/:videoId/comments[/count]`                                 | کامنت‌های منتشرشده یا شمارش آن‌ها              |
+| POST            | `/api/v1/videos/:videoId/comments`                                         | ثبت کامنت یا پاسخ کاربر                        |
+| POST            | `/api/v1/videos/:videoId/comments/:commentId/reports`                      | گزارش یک کامنت منتشرشده                        |
+| GET             | `/api/v1/admin/moderation/queue`                                           | صف Review، Comment و گزارش‌ها                  |
+| PATCH           | `/api/v1/admin/moderation/{hotel-reviews\|video-comments}/:id`             | ثبت تصمیم moderation                           |
+| DELETE          | `/api/v1/admin/moderation/{hotel-reviews\|video-comments}/:id`             | حذف دائمی محتوا توسط مدیر یا ناظر              |
+| PATCH           | `/api/v1/admin/moderation/users/:id/status`                                | مسدود/فعال‌کردن کاربر توسط مدیر                |
+| GET/PATCH       | `/api/v1/admin/moderation/users[/:id]`                                     | جست‌وجو و ویرایش role-aware کاربران            |
+| GET             | `/api/v1/admin/moderation/administrators`                                  | فهرست جداگانه مدیران برای Moderator            |
+| GET             | `/api/v1/admin/catalog/bootstrap`                                          | داده‌های لازم پنل کاتالوگ                      |
+| POST            | `/api/v1/admin/catalog/{destinations\|hotels\|notable-people\|videos}`     | افزودن رکورد canonical توسط مدیر یا ناظر       |
+| PATCH           | `/api/v1/admin/catalog/{destinations\|hotels\|notable-people}/:id`         | ویرایش رکوردهای موجود                          |
+| DELETE          | `/api/v1/admin/catalog/{destinations\|hotels\|notable-people\|videos}/:id` | حذف رکورد Catalog توسط مدیر یا ناظر            |
+| POST            | `/api/v1/admin/catalog/media`                                              | آپلود رسانه Catalog                            |
+| POST            | `/api/v1/admin/catalog/followers`                                          | ثبت followerهای موفق و snapshot روزانه         |
+| GET             | `/api/v1/admin/catalog/export`                                             | خروجی JSON قابل ورود مجدد                      |
 
 Swagger در development:
 
@@ -694,7 +697,7 @@ Landing Page
 /hotels/:slug
 ```
 
-صفحه جزئیات هتل؛ ویدیوهای منتشرشدهٔ متصل در بخش معرفی ویدیویی و مهمان‌های بدون ویدیوی متناظر در گرید جدا نمایش داده می‌شوند
+صفحه جزئیات هتل؛ ویدیوهای منتشرشدهٔ متصل فقط در صورت وجود در بخش معرفی ویدیویی و مهمان‌های مرتبط بدون ویدیوی متناظر در گرید جدا نمایش داده می‌شوند
 
 ```text
 /notable-people
@@ -791,6 +794,7 @@ Landing Page
 - Sort چهره‌ها بر اساس follower، الفبا یا تعداد هتل، با اعمال خودکار بعد از انتخاب
 - Pagination
 - Hotel Card
+- کارت هتل بدون badge وضعیت ارتباط نمایش داده می‌شود؛ تعداد چهره‌های مرتبط فقط در متادیتای پایین کارت باقی می‌ماند
 - Hotel Logo روی کارت و صفحه جزئیات در صورت وجود
 - Person Card
 - Instagram Handle
@@ -814,9 +818,9 @@ Landing Page
 - نمایش ویدیوها و مقصدهای مرتبط به‌صورت فوتر فشرده زیر هر ویدیو، پایین associationهای صفحه شخص
 - کنترل سرعت پخش `1×/2×` و نوار قابل‌کشیدن زمان روی Travel Video
 - توقف خودکار ویدیوی قبلی هنگام پخش ویدیوی دیگر، همراه بازگشت کاور و حفظ زمان برای ادامه پخش از همان نقطه
-- ورود پیش‌فرض با شماره/نام‌کاربری و رمز، مسیر جایگزین OTP و ثبت‌نام جداگانه از Header
+- ورود پیش‌فرض با شماره/نام‌کاربری و رمز، مسیر جایگزین OTP با مرحله مستقل ورود شماره و ثبت‌نام جداگانه از Header
 - فرم ثبت‌نام سه‌فیلدی و فشرده شامل شماره، نام‌کاربری و رمز؛ نام، نام خانوادگی، ایمیل، Instagram و عکس از صفحه حساب تکمیل می‌شوند
-- فیلدهای رمز ورود، ثبت‌نام، تکمیل حساب و تغییر رمز دارای کنترل چشم برای نمایش/پنهان‌سازی امن و بدون تغییر چیدمان‌اند
+- فیلدهای رمز ورود، ثبت‌نام، تکمیل حساب و تغییر رمز دارای کنترل چشم در سمت راست برای نمایش/پنهان‌سازی امن و بدون تغییر چیدمان‌اند؛ فیلد شماره/نام‌کاربری ورود نیز LTR است
 - فیلد تغییر رمز با `autocomplete="new-password"` از Autofill ناخواسته رمز فعلی هنگام ویرایش ایمیل/پروفایل جلوگیری می‌کند
 - راهنمای شماره، نام‌کاربری و رمز زیر عنوان هر فیلد و بالای کادر نمایش داده می‌شود؛ نام‌کاربری ۳ تا ۳۰ کاراکتر و دارای حداقل یک حرف لاتین است
 - ورود OTP با شش جایگاه خطی و ورودی عددی واحد انجام می‌شود؛ با تکمیل شش رقم خودکار تأیید می‌شود و ارسال مجدد پس از شمارش معکوس ۶۰ ثانیه فعال است
@@ -831,6 +835,9 @@ Landing Page
 - منوهای موبایل با عرض فشرده‌تر، سربرگ هم‌تراز حساب و انیمیشن ورود و خروج نمایش داده می‌شوند؛ فوتر عمومی نیز در مسیرهای حساب کاربری پنهان است
 - صفحه Explore در موبایل ابتدا گرید سه‌ستونه و فشردهٔ کاورها و در دسکتاپ گرید چهارتایی هم‌عرض با Filter Bar را نشان می‌دهد؛ عنوان و شمارش نتایج نیز با دو لبهٔ همین گرید هم‌راستا هستند. کاورهای دسکتاپ عنوان ویدیو و مقصدهای متصل را روی گرادیان پایین Thumbnail نمایش می‌دهند، اما گرید موبایل برای تراکم بیشتر بدون این متن باقی می‌ماند. انتخاب هر کاور نمایش تمام‌صفحهٔ Reels با پیمایش عمودی، بازگشت مرورگر، پنل دیدگاه از پایین و پخش موقت ۲× با نگه‌داشتن دو سمت تصویر را فعال می‌کند. در دسکتاپ عرض ریل با نسبت عمودی تصویر محدود می‌شود تا اطلاعات سازنده، مقصدها و کنترل‌ها کاملاً داخل قاب ویدیو بمانند، کنترل دیدگاه تنها با آیکون نمایش داده شود و پنل دیدگاه نیز بدون پرش افقی از پایین همان قاب باز شود. هنگام نگه‌داشتن، Overlayهای اطلاعات و کنترل‌ها موقتاً مخفی می‌شوند؛ دسته‌های بعدی در موبایل ۱۲تایی و در دسکتاپ ۱۶تایی بدون refresh بارگذاری می‌شوند و نسخه دسکتاپ Escape و کلیدهای جهت‌دار را نیز پشتیبانی می‌کند
 - صفحه جزئیات هتل در موبایل داخل عرض واقعی viewport و Container محدود می‌شود و Media/Heading نمی‌توانند Header یا صفحه را به اسکرول و زوم افقی وادار کنند
+- Hero صفحه هتل مانند Hero چهره سلسله‌مراتب تایپوگرافی متعادل دارد؛ شهر دارای آیکون مکان است و اگر `address` ثبت شده باشد، Hover یا Focus روی آن آدرس کامل را نشان می‌دهد
+- صفحه هتل وضعیت تأیید یا منابع association را روی کارت مهمان نشان نمی‌دهد؛ بخش معرفی ویدیویی نیز فقط با وجود حداقل یک ویدیوی منتشرشده ساخته می‌شود
+- کارت مهمان هتل در نبود follower count هیچ متن جایگزینی نمایش نمی‌دهد
 - Hero صفحه چهره در دسکتاپ سلسله‌مراتب تایپوگرافی متعادل دارد؛ عنوان فعالیت خواناتر، نام چهره کنترل‌شده‌تر و آیدی Instagram یک خط بالاتر از تعداد دنبال‌کننده نمایش داده می‌شود. لینک‌های بازگشت صفحه‌های جزئیات نیز در لبه چپ قرار دارند
 - اکشن‌های صفحه جزئیات هتل در موبایل دو ردیف‌اند: پسندیدن/ذخیره در ردیف اول و صفحه رسمی/تعداد چهره‌های مرتبط در ردیف دوم
 - عبارت‌ها و نشان‌های عمومی «در حال تکمیل» از کارت‌ها، صفحه چهره و Empty Stateهای مقصد حذف شده‌اند؛ ارتباط تأییدنشده بدون برچسب تکمیل نمایش داده می‌شود و حالت خالی مستقیماً نبود داده را توضیح می‌دهد. عنوان فعالیت چهره حتی وقتی با برچسب دسته‌بندی یکسان است همچنان نمایش داده می‌شود
@@ -915,9 +922,10 @@ SMS_OTP_ORIGIN_HOST=""
 کد دیگر در پاسخ API نمایش داده نمی‌شود. قالب تاییدشده
 `HotelYabOTPTemplate` از `%token` برای کد، `%token2` برای ساعت تهران و `%token3`
 برای hostname خط WebOTP استفاده می‌کند. اعتبارسنجی environment در production
-providerهای `disabled` و `najva` را می‌پذیرد؛ حالت `disabled` برای فاصلهٔ امن تا
-دریافت credential واقعی است، API را بالا نگه می‌دارد و درخواست OTP را بدون
-نمایش کد آزمایشی با `503` رد می‌کند.
+providerهای `preview`، `disabled` و `najva` را می‌پذیرد. حالت موقت `preview`
+کد را در پاسخ/UI نشان می‌دهد و هیچ پیامکی نمی‌فرستد؛ فقط تا زمان دریافت
+credential نجوا برای تست نسخهٔ محدود سرور استفاده می‌شود. حالت `disabled` API
+را بالا نگه می‌دارد و درخواست OTP را بدون نمایش کد آزمایشی با `503` رد می‌کند.
 
 ### Migration
 
@@ -998,7 +1006,7 @@ Health:   http://localhost:4000/api/v1/health
 - `hotel-yab-api.service` و `hotel-yab-web.service` فعال و enabled
 - backup دیتابیس روزانه 03:00 UTC
 
-دامنه و HTTPS هنوز اضافه نشده‌اند.
+دامنه و HTTPS فعال‌اند و origin فعلی `https://hotelyab.jaryan.net` است.
 
 ### Workflow عادی Update کد
 
@@ -1040,6 +1048,36 @@ curl -I http://87.247.170.136/
 
 رسانه‌های `apps/web/public/images/`، `hotel-videos/` و `travel-videos/` در Git
 نیستند و در صورت تغییر باید جداگانه با روش کنترل‌شده به سرور sync شوند.
+
+### انتقال Catalog و رسانه خارج از Git
+
+ابتدا روی Mac دیتای Catalog فعلی PostgreSQL به قالب import سازگار خروجی گرفته
+می‌شود. این خروجی فقط هتل، چهره، مقصد، منبع، ارتباط و ویدیو را شامل می‌شود و
+نباید جای backup کامل production را بگیرد:
+
+```bash
+pnpm api:data:export
+scp apps/api/prisma/data/import.json jaryan@87.247.170.136:/tmp/hotel-yab-import.json
+```
+
+قبل از import روی VPS backup گرفته و سپس داده‌ها upsert می‌شوند؛ User، Session،
+Review و Comment موجود حذف یا جایگزین نمی‌شوند:
+
+```bash
+ssh jaryan@87.247.170.136
+sudo systemctl start hotel-yab-db-backup.service
+cd ~/Hotel-Yab
+pnpm --filter @hotel-yab/api exec tsx prisma/import-data.ts /tmp/hotel-yab-import.json
+```
+
+رسانه‌ها از Mac بدون `--delete` همگام می‌شوند تا فایل‌های اختصاصی موجود روی VPS
+ناخواسته حذف نشوند:
+
+```bash
+rsync -az --progress apps/web/public/images/ jaryan@87.247.170.136:~/Hotel-Yab/apps/web/public/images/
+rsync -az --progress apps/web/public/travel-videos/ jaryan@87.247.170.136:~/Hotel-Yab/apps/web/public/travel-videos/
+rsync -az --progress apps/web/public/hotel-videos/ jaryan@87.247.170.136:~/Hotel-Yab/apps/web/public/hotel-videos/
+```
 
 ### Backup
 
@@ -1318,10 +1356,11 @@ docs/TODO.md
   `HotelYabOTPTemplate` اضافه شده است؛ فعال‌سازی production به تنظیم
   `NAJVA_API_KEY`، `NAJVA_SENDER` و `SMS_OTP_ORIGIN_HOST` روی VPS و تست تحویل
   واقعی نیاز دارد.
-- نمایش `developmentCode` فقط با `SMS_PROVIDER=development` فعال است، نه صرفاً
-  بر اساس غیر-production بودن محیط.
-- تا قبل از تحویل credential نجوا، production با `SMS_PROVIDER=disabled` اجرا
-  می‌شود تا API و ورود با رمز فعال بمانند و فقط OTP موقتاً `503` برگرداند.
+- نمایش `developmentCode` با `SMS_PROVIDER=development` در لوکال و با حالت صریح
+  و موقت `SMS_PROVIDER=preview` روی نسخهٔ محدود سرور فعال است.
+- تا قبل از تحویل credential نجوا، production موقتاً با `SMS_PROVIDER=preview`
+  اجرا می‌شود؛ این حالت پیامک نمی‌فرستد و کد را در UI نشان می‌دهد و باید هنگام
+  فعال‌سازی نجوا به `SMS_PROVIDER=najva` تغییر کند.
 - account activity و library پیاده‌سازی شده‌اند؛ باگ production session بعد refresh هنوز باز است.
 - Follower refresh به‌صورت command + Admin API عملیاتی است، اما scheduler
   production هنوز ساخته نشده است.

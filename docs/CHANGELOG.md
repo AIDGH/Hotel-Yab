@@ -6,6 +6,13 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
+- Added a repeatable import-compatible catalog export command and documented the safe code/catalog/media production deployment workflow without replacing production user data.
+- Added an explicit temporary production OTP preview mode, a dedicated mobile-number step before passwordless login, LTR login identifiers, and right-aligned password visibility controls.
+- Added 10 internationally recognized Hotel Abbasi guests from the hotel's official guest-testimonial page as published notable people with verified, evidence-backed hotel associations and locally prepared profile portraits.
+- Added an address tooltip to the hotel-detail location label, available through pointer hover and keyboard focus when the hotel has a stored address.
+- Balanced hotel-detail hero typography to match the more restrained notable-person detail hierarchy, with a slightly smaller hotel name.
+- Preserved pending and verified hotel associations in public counts/details while removing status badges and source/evidence lists from hotel guest cards; the entire hotel-video section is omitted when no published video exists.
+- Removed association-status badges from hotel cards and suppressed the missing-follower placeholder on hotel guest cards.
 - Added a compact three-column, 12-item mobile Explore thumbnail grid that opens into a full-screen vertical Reels viewer with browser-back handling and a bottom-sheet comments panel; desktop fullscreen playback now also supports previous/next navigation.
 - Refined video navigation with correctly mapped desktop fullscreen arrows, keyboard left/right support and click suppression during transitions; mobile Reels now supports hold-to-play-at-2× zones and lighter Instagram-style overlay controls.
 - Refined the mobile Explore flow by separating its grid from the search filters, centering the comments glyph, removing the visible 2× badge and automatically appending the next 12 reels at the end of the feed; desktop videos now pause when fullscreen exits.

@@ -28,7 +28,8 @@ export class SmsService {
   ) {}
 
   usesDevelopmentDelivery(): boolean {
-    return this.config.get('SMS_PROVIDER', { infer: true }) === 'development';
+    const provider = this.config.get('SMS_PROVIDER', { infer: true });
+    return provider === 'development' || provider === 'preview';
   }
 
   async sendOtp(mobile: string, code: string): Promise<void> {

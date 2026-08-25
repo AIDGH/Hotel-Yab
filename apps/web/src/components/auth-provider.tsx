@@ -114,7 +114,12 @@ function AuthModal({
   onClose: () => void;
 }) {
   const [stage, setStage] = useState<
-    "login" | "login-otp" | "register" | "register-otp" | "profile"
+    | "login"
+    | "login-otp-request"
+    | "login-otp"
+    | "register"
+    | "register-otp"
+    | "profile"
   >(currentUser ? "profile" : "login");
   const [identifier, setIdentifier] = useState("");
   const [mobile, setMobile] = useState(currentUser?.mobile ?? "");
@@ -168,11 +173,35 @@ function AuthModal({
     }
   }
 
-  async function requestLoginOtp() {
-    if (!identifier.trim()) {
-      setError("شماره تماس یا نام‌کاربری را وارد کنید.");
+  async function requestLoginOtp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const requestedMobile = String(form.get("mobile") ?? "").trim();
+    if (!/^(?:(?:\+|00)?98|0)?9\d{9}$/.test(requestedMobile)) {
+      setError("شماره تماس باید ۱۱ رقم و با ۰۹ شروع شود.");
       return;
     }
+    setSubmitting(true);
+    setError("");
+    try {
+      const result = await browserApi<OtpResponse>("/auth/login/otp/request", {
+        method: "POST",
+        body: JSON.stringify({ identifier: requestedMobile }),
+      });
+      setIdentifier(requestedMobile);
+      setMobile(result.data.mobile);
+      setDevelopmentCode(result.data.developmentCode ?? null);
+      setCode("");
+      setResendSeconds(result.data.resendAfterSeconds);
+      setStage("login-otp");
+    } catch (caught) {
+      setError(authErrorMessage(caught));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function resendLoginOtp() {
     setSubmitting(true);
     setError("");
     try {
@@ -184,7 +213,6 @@ function AuthModal({
       setDevelopmentCode(result.data.developmentCode ?? null);
       setCode("");
       setResendSeconds(result.data.resendAfterSeconds);
-      setStage("login-otp");
     } catch (caught) {
       setError(authErrorMessage(caught));
     } finally {
@@ -377,6 +405,7 @@ function AuthModal({
             <label>
               شماره تماس یا نام‌کاربری
               <input
+                dir="ltr"
                 value={identifier}
                 onChange={(event) => setIdentifier(event.target.value)}
                 placeholder="09121234567 یا username"
@@ -400,7 +429,7 @@ function AuthModal({
             <button
               className="button button-secondary"
               type="button"
-              onClick={() => void requestLoginOtp()}
+              onClick={() => switchStage("login-otp-request")}
               disabled={submitting}
             >
               ورود با رمز یک‌بارمصرف
@@ -414,6 +443,39 @@ function AuthModal({
           </form>
         ) : null}
 
+        {stage === "login-otp-request" ? (
+          <form className="auth-form" onSubmit={requestLoginOtp} noValidate>
+            <h2 id="auth-modal-title">ورود با رمز یک‌بارمصرف</h2>
+            <p>شماره تماس حساب خود را وارد کنید تا کد ورود دریافت کنید.</p>
+            <label>
+              شماره تماس
+              <small>۱۱ رقم و با ۰۹ شروع شود</small>
+              <input
+                name="mobile"
+                type="tel"
+                dir="ltr"
+                inputMode="tel"
+                defaultValue={/^09\d{9}$/.test(identifier) ? identifier : ""}
+                placeholder="09121234567"
+                autoComplete="tel"
+                autoFocus
+                required
+              />
+            </label>
+            <AuthError message={error} />
+            <button className="button" type="submit" disabled={submitting}>
+              {submitting ? "در حال ارسال…" : "دریافت کد ورود"}
+            </button>
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={() => switchStage("login")}
+            >
+              بازگشت به ورود با رمز
+            </button>
+          </form>
+        ) : null}
+
         {stage === "login-otp" ? (
           <OtpForm
             title="ورود با کد یک‌بارمصرف"
@@ -424,9 +486,9 @@ function AuthModal({
             error={error}
             onCodeChange={setCode}
             onVerify={verifyLoginOtp}
-            onBack={() => switchStage("login")}
+            onBack={() => switchStage("login-otp-request")}
             resendSeconds={resendSeconds}
-            onResend={requestLoginOtp}
+            onResend={resendLoginOtp}
           />
         ) : null}
 

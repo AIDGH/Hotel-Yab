@@ -10,7 +10,7 @@ export type EnvironmentVariables = {
   AUTH_OTP_TTL_MINUTES: number;
   AUTH_OTP_RESEND_SECONDS: number;
   AUTH_SESSION_DAYS: number;
-  SMS_PROVIDER: 'development' | 'disabled' | 'najva';
+  SMS_PROVIDER: 'development' | 'preview' | 'disabled' | 'najva';
   NAJVA_API_BASE_URL: string;
   NAJVA_API_KEY?: string;
   NAJVA_SENDER?: string;
@@ -49,9 +49,9 @@ export const environmentValidationSchema = Joi.object<EnvironmentVariables>({
   AUTH_SESSION_DAYS: Joi.number().integer().min(1).max(90).default(30),
   SMS_PROVIDER: Joi.when('NODE_ENV', {
     is: 'production',
-    then: Joi.string().valid('disabled', 'najva').required(),
+    then: Joi.string().valid('preview', 'disabled', 'najva').required(),
     otherwise: Joi.string()
-      .valid('development', 'disabled', 'najva')
+      .valid('development', 'preview', 'disabled', 'najva')
       .default('development'),
   }),
   NAJVA_API_BASE_URL: Joi.string()

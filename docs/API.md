@@ -92,7 +92,9 @@ associationCount
 verifiedAssociationCount
 ```
 
-Only publicly displayable hotels should be returned.
+Only publicly displayable hotels should be returned. `associationCount`
+includes visible pending and verified relationships, while
+`verifiedAssociationCount` includes only verified relationships with evidence.
 
 ---
 
@@ -220,7 +222,9 @@ forms; the API remains the authoritative validation boundary.
 This is the passwordless/fallback path for an existing account. `identifier`
 may be the user's mobile or username. The response contains the normalized
 destination mobile, expiry, and resend timing. `developmentCode` is returned
-only when `SMS_PROVIDER=development`. With `SMS_PROVIDER=najva`, the API sends
+only when `SMS_PROVIDER=development` or the explicit temporary server mode
+`SMS_PROVIDER=preview`. Preview does not send a message and must not remain
+enabled after real delivery is available. With `SMS_PROVIDER=najva`, the API sends
 the code through Najva's approved `HotelYabOTPTemplate` lookup endpoint and does
 not return it to the client. The template receives the code as `token`, Tehran
 send time as `token2`, and the configured WebOTP hostname as `token3`. A
@@ -756,12 +760,14 @@ These endpoints return:
 - media;
 - nullable `starRating` for the hotel's official 1–5 classification;
 - documented notable-person associations;
-- verified relationship information.
+- relationship information for visible pending and verified associations;
 - `ratingSummary` containing the user-review average and count of published
   reviews. It is independent from `starRating`.
 - `videos`, containing only published videos linked through `VideoHotel`.
   The frontend renders these first as hotel-introduction videos with creator
-  cards, separately from the compact notable-guest grid.
+  cards, separately from the compact notable-guest grid. When the array is
+  empty, the frontend omits the entire video section instead of rendering a
+  placeholder.
 
 ### Notable Person Detail
 

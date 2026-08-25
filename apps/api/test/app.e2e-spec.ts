@@ -545,52 +545,68 @@ describe('Hotel-Yab API (e2e)', () => {
     return request(app.getHttpServer())
       .get('/api/v1/notable-people/e2e-visible-athlete')
       .expect(200)
-      .expect({
-        data: {
-          id: visiblePersonId,
-          slug: 'e2e-visible-athlete',
-          displayName: 'E2E Visible Athlete',
-          instagramHandle: 'e2e_visible_athlete',
-          primaryCategory: 'ATHLETE',
-          occupation: 'Test athlete',
-          followerCount: 12345,
-          biography: null,
-          countryCode: 'US',
-          imageUrl: null,
-          associations: [
-            {
-              id: visibleAssociationId,
-              type: 'STAYED',
-              summary: 'A test-only verified hotel stay.',
-              occurredAt: occurredAt.toISOString(),
-              verificationStatus: 'VERIFIED',
-              verifiedAt: verifiedAt.toISOString(),
-              hotel: {
-                id: visibleHotelId,
-                slug: 'e2e-visible-hotel',
-                name: 'E2E Visible Hotel',
-                countryCode: 'US',
-                city: 'Test City',
-                imageUrl: null,
-                logoUrl: 'https://example.com/hotel-yab-e2e/logo.webp',
-              },
-              sources: [
-                {
-                  id: visibleSourceId,
-                  url: `${fixtureSourceUrlPrefix}verified-source`,
-                  type: 'OFFICIAL_WEBSITE',
-                  title: 'E2E verified source',
-                  publisher: 'Example Publisher',
-                  author: null,
-                  publishedAt: publishedAt.toISOString(),
-                  archivedUrl: null,
-                  isPrimary: true,
-                  note: 'Test-only evidence link.',
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          data: {
+            id: visiblePersonId,
+            slug: 'e2e-visible-athlete',
+            displayName: 'E2E Visible Athlete',
+            instagramHandle: 'e2e_visible_athlete',
+            primaryCategory: 'ATHLETE',
+            occupation: 'Test athlete',
+            followerCount: 12345,
+            biography: null,
+            countryCode: 'US',
+            imageUrl: null,
+            associations: [
+              {
+                id: visibleAssociationId,
+                type: 'STAYED',
+                summary: 'A test-only verified hotel stay.',
+                occurredAt: occurredAt.toISOString(),
+                verificationStatus: 'VERIFIED',
+                verifiedAt: verifiedAt.toISOString(),
+                hotel: {
+                  id: visibleHotelId,
+                  slug: 'e2e-visible-hotel',
+                  name: 'E2E Visible Hotel',
+                  countryCode: 'US',
+                  city: 'Test City',
+                  imageUrl: null,
+                  logoUrl: 'https://example.com/hotel-yab-e2e/logo.webp',
                 },
-              ],
-            },
-          ],
-        },
+                sources: [
+                  {
+                    id: visibleSourceId,
+                    url: `${fixtureSourceUrlPrefix}verified-source`,
+                    type: 'OFFICIAL_WEBSITE',
+                    title: 'E2E verified source',
+                    publisher: 'Example Publisher',
+                    author: null,
+                    publishedAt: publishedAt.toISOString(),
+                    archivedUrl: null,
+                    isPrimary: true,
+                    note: 'Test-only evidence link.',
+                  },
+                ],
+              },
+            ],
+            videos: [
+              {
+                id: fixtureVideoId,
+                videoCategory: 'TRAVEL',
+                instagramUsername: 'e2e_visible_athlete',
+                hotels: [
+                  {
+                    id: visibleHotelId,
+                    slug: 'e2e-visible-hotel',
+                    name: 'E2E Visible Hotel',
+                  },
+                ],
+              },
+            ],
+          },
+        });
       });
   });
 
@@ -922,7 +938,7 @@ describe('Hotel-Yab API (e2e)', () => {
         const body = response.body as { data: unknown };
         expect(body.data).toMatchObject({
           body: 'A useful test comment.',
-          status: 'PENDING',
+          status: 'PUBLISHED',
           authorName: 'E2E User',
         });
       });
@@ -957,7 +973,7 @@ describe('Hotel-Yab API (e2e)', () => {
                 id: commentId,
                 videoId: fixtureVideoId,
                 body: 'A useful test comment.',
-                status: 'PENDING',
+                status: 'PUBLISHED',
                 replyCount: 0,
               },
             ],
@@ -1044,7 +1060,7 @@ describe('Hotel-Yab API (e2e)', () => {
         expect(body.data.hotelReviews).toEqual(
           expect.arrayContaining([expect.objectContaining({ id: reviewId })]),
         );
-        expect(body.data.videoComments).toEqual(
+        expect(body.data.videoComments).not.toEqual(
           expect.arrayContaining([expect.objectContaining({ id: commentId })]),
         );
       });
@@ -1113,7 +1129,7 @@ describe('Hotel-Yab API (e2e)', () => {
       .expect(201)
       .expect((response) => {
         expect(response.body).toMatchObject({
-          data: { status: 'PENDING' },
+          data: { status: 'PUBLISHED' },
         });
       });
 
@@ -1155,7 +1171,7 @@ describe('Hotel-Yab API (e2e)', () => {
         expect(response.body).toMatchObject({
           data: {
             authorName: 'کاربر هتل‌یاب',
-            status: 'PENDING',
+            status: 'PUBLISHED',
           },
         });
       });

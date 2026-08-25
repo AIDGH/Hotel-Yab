@@ -11,7 +11,6 @@ import { PersonDisplayName } from "@/components/person-display-name";
 import { PersonInstagramHandle } from "@/components/person-instagram-handle";
 import { compactPersonOccupation } from "@/components/person-occupation";
 import { ProgressiveVideoList } from "@/components/progressive-video-list";
-import { SourceList } from "@/components/source-list";
 import { TravelVideoCard } from "@/components/travel-video-card";
 import { TravelVideoPersonCard } from "@/components/travel-video-person-card";
 import { SiteIcon } from "@/components/site-icon";
@@ -58,10 +57,6 @@ export default async function HotelPage({ params }: HotelPageProps) {
   }
 
   const hotel = result.value.data;
-  const hasAssociations = hotel.associations.length > 0;
-  const hasVerifiedAssociations = hotel.associations.some(
-    ({ verificationStatus }) => verificationStatus === "VERIFIED",
-  );
   const peopleByInstagramHandle = new Map(
     hotel.associations.flatMap((association) => {
       const handle = normalizeInstagramHandle(
@@ -84,7 +79,7 @@ export default async function HotelPage({ params }: HotelPageProps) {
 
   return (
     <main className="detail-page">
-      <section className="container detail-hero">
+      <section className="container detail-hero detail-hero-hotel">
         <div className="detail-media">
           <MediaTile
             imageUrl={hotel.imageUrl}
@@ -103,18 +98,24 @@ export default async function HotelPage({ params }: HotelPageProps) {
           <Link className="back-link" href="/hotels">
             بازگشت به هتل‌ها ←
           </Link>
-          <span
-            className={`status-badge status-badge-static${
-              hasVerifiedAssociations ? "" : " status-badge-neutral"
-            }`}
-          >
-            <SiteIcon name={hasVerifiedAssociations ? "check" : "clock"} />
-            {hasVerifiedAssociations
-              ? "دارای ارتباط تأییدشده"
-              : "روابط در حال بررسی"}
-          </span>
           <h1>{hotel.name}</h1>
-          <p className="detail-location"><SiteIcon name="location" /> {hotel.city}</p>
+          <p
+            className={`detail-location${
+              hotel.address ? " detail-location-with-address" : ""
+            }`}
+            tabIndex={hotel.address ? 0 : undefined}
+            aria-label={
+              hotel.address ? `${hotel.city}، ${hotel.address}` : hotel.city
+            }
+          >
+            <SiteIcon name="location" />
+            {hotel.city}
+            {hotel.address ? (
+              <span className="hotel-address-tooltip" role="tooltip">
+                {hotel.address}
+              </span>
+            ) : null}
+          </p>
           <div className="hotel-quality-summary">
             <HotelStars value={hotel.starRating} />
             {hotel.ratingSummary.reviewCount > 0 &&
@@ -125,9 +126,7 @@ export default async function HotelPage({ params }: HotelPageProps) {
               >
                 <div>
                   <strong>
-                    {formatPersianRating(
-                      hotel.ratingSummary.averageRating,
-                    )}
+                    {formatPersianRating(hotel.ratingSummary.averageRating)}
                   </strong>{" "}
                   <span>از ۵</span>
                 </div>
@@ -139,9 +138,7 @@ export default async function HotelPage({ params }: HotelPageProps) {
           </div>
           <p>
             {hotel.description ??
-              (hasAssociations
-                ? "افراد مرتبط با این هتل نمایش داده می‌شوند و وضعیت بررسی هر رابطه به‌صورت شفاف مشخص است."
-                : "این هتل در فهرست عمومی ثبت شده و ارتباط‌های آن در حال بررسی و منبع‌دهی است.")}
+              "اطلاعات این هتل در فهرست عمومی هتل‌یاب ثبت شده است."}
           </p>
           <div className="detail-actions hotel-detail-actions">
             <EntityLibraryActions
@@ -167,22 +164,17 @@ export default async function HotelPage({ params }: HotelPageProps) {
         </div>
       </section>
 
-      <section className="section section-tint">
-        <div className="container">
-          <div className="results-header">
-            <div>
-              <span className="section-eyebrow">معرفی ویدیویی</span>
-              <h2>ویدیوهای {hotel.name}</h2>
-            </div>
-            {hotel.videos.length > 0 ? (
+      {hotel.videos.length > 0 ? (
+        <section className="section section-tint">
+          <div className="container">
+            <div className="results-header">
+              <div>
+                <span className="section-eyebrow">معرفی ویدیویی</span>
+                <h2>ویدیوهای {hotel.name}</h2>
+              </div>
               <span>{hotel.videos.length.toLocaleString("fa-IR")} ویدیو</span>
-            ) : null}
-          </div>
-          {hotel.videos.length > 0 ? (
-            <ProgressiveVideoList
-              className="hotel-video-list"
-              key={hotel.slug}
-            >
+            </div>
+            <ProgressiveVideoList className="hotel-video-list" key={hotel.slug}>
               {hotel.videos.map((video) => {
                 const normalizedHandle = normalizeInstagramHandle(
                   video.instagramUsername,
@@ -191,7 +183,9 @@ export default async function HotelPage({ params }: HotelPageProps) {
                   <div className="hotel-video-item" key={video.id}>
                     <TravelVideoPersonCard
                       instagramUsername={video.instagramUsername}
-                      person={peopleByInstagramHandle.get(normalizedHandle) ?? null}
+                      person={
+                        peopleByInstagramHandle.get(normalizedHandle) ?? null
+                      }
                     />
                     <TravelVideoCard
                       videoId={video.id}
@@ -205,15 +199,9 @@ export default async function HotelPage({ params }: HotelPageProps) {
                 );
               })}
             </ProgressiveVideoList>
-          ) : (
-            <EmptyState
-              kind="empty"
-              title="هنوز ویدیوی معرفی ثبت نشده"
-              description={`ویدیوهای منتشرشده درباره ${hotel.name} در این بخش نمایش داده می‌شوند.`}
-            />
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      ) : null}
 
       {guestAssociations.length > 0 ? (
         <section className="section container hotel-guests-section">
@@ -231,45 +219,48 @@ export default async function HotelPage({ params }: HotelPageProps) {
                 categoryLabel(association.notablePerson.primaryCategory),
               );
               return (
-              <article className="hotel-guest-card" key={association.id}>
-                <Link href={`/notable-people/${association.notablePerson.slug}`}>
-                  <div className="hotel-guest-avatar">
-                    <MediaTile
-                      imageUrl={association.notablePerson.imageUrl}
-                      label={association.notablePerson.displayName}
-                      variant="person"
-                    />
-                  </div>
-                  <div>
-                    <h3>
-                      <PersonDisplayName name={association.notablePerson.displayName} />
-                    </h3>
-                    <div className="hotel-guest-meta">
-                      {displayedOccupation ? <span>{displayedOccupation}</span> : null}
-                      {formatFollowerCount(
-                        association.notablePerson.followerCount,
-                      ) ? (
-                        <span>
-                          <bdi dir="ltr">
-                            {formatFollowerCount(
-                              association.notablePerson.followerCount,
-                            )}
-                          </bdi>{" "}
-                          دنبال‌کننده
-                        </span>
-                      ) : (
-                        <span>تعداد دنبال‌کننده ثبت نشده</span>
-                      )}
-                    </div>
-                    {association.notablePerson.instagramHandle ? (
-                      <PersonInstagramHandle
-                        handle={association.notablePerson.instagramHandle}
+                <article className="hotel-guest-card" key={association.id}>
+                  <Link
+                    href={`/notable-people/${association.notablePerson.slug}`}
+                  >
+                    <div className="hotel-guest-avatar">
+                      <MediaTile
+                        imageUrl={association.notablePerson.imageUrl}
+                        label={association.notablePerson.displayName}
+                        variant="person"
                       />
-                    ) : null}
-                  </div>
-                </Link>
-                {association.sources.length > 0 ? <SourceList sources={association.sources} /> : null}
-              </article>
+                    </div>
+                    <div>
+                      <h3>
+                        <PersonDisplayName
+                          name={association.notablePerson.displayName}
+                        />
+                      </h3>
+                      <div className="hotel-guest-meta">
+                        {displayedOccupation ? (
+                          <span>{displayedOccupation}</span>
+                        ) : null}
+                        {formatFollowerCount(
+                          association.notablePerson.followerCount,
+                        ) ? (
+                          <span>
+                            <bdi dir="ltr">
+                              {formatFollowerCount(
+                                association.notablePerson.followerCount,
+                              )}
+                            </bdi>{" "}
+                            دنبال‌کننده
+                          </span>
+                        ) : null}
+                      </div>
+                      {association.notablePerson.instagramHandle ? (
+                        <PersonInstagramHandle
+                          handle={association.notablePerson.instagramHandle}
+                        />
+                      ) : null}
+                    </div>
+                  </Link>
+                </article>
               );
             })}
           </div>
@@ -288,8 +279,5 @@ export default async function HotelPage({ params }: HotelPageProps) {
 }
 
 function normalizeInstagramHandle(value: string | null): string {
-  return (value ?? "")
-    .trim()
-    .replace(/^@/, "")
-    .toLocaleLowerCase("en-US");
+  return (value ?? "").trim().replace(/^@/, "").toLocaleLowerCase("en-US");
 }

@@ -18,7 +18,7 @@ This file tracks open product and technical work for Hotel-Yab.
 - [x] Configure and validate a daily PostgreSQL custom-format backup timer.
 - [x] Verify API/Web/Nginx automatically return after a full VPS reboot.
 - [ ] Fix the production auth/session bug where a signed-in user may appear logged out after page refresh.
-- [ ] Learn and document the repeatable laptop -> Git -> production update workflow for code, migrations, data, and media.
+- [x] Document the repeatable laptop -> Git -> production update workflow for code, migrations, catalog data, and media.
 - [ ] Connect the final domain to the VPS.
 - [ ] Enable HTTPS with a valid certificate.
 - [ ] Update the production canonical origin/CORS/cookie configuration after the domain is active.
@@ -27,6 +27,7 @@ This file tracks open product and technical work for Hotel-Yab.
 
 - [x] Integrate the approved Najva OTP template for registration/login delivery.
 - [x] Keep production API/password login available with a safe disabled SMS mode until Najva credentials arrive.
+- [x] Add an explicit temporary preview provider so controlled server testing can display OTP without pretending that SMS was delivered.
 - [ ] Configure the Najva API key/sender/WebOTP hostname on production and verify account credit and real delivery.
 - [ ] Test OTP resend cooldown, provider failure handling, and production delivery end-to-end.
 - [ ] Decide whether email is actually required for MVP before integrating a provider.

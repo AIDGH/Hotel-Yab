@@ -421,10 +421,18 @@ changes should go through the Admin API/import workflow or an intentional Prisma
 migration rather than replacing the production database from an arbitrary local
 copy.
 
+For a reviewed laptop-to-production catalog refresh, `pnpm api:data:export`
+creates the import-compatible JSON and the production importer upserts only the
+catalog domain. Existing users, sessions, hotel reviews, video comments, reports,
+likes, and saves are not replaced. A production backup is required before each
+bulk import.
+
 Content media remains outside Git. For the current VPS phase, reviewed media
 binaries are provisioned separately under the stable frontend `public` media
 paths and database values should prefer stable relative paths instead of
 `localhost` URLs.
+Media syncs must omit destructive deletion by default so production-only files
+are not removed accidentally.
 
 The VPS creates a daily custom-format PostgreSQL backup. This protects against
 many application/data mistakes but not total VPS loss; an off-server backup copy

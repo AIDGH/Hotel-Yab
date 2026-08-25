@@ -8,7 +8,6 @@ import { SiteIcon } from "./site-icon";
 
 export function HotelCard({ hotel }: { hotel: HotelListItem }) {
   const hasAssociations = hotel.associationCount > 0;
-  const hasVerifiedAssociations = hotel.verifiedAssociationCount > 0;
 
   return (
     <article className="hotel-card">
@@ -22,18 +21,6 @@ export function HotelCard({ hotel }: { hotel: HotelListItem }) {
               placement="card"
             />
           ) : null}
-          <span
-            className={`status-badge${
-              hasVerifiedAssociations ? "" : " status-badge-neutral"
-            }`}
-          >
-            <SiteIcon name={hasVerifiedAssociations ? "check" : "hotel"} />
-            {hasVerifiedAssociations
-              ? "دارای ارتباط تأییدشده"
-              : hasAssociations
-                ? "دارای چهره مرتبط"
-                : "هتل ثبت‌شده"}
-          </span>
         </div>
         <div className="hotel-card-body">
           <div>

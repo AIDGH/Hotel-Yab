@@ -8,6 +8,7 @@
   "scripts": {
     "api:build": "pnpm --filter @hotel-yab/api build",
     "api:data:import": "pnpm --filter @hotel-yab/api data:import",
+    "api:data:export": "pnpm --filter @hotel-yab/api data:export",
     "api:dev": "pnpm --filter @hotel-yab/api start:dev",
     "api:format": "pnpm --filter @hotel-yab/api format",
     "api:format:check": "pnpm --filter @hotel-yab/api format:check",
