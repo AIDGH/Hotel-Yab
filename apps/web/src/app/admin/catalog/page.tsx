@@ -79,9 +79,7 @@ export default function CatalogAdminPage() {
   }, [authLoading, loadCatalog, user]);
 
   async function submit(endpoint: string, payload: Record<string, unknown>, form: HTMLFormElement, method: "POST" | "PATCH" = "POST") {
-    const nextPersonId = method === "PATCH" && activeSection === "people"
-      ? getNextPersonId(catalog?.notablePeople ?? [], selectedEditId)
-      : null;
+    const shouldResetEditor = method === "PATCH" && (activeSection === "hotels" || activeSection === "people");
     setSubmitting(true);
     setFeedback(null);
     try {
@@ -92,7 +90,7 @@ export default function CatalogAdminPage() {
       if (method === "POST") form.reset();
       setFeedback({ tone: "success", text: method === "POST" ? "اطلاعات با موفقیت در PostgreSQL ثبت شد." : "تغییرات با موفقیت ذخیره شد." });
       await loadCatalog();
-      if (nextPersonId) setSelectedEditId(nextPersonId);
+      if (shouldResetEditor) setSelectedEditId("");
       return true;
     } catch (caught) {
       setFeedback({
@@ -734,10 +732,4 @@ function comparePeopleAlphabetically(left: CatalogPerson, right: CatalogPerson):
   return left.displayName.localeCompare(right.displayName, "fa", {
     sensitivity: "base",
   }) || left.slug.localeCompare(right.slug, "en");
-}
-
-function getNextPersonId(people: CatalogPerson[], currentId: string): string | null {
-  const orderedPeople = [...people].sort(comparePeopleAlphabetically);
-  const currentIndex = orderedPeople.findIndex((person) => person.id === currentId);
-  return currentIndex >= 0 ? orderedPeople[currentIndex + 1]?.id ?? null : null;
 }

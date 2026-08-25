@@ -29,7 +29,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Aligned the desktop Explore header and four-column video grid with the filter bar, constrained desktop Reels overlays to the portrait video frame, tightened the mute/comments action spacing, and fixed the comments sheet so it stays horizontally centered throughout its opening animation.
 - Preserved a notable person's occupation label when it is identical to the person's category instead of leaving the card heading blank.
 - Balanced notable-person detail typography, stacked Instagram above follower count, moved detail-page back links to the left edge, added title/destination overlays to desktop Explore thumbnails, and reduced the desktop Reels comments control to its icon.
-- Temporarily streamlined notable-person data cleanup in Admin Catalog by sorting edit choices alphabetically and automatically opening the next person after each successful save.
+- Kept notable-person edit choices alphabetically sorted, but reset both hotel and notable-person editors to their selection state after each successful update instead of automatically advancing or retaining the edited record.
 
 ### Added
 
