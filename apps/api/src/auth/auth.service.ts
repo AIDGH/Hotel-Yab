@@ -23,6 +23,7 @@ import { EnvironmentVariables } from '../config/environment';
 import { PrismaService } from '../database/prisma.service';
 import { UserStatus } from '../generated/prisma/enums';
 import { SmsService } from '../sms/sms.service';
+import { normalizeDigits, normalizeIranianMobile } from './auth-normalization';
 import { LoginWithPasswordDto } from './dto/login-with-password.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RequestRegistrationOtpDto } from './dto/request-registration-otp.dto';
@@ -386,7 +387,7 @@ export class AuthService {
   }
 
   private async findUserByIdentifier(identifier: string) {
-    const trimmed = identifier.trim();
+    const trimmed = normalizeDigits(identifier.trim());
     const mobilePattern = /^(?:(?:\+|00)?98|0)?9\d{9}$/;
     return this.prisma.user.findFirst({
       where: mobilePattern.test(trimmed)
@@ -506,21 +507,6 @@ export class AuthService {
       .update(`${challengeId}:${code}`)
       .digest('hex');
   }
-}
-
-export function normalizeIranianMobile(value: string): string {
-  const digits = value.replace(/\D/g, '');
-  const local = digits.startsWith('0098')
-    ? digits.slice(4)
-    : digits.startsWith('98')
-      ? digits.slice(2)
-      : digits.startsWith('0')
-        ? digits.slice(1)
-        : digits;
-  if (!/^9\d{9}$/.test(local)) {
-    throw new UnauthorizedException('The mobile number is invalid');
-  }
-  return `+98${local}`;
 }
 
 function normalizeUsername(value: string): string {

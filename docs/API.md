@@ -196,6 +196,11 @@ profile data remains resolved by exact normalized Instagram username.
 The public discovery experience does not require an account. Authentication is
 required only for account-specific reads and writes.
 
+Authentication identifiers normalize Persian and Arabic-Indic numerals before
+mobile validation, so Iranian mobile numbers and six-digit OTP codes are accepted
+with Persian, Arabic, or ASCII digits across password login, OTP login, and
+registration.
+
 ## POST /auth/login/password
 
 The default login path accepts either the normalized/mobile input or a site

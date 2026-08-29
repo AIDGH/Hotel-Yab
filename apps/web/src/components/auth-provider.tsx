@@ -147,7 +147,8 @@ function AuthModal({
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const password = String(form.get("password") ?? "");
-    if (!identifier.trim()) {
+    const normalizedIdentifier = normalizeDigits(identifier.trim());
+    if (!normalizedIdentifier) {
       setError("شماره تماس یا نام‌کاربری را وارد کنید.");
       return;
     }
@@ -162,7 +163,7 @@ function AuthModal({
         "/auth/login/password",
         {
           method: "POST",
-          body: JSON.stringify({ identifier, password }),
+          body: JSON.stringify({ identifier: normalizedIdentifier, password }),
         },
       );
       finishAuthentication(result.data);
@@ -176,7 +177,9 @@ function AuthModal({
   async function requestLoginOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const requestedMobile = String(form.get("mobile") ?? "").trim();
+    const requestedMobile = normalizeDigits(
+      String(form.get("mobile") ?? "").trim(),
+    );
     if (!/^(?:(?:\+|00)?98|0)?9\d{9}$/.test(requestedMobile)) {
       setError("شماره تماس باید ۱۱ رقم و با ۰۹ شروع شود.");
       return;
@@ -248,7 +251,7 @@ function AuthModal({
     setError("");
     const form = new FormData(event.currentTarget);
     const draft = {
-      mobile: String(form.get("mobile") ?? ""),
+      mobile: normalizeDigits(String(form.get("mobile") ?? "")),
       username: String(form.get("username") ?? ""),
       password: String(form.get("password") ?? ""),
     };
@@ -407,7 +410,9 @@ function AuthModal({
               <input
                 dir="ltr"
                 value={identifier}
-                onChange={(event) => setIdentifier(event.target.value)}
+                onChange={(event) =>
+                  setIdentifier(normalizeDigits(event.target.value))
+                }
                 placeholder="09121234567 یا username"
                 autoCapitalize="none"
                 autoFocus
@@ -455,7 +460,11 @@ function AuthModal({
                 type="tel"
                 dir="ltr"
                 inputMode="tel"
-                defaultValue={/^09\d{9}$/.test(identifier) ? identifier : ""}
+                defaultValue={
+                  /^09\d{9}$/.test(normalizeDigits(identifier))
+                    ? normalizeDigits(identifier)
+                    : ""
+                }
                 placeholder="09121234567"
                 autoComplete="tel"
                 autoFocus
@@ -708,7 +717,11 @@ function OtpForm({
             maxLength={6}
             value={code}
             onChange={(event) =>
-              onCodeChange(event.target.value.replace(/\D/g, "").slice(0, 6))
+              onCodeChange(
+                normalizeDigits(event.target.value)
+                  .replace(/\D/g, "")
+                  .slice(0, 6),
+              )
             }
             aria-label="کد شش‌رقمی"
             autoFocus
@@ -764,6 +777,16 @@ function formatCountdown(seconds: number) {
     useGrouping: false,
   });
   return `${minutes}:${remainingSeconds}`;
+}
+
+function normalizeDigits(value: string): string {
+  return value
+    .replace(/[۰-۹]/g, (digit) =>
+      String(digit.charCodeAt(0) - "۰".charCodeAt(0)),
+    )
+    .replace(/[٠-٩]/g, (digit) =>
+      String(digit.charCodeAt(0) - "٠".charCodeAt(0)),
+    );
 }
 
 function AuthError({ message }: { message: string }) {

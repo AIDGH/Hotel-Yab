@@ -7,6 +7,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { transformAuthDigits } from '../auth-normalization';
 
 function emptyToUndefined({ value }: { value: unknown }): unknown {
   return typeof value === 'string' && value.trim() === '' ? undefined : value;
@@ -15,10 +16,12 @@ function emptyToUndefined({ value }: { value: unknown }): unknown {
 export class RegisterDto {
   @IsString()
   @Matches(/^(?:(?:\+|00)?98|0)?9\d{9}$/)
+  @Transform(transformAuthDigits)
   mobile!: string;
 
   @IsString()
   @Matches(/^\d{6}$/)
+  @Transform(transformAuthDigits)
   code!: string;
 
   @IsString()
