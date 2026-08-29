@@ -129,7 +129,14 @@ discovery، PostgreSQL، API، Next.js، رسانه‌های provisionشده و 
 - پنل مدیریتی `/admin/catalog` برای `ADMIN` و `MODERATOR` جهت افزودن مقصد، هتل، چهره و ویدیو، اتصال چندمقصدی/چندهتلی و دریافت خروجی JSON سازگار با Import
 - API ویرایش مقصد/هتل/چهره و حذف رکوردهای Catalog، همراه endpoint آپلود رسانه
 - pipeline پژوهشی Instagram برای crawl → checkpoint → candidate detection →
-  Excel review → dry-run import
+  Excel review → dry-run import 
+
+  Excel generation includes initial Persian review suggestions:
+- title
+- final place name
+- caption summary
+- place type  
+---
 - نمایش خلاصه امتیاز کاربران و تعداد نظر در hero صفحه هتل، مستقل از ستاره رسمی
 - اجرای نسخه production روی VPS Ubuntu 24.04 با Nginx، systemd و PostgreSQL 17
 - فعال‌بودن خودکار Web/API/Nginx پس از reboot کامل سرور

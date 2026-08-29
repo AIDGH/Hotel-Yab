@@ -99,6 +99,17 @@ checkpoint/JSON output, the detector favors high recall and explicitly
 prioritizes HOTEL signals, and `json_to_excel.py` creates a human-review XLSX.
 Only rows explicitly marked `approved` are eligible for the importer.
 
+The JSON-to-Excel step performs lightweight enrichment before creating the
+review workbook:
+
+- Persian title generation
+- Persian destination naming
+- caption summary extraction
+- place type suggestion
+
+The enrichment layer exists only to improve reviewer productivity and does not
+replace final human validation.
+
 The importer now provides both dry-run validation and explicit approved-row
 apply through the protected Admin Catalog API. It resolves people, destinations,
 hotels, and duplicate `sourceUrl` values against canonical data; missing named

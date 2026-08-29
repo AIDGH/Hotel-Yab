@@ -465,10 +465,9 @@ def row_values(
                 "",
             )
         ),
-        "عنوان نهایی": item.get(
-            "final_title",
-            "",
-        ),
+        
+        "عنوان نهایی": guess_title(item),
+
         "یادداشت": item.get(
             "notes",
             "",
@@ -477,21 +476,12 @@ def row_values(
             "shortcode",
             "",
         ),
-        "نام مکان نهایی": item.get(
-            "place_name",
-            "",
-        ),
-        "نوع مکان": item.get(
-            "place_type",
-            "",
-        ),
+        "نام مکان نهایی": guess_place_name(item),
+        "نوع مکان": guess_place_type(item),
         "نوع محتوا": guess_content_type(
             item
         ),
-        "خلاصه کپشن": item.get(
-            "caption_summary",
-            "",
-        ),
+        "خلاصه کپشن": guess_caption_summary(item),
     }
 
 
@@ -1147,6 +1137,112 @@ def append_candidate(
             ],
         )
 
+def guess_caption_summary(item: dict) -> str:
+    caption = str(item.get("caption", "")).strip()
+    if not caption:
+        return ""
+
+    text = " ".join(caption.split())
+    return text[:180]
+
+
+def has_persian(value: str) -> bool:
+    return any(
+        "\u0600" <= char <= "\u06FF"
+        for char in value
+    )
+
+
+def guess_place_name(item: dict) -> str:
+    cities = str(
+        item.get("matched_cities", "")
+    ).strip()
+
+    if cities:
+        return cities.split("|")[0].strip()
+
+    provinces = str(
+        item.get("matched_provinces", "")
+    ).strip()
+
+    if provinces:
+        return provinces.split("|")[0].strip()
+
+    existing = str(
+        item.get("place_name", "")
+    ).strip()
+
+    if existing and has_persian(existing):
+        return existing
+
+    location = str(
+        item.get("instagram_location", "")
+    ).strip()
+
+    if location and has_persian(location):
+        return location
+
+    return "نیاز به بررسی"
+
+
+def guess_title(item: dict) -> str:
+    existing = str(
+        item.get("final_title", "")
+    ).strip()
+
+    if existing and has_persian(existing):
+        return existing
+
+    place = guess_place_name(item)
+
+    if place != "نیاز به بررسی":
+        return f"سفر به {place}"
+
+    caption = str(
+        item.get("caption", "")
+    ).strip()
+
+    for line in caption.splitlines():
+        line = line.strip()
+
+        if line and has_persian(line):
+            return line[:80]
+
+    return "ویدیوی سفر"
+
+
+def guess_place_type(item: dict) -> str:
+    existing = str(item.get("place_type", "")).strip().upper()
+    if existing:
+        return existing
+
+    if item.get("is_hotel_priority", False):
+        return "HOTEL"
+
+    text = " ".join([
+        str(item.get("caption", "")),
+        str(item.get("instagram_location", "")),
+    ]).lower()
+
+    if any(term in text for term in ["کوه", "mountain"]):
+        return "MOUNTAIN"
+
+    if any(term in text for term in ["ساحل", "دریا", "beach"]):
+        return "BEACH"
+
+    if any(term in text for term in ["کویر", "desert"]):
+        return "DESERT"
+
+    if any(term in text for term in ["رستوران", "کافه", "غذا", "restaurant", "cafe"]):
+        return "FOOD"
+
+    if any(term in text for term in ["مسجد", "حرم", "امامزاده"]):
+        return "RELIGIOUS"
+
+    if any(term in text for term in ["موزه", "کاخ", "قلعه", "تاریخی"]):
+        return "HISTORICAL"
+
+    return "OTHER"
 
 def json_to_excel(
     input_path: Path,

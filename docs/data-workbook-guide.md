@@ -141,6 +141,29 @@ explicit reviewed apply
     ↓
 Admin API / PostgreSQL
 ```
+### Generated Review Field Defaults
+
+The JSON-to-XLSX converter fills several review fields with initial suggestions
+to reduce manual review effort.
+
+Generated fields:
+
+- عنوان نهایی:
+  Always generated in Persian.
+  It is inferred from available caption text, creator information, and detected
+  destination signals.
+
+- نام مکان نهایی:
+  Generated in Persian from detected destination entities.
+  English Instagram/location labels should not be exported directly.
+
+- نوع مکان:
+  Suggested from caption keywords and detected hotel/travel signals.
+
+- خلاصه کپشن:
+  Generated from the original caption when available.
+
+These values are suggestions only and must still be reviewed before import.
 
 The generated review sheet uses human-readable Persian columns. The importer
 resolves fields by header name rather than column position, so moving columns or

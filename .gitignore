@@ -56,3 +56,12 @@ tools/instagram-follower-tracker/output/
 tools/instagram-travel-finder/output/
 tools/instagram-travel-finder/query.json
 tools/instagram-travel-finder/query.rtftools/instagram-travel-finder/query.curl
+
+# Instagram travel finder local captures
+tools/instagram-travel-finder/query.*
+tools/instagram-travel-finder/*.curl
+tools/instagram-travel-finder/*.backup
+
+# Production database dumps
+*.dump
+*.sql
