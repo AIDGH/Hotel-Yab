@@ -7,6 +7,65 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 LOCATIONS_FILE = BASE_DIR / "iran-locations.json"
 
+FOREIGN_LOCATION_TERMS = [
+    # Turkey
+    "ترکیه", "turkey", "استانبول", "istanbul",
+    "آنتالیا", "antalya", "کاپادوکیا", "cappadocia",
+
+    # UAE
+    "امارات", "uae", "دبی", "dubai",
+    "ابوظبی", "abu dhabi",
+
+    # Georgia / Armenia / Azerbaijan
+    "گرجستان", "georgia", "تفلیس", "tbilisi",
+    "باتومی", "batumi",
+    "ارمنستان", "armenia", "ایروان", "yerevan",
+    "آذربایجان", "azerbaijan", "باکو", "baku",
+
+    # Russia
+    "روسیه", "russia",
+    "مسکو", "moscow",
+    "سن پترزبورگ", "saint petersburg",
+
+    # Central Asia
+    "ازبکستان", "uzbekistan",
+    "تاشکند", "tashkent",
+    "قزاقستان", "kazakhstan",
+    "قرقیزستان", "kyrgyzstan",
+    "تاجیکستان", "tajikistan",
+    "ترکمنستان", "turkmenistan",
+
+    # Europe
+    "فرانسه", "france", "پاریس", "paris",
+    "انگلستان", "uk", "london",
+    "ایتالیا", "italy", "رم", "rome",
+    "اسپانیا", "spain",
+    "آلمان", "germany", "berlin",
+    "هلند", "netherlands", "amsterdam",
+    "سوئیس", "switzerland",
+    "یونان", "greece",
+    "اتریش", "austria",
+
+    # Asia
+    "چین", "china",
+    "ژاپن", "japan",
+    "کره جنوبی", "south korea",
+    "تایلند", "thailand",
+    "بانکوک", "bangkok",
+    "مالزی", "malaysia",
+    "سنگاپور", "singapore",
+    "اندونزی", "indonesia",
+    "بالی", "bali",
+    "مالدیو", "maldives",
+    "هند", "india",
+
+    # America/Oceania
+    "آمریکا", "usa", "united states",
+    "کانادا", "canada",
+    "استرالیا", "australia",
+    "نیوزیلند", "new zealand",
+]
+
 AMBIGUOUS_CITY_SLUGS = {
     "mianeh",
     "nur",
@@ -279,6 +338,20 @@ def detect_locations(
 
     normalized_location = (
         normalize_persian(location)
+    )
+
+    foreign_search_text = (
+        normalized_caption
+        + " "
+        + normalized_location
+    )
+
+    foreign_detected = any(
+        phrase_exists(
+            foreign_search_text,
+            term,
+        )
+        for term in FOREIGN_LOCATION_TERMS
     )
 
     hashtags = extract_hashtags(
@@ -687,6 +760,16 @@ def detect_locations(
         and hashtag_signal
     ):
         score += 5
+
+    if foreign_detected:
+        score -= 35
+
+        signals["foreign-location-penalty"] = -35
+
+    score = max(
+        score,
+        0,
+    )
 
     score = min(
         score,
