@@ -46,7 +46,7 @@ export const environmentValidationSchema = Joi.object<EnvironmentVariables>({
     }),
   AUTH_OTP_TTL_MINUTES: Joi.number().integer().min(2).max(15).default(5),
   AUTH_OTP_RESEND_SECONDS: Joi.number().integer().min(30).max(300).default(60),
-  AUTH_SESSION_DAYS: Joi.number().integer().min(1).max(90).default(30),
+  AUTH_SESSION_DAYS: Joi.number().integer().min(1).max(90).default(1),
   SMS_PROVIDER: Joi.when('NODE_ENV', {
     is: 'production',
     then: Joi.string().valid('preview', 'disabled', 'najva').required(),

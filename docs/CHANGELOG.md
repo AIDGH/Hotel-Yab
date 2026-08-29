@@ -6,6 +6,7 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
+- Reduced authenticated sessions to an absolute 24-hour lifetime and enforced the same ceiling for previously issued sessions with longer stored expiries.
 - Accepted Persian and Arabic-Indic digits in Iranian mobile numbers and OTP codes across the authentication UI and API, including password login, OTP login, and registration.
 - Added a repeatable import-compatible catalog export command and documented the safe code/catalog/media production deployment workflow without replacing production user data.
 - Added an explicit temporary production OTP preview mode, a dedicated mobile-number step before passwordless login, LTR login identifiers, and right-aligned password visibility controls.

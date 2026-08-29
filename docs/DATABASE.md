@@ -244,7 +244,9 @@ is read.
 
 Each session belongs to a user. The database stores `tokenHash`, expiry, and
 optional device metadata; it never stores the raw browser token. Expired
-sessions are ignored and may be deleted during later login.
+sessions are ignored and may be deleted during later login. Authentication also
+enforces a 24-hour maximum age from `createdAt`, so legacy sessions with a longer
+stored expiry cannot remain valid beyond the current policy.
 
 ## OtpChallenge
 

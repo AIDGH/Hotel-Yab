@@ -8,10 +8,23 @@ const productionEnvironment = {
   AUTH_OTP_SECRET: 'a-production-secret-with-32-characters',
   AUTH_OTP_TTL_MINUTES: 5,
   AUTH_OTP_RESEND_SECONDS: 60,
-  AUTH_SESSION_DAYS: 30,
+  AUTH_SESSION_DAYS: 1,
 };
 
 describe('environmentValidationSchema', () => {
+  it('defaults sessions to one day', () => {
+    const result = environmentValidationSchema.validate({
+      ...productionEnvironment,
+      AUTH_SESSION_DAYS: undefined,
+      SMS_PROVIDER: 'disabled',
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(
+      (result.value as { AUTH_SESSION_DAYS: number }).AUTH_SESSION_DAYS,
+    ).toBe(1);
+  });
+
   it('rejects development OTP delivery in production', () => {
     const result = environmentValidationSchema.validate({
       ...productionEnvironment,

@@ -369,7 +369,7 @@ REJECTED
 - رمز جدید حداقل ۸ کاراکتر و شامل حرف کوچک و بزرگ لاتین، عدد و یک نماد است؛ این قانون روی ورود رمزهای موجود اعمال نمی‌شود.
 - حساب‌های OTP قدیمی تا زمان تکمیل نام‌کاربری و رمز می‌توانند با OTP وارد شوند.
 - رمز عبور خام ذخیره نمی‌شود؛ فقط hash مبتنی بر `scrypt` همراه salt نگهداری می‌شود.
-- `UserSession` فقط hash توکن opaque را نگه می‌دارد و توکن خام در Cookie امن مرورگر است.
+- `UserSession` فقط hash توکن opaque را نگه می‌دارد و توکن خام در Cookie امن مرورگر است؛ اعتبار هر نشست حداکثر ۲۴ ساعت از زمان ایجاد است و نشست‌های قدیمی‌تر حتی با تاریخ انقضای legacy طولانی‌تر پذیرفته نمی‌شوند.
 - `OtpChallenge` کد OTP را به‌صورت HMAC hash و با زمان انقضا/محدودیت تلاش نگه می‌دارد.
 - درخواست مجدد OTP در API و UI دارای cooldown پیش‌فرض ۶۰ ثانیه است.
 - هر کاربر برای هر هتل یک `HotelReview` فعال با امتیاز ۱ تا ۵ دارد.
@@ -913,7 +913,7 @@ SWAGGER_ENABLED=true
 AUTH_OTP_SECRET="حداقل-۳۲-کاراکتر-تصادفی"
 AUTH_OTP_TTL_MINUTES=5
 AUTH_OTP_RESEND_SECONDS=60
-AUTH_SESSION_DAYS=30
+AUTH_SESSION_DAYS=1
 SMS_PROVIDER=development
 NAJVA_API_BASE_URL="https://sms.najva.com"
 NAJVA_API_KEY=""

@@ -212,6 +212,9 @@ username:
 
 Passwords are never stored or returned in plaintext. The server verifies the
 salted `scrypt` hash and creates an opaque HttpOnly-cookie session.
+Each session has an absolute 24-hour lifetime from its creation time. The API
+also rejects legacy sessions older than 24 hours even if their stored cookie or
+expiry timestamp was originally longer.
 
 New-password forms validate the 8–72 character lowercase/uppercase/digit/symbol
 rule before making a request and render the failure as Persian red inline

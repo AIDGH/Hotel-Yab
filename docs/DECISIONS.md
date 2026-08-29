@@ -493,7 +493,9 @@ passwordless/fallback login for an existing account. OTP resend uses the
 server-provided cooldown, 60 seconds by default. Successful authentication sets
 an HttpOnly, SameSite=Lax cookie. The raw password, session token, and OTP are
 never persisted; only salted `scrypt`, SHA-256, and HMAC hashes respectively are
-stored.
+stored. Every session has an absolute 24-hour lifetime from creation; the API
+applies that ceiling to older sessions that were originally issued with a longer
+expiry as well.
 
 **Reason:** Explicit registration makes the account lifecycle understandable,
 password login avoids an SMS dependency on every visit, and OTP preserves

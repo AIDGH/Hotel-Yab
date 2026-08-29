@@ -34,6 +34,8 @@ const MAX_OTP_ATTEMPTS = 5;
 const SCRYPT_KEY_LENGTH = 64;
 const SCRYPT_COST = 16_384;
 const MAX_AVATAR_INPUT_BYTES = 15_000_000;
+const SESSION_LIFETIME_DAYS = 1;
+const SESSION_LIFETIME_MS = SESSION_LIFETIME_DAYS * 86_400_000;
 
 type RequestMetadata = { userAgent?: string; ipAddress?: string };
 type AvatarUpload = {
@@ -144,10 +146,12 @@ export class AuthService {
   }
 
   async authenticateSession(token: string) {
+    const now = new Date();
     const session = await this.prisma.userSession.findFirst({
       where: {
         tokenHash: hashSessionToken(token),
-        expiresAt: { gt: new Date() },
+        expiresAt: { gt: now },
+        createdAt: { gt: new Date(now.getTime() - SESSION_LIFETIME_MS) },
         user: { status: UserStatus.ACTIVE },
       },
       select: { user: { select: { id: true, role: true } } },
@@ -405,11 +409,21 @@ export class AuthService {
     metadata: RequestMetadata,
   ) {
     const sessionToken = randomBytes(32).toString('base64url');
-    const sessionDays = this.config.get('AUTH_SESSION_DAYS', { infer: true });
+    const sessionDays = Math.min(
+      this.config.get('AUTH_SESSION_DAYS', { infer: true }),
+      SESSION_LIFETIME_DAYS,
+    );
     const expiresAt = new Date(Date.now() + sessionDays * 86_400_000);
+    const staleSessionCutoff = new Date(Date.now() - SESSION_LIFETIME_MS);
     await this.prisma.$transaction([
       this.prisma.userSession.deleteMany({
-        where: { userId: user.id, expiresAt: { lte: new Date() } },
+        where: {
+          userId: user.id,
+          OR: [
+            { expiresAt: { lte: new Date() } },
+            { createdAt: { lte: staleSessionCutoff } },
+          ],
+        },
       }),
       this.prisma.userSession.create({
         data: {
