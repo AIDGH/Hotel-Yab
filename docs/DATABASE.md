@@ -277,6 +277,9 @@ relationship category (`TRAVEL` or `HOTEL`), independent `contentKind`
 (`VIDEO`, `POST`, or `STORY`), display metadata, verification status, and
 publication status. Legacy `mediaUrl`/`thumbnailUrl` mirror the first media item
 for compatibility with older readers.
+`sourceUrl` is deliberately non-unique: distinct content records may point to
+the same original Instagram post/reel. `Video.id` remains the canonical unique
+identity used by relations, media items, and comments.
 `VideoComment` uses the same stable ID, so comments cannot attach to an
 arbitrary unknown video. Person profile fields are still resolved from
 `NotablePerson` and are not copied into the video.

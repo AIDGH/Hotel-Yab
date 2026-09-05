@@ -44,6 +44,7 @@ export function ExploreReels({
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [fastForwarding, setFastForwarding] = useState(false);
+  const [muted, setMuted] = useState(true);
   const feedRef = useRef<HTMLDivElement>(null);
   const historyEntryRef = useRef(false);
   const visibleItems = items.slice(0, visibleCount);
@@ -249,6 +250,8 @@ export function ExploreReels({
                 item={item}
                 active={currentIndex === index}
                 variant={variant}
+                muted={muted}
+                onMutedChange={setMuted}
                 onFastForwardChange={setFastForwarding}
                 key={item.video.videoId}
               />
@@ -264,11 +267,15 @@ function MobileReelSlide({
   item,
   active,
   variant,
+  muted,
+  onMutedChange,
   onFastForwardChange,
 }: {
   item: MobileExploreItem;
   active: boolean;
   variant: "mobile" | "desktop";
+  muted: boolean;
+  onMutedChange: (muted: boolean) => void;
   onFastForwardChange: (fastForwarding: boolean) => void;
 }) {
   const { video, person, destinations } = item;
@@ -280,7 +287,6 @@ function MobileReelSlide({
   const pressStartRef = useRef<{ x: number; y: number } | null>(null);
   const swipeDirectionRef = useRef<-1 | 1 | null>(null);
   const imageElapsedRef = useRef(0);
-  const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [holding, setHolding] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -360,7 +366,7 @@ function MobileReelSlide({
     if (!player || isImage) return;
     const nextMuted = !muted;
     player.muted = nextMuted;
-    setMuted(nextMuted);
+    onMutedChange(nextMuted);
   }
 
   function startPress(

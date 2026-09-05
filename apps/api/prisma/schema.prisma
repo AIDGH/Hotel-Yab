@@ -356,7 +356,7 @@ model Video {
   platform           String?            @db.VarChar(30)
   personCategory     String?            @db.VarChar(40)
   contentType        String?            @db.VarChar(40)
-  sourceUrl          String?            @unique @db.Text
+  sourceUrl          String?            @db.Text
   title              String?            @db.VarChar(240)
   placeName          String?            @db.VarChar(200)
   placeType          String?            @db.VarChar(40)

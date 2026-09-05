@@ -634,6 +634,8 @@ Creates a complete `TRAVEL` or `HOTEL` content aggregate and its selected relati
 transaction. `TRAVEL` requires at least one `VideoDestination`; `HOTEL`
 requires at least one `VideoHotel`. The Instagram username must resolve to an
 existing notable person and the original public `sourceUrl` is required.
+The source URL is not a unique key: separate content records may intentionally
+reuse it, while every request must still provide a distinct canonical `id`.
 `contentKind` and ordered `mediaItems` are validated as follows: `VIDEO`
 requires exactly one video item, while `POST` and `STORY` accept one or more
 ordered items and may mix images and videos. Omitting the new fields remains

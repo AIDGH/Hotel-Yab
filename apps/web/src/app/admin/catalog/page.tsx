@@ -58,15 +58,15 @@ export default function CatalogAdminPage() {
   const [feedback, setFeedback] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
-  const loadCatalog = useCallback(async () => {
-    setLoading(true);
+  const loadCatalog = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const result = await browserApi<{ data: CatalogData }>("/admin/catalog/bootstrap");
       setCatalog(result.data);
     } catch {
       setFeedback({ tone: "error", text: "دریافت اطلاعات کاتالوگ انجام نشد." });
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, []);
 
@@ -89,7 +89,7 @@ export default function CatalogAdminPage() {
       });
       if (method === "POST") form.reset();
       setFeedback({ tone: "success", text: method === "POST" ? "اطلاعات با موفقیت در PostgreSQL ثبت شد." : "تغییرات با موفقیت ذخیره شد." });
-      await loadCatalog();
+      await loadCatalog(false);
       if (shouldResetEditor) setSelectedEditId("");
       return true;
     } catch (caught) {
@@ -129,7 +129,7 @@ export default function CatalogAdminPage() {
       await browserApi(`/admin/catalog/${endpoint}/${encodeURIComponent(selectedEditId)}`, { method: "DELETE" });
       setSelectedEditId("");
       setFeedback({ tone: "success", text: "داده انتخاب‌شده حذف شد." });
-      await loadCatalog();
+      await loadCatalog(false);
     } catch (caught) {
       setFeedback({ tone: "error", text: caught instanceof Error ? caught.message : "حذف داده انجام نشد." });
     } finally {
@@ -378,6 +378,9 @@ function VideoForm({ catalog, disabled, onSubmit, mode, initial }: { catalog: Ca
   const [contentType, setContentType] = useState(initial?.contentType ?? "REEL");
   const [videoId, setVideoId] = useState(initial?.id ?? "");
   const [instagramUsername, setInstagramUsername] = useState(initial?.instagramUsername ?? "");
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [placeName, setPlaceName] = useState(initial?.placeName ?? "");
+  const [placeType, setPlaceType] = useState(initial?.placeType ?? "");
   const [creatorError, setCreatorError] = useState<string | null>(null);
   const [destinationIds, setDestinationIds] = useState<string[]>(initial?.destinations.map((destination) => destination.id) ?? []);
   const [hotelIds, setHotelIds] = useState<string[]>(initial?.hotels.map((hotel) => hotel.id) ?? []);
@@ -458,14 +461,11 @@ function VideoForm({ catalog, disabled, onSubmit, mode, initial }: { catalog: Ca
   }
 
   function resetVideoFormState() {
-    setVideoCategory("TRAVEL");
     setContentKind("VIDEO");
     setContentType("REEL");
     setVideoId("");
     setInstagramUsername("");
     setCreatorError(null);
-    setDestinationIds([]);
-    setHotelIds([]);
     setMediaItems([newContentMediaDraft("VIDEO")]);
   }
 
@@ -509,9 +509,9 @@ function VideoForm({ catalog, disabled, onSubmit, mode, initial }: { catalog: Ca
           setCreatorError(null);
         }}
       />
-      <label>عنوان<input name="title" required defaultValue={initial?.title ?? ""} /></label><label>نام مکان<input name="placeName" required defaultValue={initial?.placeName ?? ""} /></label>
+      <label>عنوان<input name="title" required value={title} onChange={(event) => setTitle(event.target.value)} /></label><label>نام مکان<input name="placeName" required value={placeName} onChange={(event) => setPlaceName(event.target.value)} /></label>
       <label>پلتفرم<input name="platform" dir="ltr" defaultValue={initial?.platform ?? "INSTAGRAM"} required /></label><label>تگ نوع محتوا<input name="contentType" dir="ltr" list="catalog-content-type-options" value={contentType} onChange={(event) => setContentType(event.target.value)} placeholder="انتخاب یا ورود دستی" required /><small>از پیشنهادها انتخاب کنید یا مقدار دلخواه بنویسید.</small></label>
-      <label>نوع مکان<input name="placeType" dir="ltr" list="catalog-place-type-options" defaultValue={initial?.placeType ?? ""} placeholder="انتخاب یا ورود دستی" required /><small>از پیشنهادها انتخاب کنید یا مقدار دلخواه بنویسید.</small></label><label>دسته سازنده<input name="personCategory" dir="ltr" list="catalog-person-category-options" defaultValue={initial?.personCategory ?? ""} placeholder="انتخاب یا ورود دستی" /><small>از پیشنهادها انتخاب کنید یا مقدار دلخواه بنویسید.</small></label>
+      <label>نوع مکان<input name="placeType" dir="ltr" list="catalog-place-type-options" value={placeType} onChange={(event) => setPlaceType(event.target.value)} placeholder="انتخاب یا ورود دستی" required /><small>از پیشنهادها انتخاب کنید یا مقدار دلخواه بنویسید.</small></label><label>دسته سازنده<input name="personCategory" dir="ltr" list="catalog-person-category-options" defaultValue={initial?.personCategory ?? ""} placeholder="انتخاب یا ورود دستی" /><small>از پیشنهادها انتخاب کنید یا مقدار دلخواه بنویسید.</small></label>
       <datalist id="catalog-content-type-options">
         <option value="POST">پست</option><option value="REEL">ریلز</option><option value="STORY">استوری</option><option value="HIGHLIGHT">هایلایت</option><option value="LIVE">لایو</option><option value="CAROUSEL">پست چنداسلایدی</option><option value="IGTV">IGTV</option><option value="OTHER">سایر</option>
       </datalist>

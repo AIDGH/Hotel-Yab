@@ -745,10 +745,7 @@ export class CatalogService {
       });
       return { data: flattenVideo(video) };
     } catch (error) {
-      this.handleUniqueConflict(
-        error,
-        'شناسه یا لینک منبع این ویدیو تکراری است',
-      );
+      this.handleUniqueConflict(error, 'شناسه این محتوا تکراری است');
     }
   }
 
@@ -906,10 +903,7 @@ export class CatalogService {
       ) {
         throw new NotFoundException('محتوا پیدا نشد');
       }
-      this.handleUniqueConflict(
-        error,
-        'شناسه یا لینک منبع این محتوا تکراری است',
-      );
+      this.handleUniqueConflict(error, 'شناسه این محتوا تکراری است');
     }
   }
 

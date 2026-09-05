@@ -6,6 +6,16 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
+- Kept the user's mute choice across vertical content navigation in the shared
+  Explore viewer, so unmuting one item no longer mutes the next item again.
+- Allowed separate content records to reuse the same original source URL while
+  preserving unique canonical content IDs. Added a database migration that
+  removes the old `Video.sourceUrl` unique index; the reviewed-workbook importer
+  remains source-idempotent to prevent accidental duplicates on reruns.
+- Preserved the relationship category, title, place name/type, destinations,
+  and related hotels after successfully creating catalog content, while
+  resetting all other inputs to their empty or default values for faster batch
+  entry.
 - Replaced the hotel-detail page's standalone creator/video cards with the
   shared Explore cover grid and full-screen viewer on desktop and mobile. Hotel
   content now uses the same multi-item navigation, comments sheet, creator

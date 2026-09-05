@@ -932,3 +932,21 @@ the legacy free-text `contentType` tag.
 
 **Status:** Active; migration `20260829120000_add_content_media_items` backfills
 every existing media-bearing video as a one-item `VIDEO`.
+
+## 48. Allow Multiple Content Records to Share an Original Source URL
+
+**Decision:** Keep `Video.id` as the unique canonical content identity, but do
+not enforce uniqueness on `Video.sourceUrl`. Separate records may intentionally
+refer to the same Instagram post/reel when the catalog needs distinct content
+entries. Relations, media items, and comments continue to reference the stable
+video ID. The reviewed-workbook importer retains its conservative source-based
+idempotency guard so rerunning one workbook does not create accidental copies;
+intentional source reuse is authored through catalog management.
+
+**Reason:** An original post URL is provenance, not necessarily content
+identity. Treating it as a database key prevented valid deliberate records,
+while removing uniqueness does not weaken relational integrity because no
+relation depends on that URL.
+
+**Status:** Active through migration
+`20260905120000_allow_shared_video_source_urls`.

@@ -386,7 +386,8 @@ expose a new public association. Video verification alone must not silently
 promote the association to `VERIFIED`; normal source review rules still apply.
 
 Destination duplicate checks use `(type, slug)` and type-scoped display order.
-Video duplicate checks use canonical ID and original `sourceUrl`; the approved
+Video duplicate checks use the canonical ID. The original `sourceUrl` may be
+shared intentionally by separate content records; the approved
 Instagram importer also compares normalized titles with both the current catalog
 and earlier ready rows in the same batch, assigning the first available numeric
 suffix instead of overwriting an existing title. Join-table primary keys prevent
