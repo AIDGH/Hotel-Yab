@@ -28,6 +28,7 @@ export default async function DestinationsPage({
 
   const query = params.query?.trim() ?? "";
   const normalizedQuery = normalizePersianSearchText(query);
+  const isSearching = normalizedQuery.length > 0;
   const type = params.type ?? "cities";
   const selectedProvince = params.province ?? "";
 
@@ -60,7 +61,9 @@ export default async function DestinationsPage({
   );
 
   const resultCount =
-    type === "cities"
+    isSearching
+      ? filteredCities.length + filteredProvinces.length
+      : type === "cities"
       ? filteredCities.length
       : filteredProvinces.length;
 
@@ -137,11 +140,17 @@ export default async function DestinationsPage({
         <div className="results-header">
           <div>
             <span className="section-eyebrow">
-              {type === "cities" ? "شهرها" : "استان‌ها"}
+              {isSearching
+                ? "شهرها و استان‌ها"
+                : type === "cities"
+                  ? "شهرها"
+                  : "استان‌ها"}
             </span>
 
             <h2>
-              {type === "cities"
+              {isSearching
+                ? `نتیجه‌های مرتبط با «${query}»`
+                : type === "cities"
                 ? "شهرهای قابل کشف"
                 : "استان‌های قابل کشف"}
             </h2>
@@ -149,11 +158,43 @@ export default async function DestinationsPage({
 
           <span>
             {resultCount}{" "}
-            {type === "cities" ? "شهر" : "استان"}
+            {isSearching ? "مقصد" : type === "cities" ? "شهر" : "استان"}
           </span>
         </div>
 
-        {type === "cities" ? (
+        {isSearching ? (
+          resultCount > 0 ? (
+            <div className="card-grid">
+              {filteredCities.map((city) => (
+                <DestinationCard
+                  key={`city:${city.slug}`}
+                  name={city.name}
+                  href={`/destinations/cities/${city.slug}`}
+                  subtitle={provinceMap.get(city.parentProvinceSlug) ?? "شهر"}
+                  imageUrl={city.imageUrl}
+                  description={city.description}
+                />
+              ))}
+
+              {filteredProvinces.map((province) => (
+                <DestinationCard
+                  key={`province:${province.slug}`}
+                  name={province.name}
+                  href={`/destinations/provinces/${province.slug}`}
+                  subtitle="استان"
+                  imageUrl={province.imageUrl}
+                  description={province.description}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              kind="empty"
+              title="مقصدی پیدا نشد"
+              description="عبارت جست‌وجو یا استان انتخاب‌شده را تغییر دهید."
+            />
+          )
+        ) : type === "cities" ? (
           filteredCities.length > 0 ? (
             <div className="card-grid">
               {filteredCities.map((city) => (

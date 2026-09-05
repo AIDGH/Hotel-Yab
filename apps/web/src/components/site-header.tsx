@@ -12,7 +12,7 @@ const navigation: Array<{ href: string; label: string; icon: SiteIconName }> = [
   { href: "/destinations", label: "مقصدها", icon: "destination" },
   { href: "/hotels", label: "هتل‌ها", icon: "hotel" },
   { href: "/notable-people", label: "چهره‌ها", icon: "users" },
-  { href: "/explore", label: "ویدیوها", icon: "video" },
+  { href: "/explore", label: "محتواها", icon: "video" },
 ];
 
 type OpenPanel = "navigation" | "account" | null;

@@ -466,14 +466,14 @@ exact normalized Instagram handle. Destination metadata is resolved from the
 canonical `Destination` relation. Video rows do not duplicate person or
 destination names, images, follower counts, or descriptions.
 
-The `/explore` route resolves the same keys for every video and composes the
-existing creator, player, and destination-link components. Filtering uses the
+The `/explore` route resolves the same keys for every content aggregate and
+composes the shared cover grid and full-screen viewer. Filtering uses the
 resolved title, Instagram username, destination type, and destination slug;
 changing destination type clears an incompatible destination selection. The
-client initially reveals six matched videos and adds six more per explicit
-button press without navigation or refresh. The same reusable progressive-list
-rule applies to destination, hotel, and notable-person video sections so only
-the current six-card batch is mounted at first.
+client reveals 12 desktop or 9 mobile covers per batch without navigation or
+refresh. Hotel detail pages reuse this exact grid/viewer and resolve creator
+profiles from `instagramUsername`; destination and notable-person sections keep
+their compact six-at-a-time progressive presentation.
 
 **Reason:** A person's profile data can change independently, and one video may
 belong to several destinations. Relationship keys prevent stale copies and
@@ -911,3 +911,24 @@ language, keyboard handling, and responsive layout consistent without adding a
 third-party UI or icon dependency.
 
 **Status:** Active.
+
+## 47. Model Posts and Stories as Ordered Media Under the Canonical Video Aggregate
+
+**Decision:** Keep the existing `Video` record and stable ID as the canonical
+content aggregate because comments, destination links, hotel links, and public
+routes already depend on it. Add an independent `contentKind` (`VIDEO`, `POST`,
+or `STORY`) and ordered `VideoMediaItem` children. A single video has exactly
+one video child; a post or story/highlight has one or more children and may mix
+image and video media. Retain the old top-level media fields as a mirror of the
+first child during the transition. All public surfaces use one Highlight-style
+viewer; horizontal navigation stays inside the current aggregate and vertical
+navigation moves to the next aggregate.
+
+**Reason:** Treating every slide as a separate video would duplicate captions,
+comments, creators, destinations, hotels, and original Instagram links. Reusing
+the aggregate preserves current data and relationships while supporting
+multi-item Instagram formats without guessing behavior from file extensions or
+the legacy free-text `contentType` tag.
+
+**Status:** Active; migration `20260829120000_add_content_media_items` backfills
+every existing media-bearing video as a one-item `VIDEO`.

@@ -65,3 +65,8 @@ tools/instagram-travel-finder/*.backup
 # Production database dumps
 *.dump
 *.sql
+!apps/api/prisma/migrations/**/migration.sql
+
+# Local generated artifacts
+output/
+tmp/

@@ -18,6 +18,8 @@ import sharp from 'sharp';
 import { Prisma } from '../generated/prisma/client';
 import {
   AssociationType,
+  ContentKind,
+  ContentMediaType,
   DestinationType,
   PublicationStatus,
   VerificationStatus,
@@ -50,6 +52,7 @@ const destinationSelect = {
 const videoSelect = {
   id: true,
   videoCategory: true,
+  contentKind: true,
   instagramUsername: true,
   platform: true,
   personCategory: true,
@@ -65,6 +68,15 @@ const videoSelect = {
   notes: true,
   mediaUrl: true,
   thumbnailUrl: true,
+  mediaItems: {
+    orderBy: { displayOrder: 'asc' },
+    select: {
+      displayOrder: true,
+      mediaType: true,
+      mediaUrl: true,
+      thumbnailUrl: true,
+    },
+  },
   publicationStatus: true,
   destinations: {
     select: { destination: { select: destinationSelect } },
@@ -487,15 +499,23 @@ export class CatalogService {
     file: { buffer: Buffer; mimetype: string; size: number } | undefined,
   ) {
     if (!file) throw new BadRequestException('یک فایل برای آپلود انتخاب کنید');
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    const nestedContentImage =
+      kind === 'TRAVEL_CONTENT_IMAGE' || kind === 'HOTEL_CONTENT_IMAGE';
+    const validSlug = nestedContentImage
+      ? /^[a-z0-9]+(?:[._-][a-z0-9]+)*\/[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(
+          slug,
+        )
+      : /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
+    if (!validSlug)
       throw new BadRequestException('ابتدا Slug معتبر را وارد کنید');
-    }
     const mediaPaths: Record<string, string> = {
       HOTEL_IMAGE: `images/hotels/${slug}.webp`,
       HOTEL_LOGO: `images/hotels/${slug}-logo.webp`,
       PERSON_IMAGE: `images/people/${slug}.webp`,
       CITY_IMAGE: `images/cities/${slug}.webp`,
       PROVINCE_IMAGE: `images/provinces/${slug}.webp`,
+      TRAVEL_CONTENT_IMAGE: `travel-videos/${slug}.webp`,
+      HOTEL_CONTENT_IMAGE: `hotel-videos/${slug}.webp`,
     };
     const relativePath = mediaPaths[kind];
     if (!relativePath) throw new BadRequestException('نوع رسانه معتبر نیست');
@@ -607,13 +627,13 @@ export class CatalogService {
       dto.videoCategory === VideoCategory.TRAVEL &&
       uniqueDestinationIds.length === 0
     ) {
-      throw new BadRequestException('برای ویدیوی سفر حداقل یک مقصد لازم است');
+      throw new BadRequestException('برای محتوای سفر حداقل یک مقصد لازم است');
     }
     if (
       dto.videoCategory === VideoCategory.HOTEL &&
       uniqueHotelIds.length === 0
     ) {
-      throw new BadRequestException('برای ویدیوی هتل حداقل یک هتل لازم است');
+      throw new BadRequestException('برای محتوای هتل حداقل یک هتل لازم است');
     }
 
     const [destinationCount, hotels] = await this.prisma.$transaction([
@@ -632,12 +652,30 @@ export class CatalogService {
       throw new BadRequestException('یک یا چند هتل معتبر نیستند');
     }
 
+    const contentKind = dto.contentKind ?? ContentKind.VIDEO;
+    const mediaItems = dto.mediaItems?.map((item, index) => ({
+      displayOrder: index + 1,
+      mediaType: item.mediaType,
+      mediaUrl: item.mediaUrl,
+      thumbnailUrl: item.thumbnailUrl ?? null,
+    })) ?? [
+      {
+        displayOrder: 1,
+        mediaType: ContentMediaType.VIDEO,
+        mediaUrl: dto.mediaUrl,
+        thumbnailUrl: dto.thumbnailUrl,
+      },
+    ];
+    this.requireContentMediaRules(contentKind, mediaItems);
+    const primaryMedia = mediaItems[0];
+
     try {
       const video = await this.prisma.$transaction(async (transaction) => {
         const createdVideo = await transaction.video.create({
           data: {
             id: dto.id,
             videoCategory: dto.videoCategory,
+            contentKind,
             instagramUsername: dto.instagramUsername,
             platform: dto.platform,
             personCategory: dto.personCategory ?? null,
@@ -651,9 +689,10 @@ export class CatalogService {
             evidenceType: dto.evidenceType,
             verificationStatus: dto.verificationStatus,
             notes: dto.notes ?? null,
-            mediaUrl: dto.mediaUrl,
-            thumbnailUrl: dto.thumbnailUrl,
+            mediaUrl: primaryMedia.mediaUrl,
+            thumbnailUrl: primaryMedia.thumbnailUrl ?? primaryMedia.mediaUrl,
             publicationStatus: dto.publicationStatus,
+            mediaItems: { create: mediaItems },
             destinations: {
               create: uniqueDestinationIds.map((destinationId) => ({
                 destinationId,
@@ -713,6 +752,167 @@ export class CatalogService {
     }
   }
 
+  async updateVideo(id: string, dto: CreateVideoDto) {
+    if (dto.id !== id) {
+      throw new BadRequestException(
+        'شناسه اصلی محتوا هنگام ویرایش قابل تغییر نیست',
+      );
+    }
+
+    const person = await this.prisma.notablePerson.findFirst({
+      where: {
+        instagramHandle: { equals: dto.instagramUsername, mode: 'insensitive' },
+      },
+      select: { id: true, slug: true, displayName: true },
+    });
+    if (!person) {
+      throw new BadRequestException(
+        'ابتدا چهره‌ای با این آیدی اینستاگرام ثبت کنید',
+      );
+    }
+
+    const uniqueDestinationIds = [...new Set(dto.destinationIds)];
+    const uniqueHotelIds = [...new Set(dto.hotelIds)];
+    if (
+      dto.videoCategory === VideoCategory.TRAVEL &&
+      uniqueDestinationIds.length === 0
+    ) {
+      throw new BadRequestException('برای محتوای سفر حداقل یک مقصد لازم است');
+    }
+    if (
+      dto.videoCategory === VideoCategory.HOTEL &&
+      uniqueHotelIds.length === 0
+    ) {
+      throw new BadRequestException('برای محتوای هتل حداقل یک هتل لازم است');
+    }
+
+    const [destinationCount, hotels] = await this.prisma.$transaction([
+      this.prisma.destination.count({
+        where: { id: { in: uniqueDestinationIds } },
+      }),
+      this.prisma.hotel.findMany({
+        where: { id: { in: uniqueHotelIds } },
+        select: { id: true, slug: true, name: true },
+      }),
+    ]);
+    if (destinationCount !== uniqueDestinationIds.length) {
+      throw new BadRequestException('یک یا چند مقصد معتبر نیستند');
+    }
+    if (hotels.length !== uniqueHotelIds.length) {
+      throw new BadRequestException('یک یا چند هتل معتبر نیستند');
+    }
+
+    const contentKind = dto.contentKind ?? ContentKind.VIDEO;
+    const mediaItems = dto.mediaItems?.map((item, index) => ({
+      displayOrder: index + 1,
+      mediaType: item.mediaType,
+      mediaUrl: item.mediaUrl,
+      thumbnailUrl: item.thumbnailUrl ?? null,
+    })) ?? [
+      {
+        displayOrder: 1,
+        mediaType: ContentMediaType.VIDEO,
+        mediaUrl: dto.mediaUrl,
+        thumbnailUrl: dto.thumbnailUrl,
+      },
+    ];
+    this.requireContentMediaRules(contentKind, mediaItems);
+    const primaryMedia = mediaItems[0];
+
+    try {
+      const video = await this.prisma.$transaction(async (transaction) => {
+        const updatedVideo = await transaction.video.update({
+          where: { id },
+          data: {
+            videoCategory: dto.videoCategory,
+            contentKind,
+            instagramUsername: dto.instagramUsername,
+            platform: dto.platform,
+            personCategory: dto.personCategory ?? null,
+            contentType: dto.contentType,
+            sourceUrl: dto.sourceUrl,
+            title: dto.title.trim(),
+            placeName: dto.placeName.trim(),
+            placeType: dto.placeType,
+            publishedDate: dto.publishedDate ?? null,
+            captionSummary: dto.captionSummary ?? null,
+            evidenceType: dto.evidenceType,
+            verificationStatus: dto.verificationStatus,
+            notes: dto.notes ?? null,
+            mediaUrl: primaryMedia.mediaUrl,
+            thumbnailUrl: primaryMedia.thumbnailUrl ?? primaryMedia.mediaUrl,
+            publicationStatus: dto.publicationStatus,
+            mediaItems: {
+              deleteMany: {},
+              create: mediaItems,
+            },
+            destinations: {
+              deleteMany: {},
+              create: uniqueDestinationIds.map((destinationId) => ({
+                destinationId,
+              })),
+            },
+            hotels: {
+              deleteMany: {},
+              create: uniqueHotelIds.map((hotelId) => ({ hotelId })),
+            },
+          },
+          select: videoSelect,
+        });
+
+        if (
+          uniqueHotelIds.length > 0 &&
+          dto.publicationStatus === PublicationStatus.PUBLISHED &&
+          dto.verificationStatus !== VerificationStatus.REJECTED
+        ) {
+          const existingAssociations =
+            await transaction.hotelAssociation.findMany({
+              where: {
+                notablePersonId: person.id,
+                hotelId: { in: uniqueHotelIds },
+              },
+              select: { hotelId: true },
+            });
+          const existingHotelIds = new Set(
+            existingAssociations.map(({ hotelId }) => hotelId),
+          );
+
+          for (const hotel of hotels) {
+            if (existingHotelIds.has(hotel.id)) continue;
+            await transaction.hotelAssociation.create({
+              data: {
+                referenceKey: associationReferenceKey(
+                  id,
+                  person.slug,
+                  hotel.slug,
+                ),
+                hotelId: hotel.id,
+                notablePersonId: person.id,
+                type: AssociationType.VISITED,
+                summary: `ارتباط ${person.displayName} با ${hotel.name} از طریق ویدیوی «${dto.title.trim()}» ثبت شده و در انتظار بررسی است.`,
+                verificationStatus: VerificationStatus.PENDING,
+              },
+            });
+          }
+        }
+
+        return updatedVideo;
+      });
+      return { data: flattenVideo(video) };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException('محتوا پیدا نشد');
+      }
+      this.handleUniqueConflict(
+        error,
+        'شناسه یا لینک منبع این محتوا تکراری است',
+      );
+    }
+  }
+
   async listPublicDestinations() {
     const destinations = await this.prisma.destination.findMany({
       where: { publicationStatus: PublicationStatus.PUBLISHED },
@@ -761,6 +961,7 @@ export class CatalogService {
         this.prisma.video.findMany({
           orderBy: { id: 'asc' },
           include: {
+            mediaItems: { orderBy: { displayOrder: 'asc' } },
             destinations: { include: { destination: true } },
             hotels: { include: { hotel: { select: { slug: true } } } },
           },
@@ -839,6 +1040,7 @@ export class CatalogService {
       videos: videos.map((video) => ({
         id: video.id,
         videoCategory: video.videoCategory,
+        contentKind: video.contentKind,
         instagramUsername: video.instagramUsername,
         platform: video.platform,
         personCategory: video.personCategory,
@@ -854,6 +1056,11 @@ export class CatalogService {
         notes: video.notes,
         mediaUrl: video.mediaUrl,
         thumbnailUrl: video.thumbnailUrl,
+        mediaItems: video.mediaItems.map((item) => ({
+          mediaType: item.mediaType,
+          mediaUrl: item.mediaUrl,
+          thumbnailUrl: item.thumbnailUrl,
+        })),
         publicationStatus: video.publicationStatus,
         destinationRefs: video.destinations.map(({ destination }) => ({
           type: destination.type,
@@ -872,6 +1079,27 @@ export class CatalogService {
       throw new ConflictException(message);
     }
     throw error;
+  }
+
+  private requireContentMediaRules(
+    contentKind: ContentKind,
+    mediaItems: Array<{
+      mediaType: ContentMediaType;
+      mediaUrl: string;
+    }>,
+  ) {
+    if (mediaItems.length === 0) {
+      throw new BadRequestException('حداقل یک فایل رسانه لازم است');
+    }
+    if (
+      contentKind === ContentKind.VIDEO &&
+      (mediaItems.length !== 1 ||
+        mediaItems[0].mediaType !== ContentMediaType.VIDEO)
+    ) {
+      throw new BadRequestException(
+        'محتوای ویدیویی باید یک فایل ویدیو داشته باشد',
+      );
+    }
   }
 
   private async requireDestinationRules(dto: CreateDestinationDto) {

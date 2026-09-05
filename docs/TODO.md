@@ -94,9 +94,12 @@ This file tracks open product and technical work for Hotel-Yab.
 # Data Pipeline
 
 - [x] Keep Destination/Video/PostgreSQL as the canonical runtime source.
+- [x] Support one-video, multi-image post, and multi-video story/highlight formats through ordered media items without breaking canonical video IDs or comments.
 - [x] Add checkpoint/resume Instagram travel crawling and high-recall candidate detection.
 - [x] Add JSON -> XLSX human review.
 - [x] Add approved-row dry-run validation.
+- [x] Download approved Instagram media and prepare ordered VIDEO/POST/STORY
+  items in the correct travel/hotel public folders.
 - [x] Add approved-row Admin API apply.
 - [x] Import the first reviewed 32-video batch successfully.
 - [ ] Add a clearer post-apply summary for created/skipped/blocked rows if current output is not sufficient.

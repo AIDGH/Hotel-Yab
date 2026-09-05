@@ -37,6 +37,7 @@ PUBLIC_DIR = REPO_ROOT / "apps" / "web" / "public"
 CONTENT_TYPE_OPTIONS = {
     "POST",
     "REEL",
+    "VIDEO_POST",
     "STORY",
     "HIGHLIGHT",
     "LIVE",
@@ -44,6 +45,28 @@ CONTENT_TYPE_OPTIONS = {
     "IGTV",
     "OTHER",
 }
+
+
+def content_kind_for(
+    content_type: str,
+) -> str:
+    normalized = str(
+        content_type or ""
+    ).strip().upper()
+
+    if normalized in {
+        "STORY",
+        "HIGHLIGHT",
+    }:
+        return "STORY"
+
+    if normalized in {
+        "POST",
+        "CAROUSEL",
+    }:
+        return "POST"
+
+    return "VIDEO"
 
 PLACE_TYPE_OPTIONS = {
     "CULTURAL",
@@ -521,6 +544,33 @@ def find_video_by_source(
     return None
 
 
+def existing_video_title_keys(
+    videos: list[dict],
+) -> set[str]:
+    return {
+        normalize_text(video.get("title", ""))
+        for video in videos
+        if normalize_text(video.get("title", ""))
+    }
+
+
+def allocate_unique_video_title(
+    title: str,
+    used_titles: set[str],
+) -> tuple[str, bool]:
+    base = str(title or "").strip()
+    candidate = base
+    suffix = 2
+
+    while normalize_text(candidate) in used_titles:
+        suffix_text = f" {suffix}"
+        candidate = f"{base[: 240 - len(suffix_text)].rstrip()}{suffix_text}"
+        suffix += 1
+
+    used_titles.add(normalize_text(candidate))
+    return candidate, candidate != base
+
+
 def load_excel_rows(
     path: Path,
 ):
@@ -732,13 +782,20 @@ def existing_sequence_max(
         if not folder.exists():
             continue
 
-        for path in folder.glob(
-            "*.mp4"
-        ):
-            match = re.search(
-                r"(?:^|-)(\d+)\.mp4$",
-                path.name,
-            )
+        for path in folder.iterdir():
+            if not path.is_file():
+                continue
+
+            if folder_name == "travel-videos":
+                match = re.match(
+                    r"^(\d{3})(?:-\d{2})?(?:-thumbnail)?\.",
+                    path.name,
+                )
+            else:
+                match = re.search(
+                    r"-(\d{3})(?:-\d{2})?(?:-thumbnail)?\.",
+                    path.name,
+                )
 
             if match:
                 maximum = max(
@@ -813,13 +870,7 @@ def allocate_video_identity(
     return {
         "sequence": sequence_text,
         "video_id": video_id,
-        "media_url": (
-            f"{stem}.mp4"
-        ),
-        "thumbnail_url": (
-            f"{stem}"
-            "-thumbnail.webp"
-        ),
+        "stem": stem,
     }
 
 
@@ -859,6 +910,7 @@ def analyze_row(
     catalog: dict,
     sequence_state: dict[str, int],
     batch_sources: set[str],
+    used_titles: set[str],
 ):
     problems = []
     warnings = []
@@ -926,6 +978,10 @@ def analyze_row(
         row,
         "نوع محتوا",
     ).upper()
+
+    content_kind = content_kind_for(
+        content_type
+    )
 
     published_date = clean_cell(
         row,
@@ -1224,6 +1280,17 @@ def analyze_row(
     payload = None
 
     if not problems:
+        title, title_was_suffixed = allocate_unique_video_title(
+            title,
+            used_titles,
+        )
+
+        if title_was_suffixed:
+            warnings.append(
+                "Duplicate title was renamed to: "
+                f"{title}"
+            )
+
         identity = (
             allocate_video_identity(
                 catalog,
@@ -1240,6 +1307,9 @@ def analyze_row(
             ],
             "videoCategory": (
                 video_category
+            ),
+            "contentKind": (
+                content_kind
             ),
             "instagramUsername": (
                 username
@@ -1277,14 +1347,8 @@ def analyze_row(
                 notes
                 or None
             ),
-            "mediaUrl": identity[
-                "media_url"
-            ],
-            "thumbnailUrl": (
-                identity[
-                    "thumbnail_url"
-                ]
-            ),
+            "mediaUrl": "",
+            "thumbnailUrl": "",
             "publicationStatus": (
                 "PUBLISHED"
             ),
@@ -1325,6 +1389,8 @@ def analyze_row(
         "place_name": place_name,
         "place_type": place_type,
         "content_type": content_type,
+        "content_kind": content_kind,
+        "identity": identity,
         "published_date": (
             published_date
         ),
@@ -1891,6 +1957,7 @@ def analyze_approved_rows(
 
     sequence_state = {}
     batch_sources = set()
+    used_titles = existing_video_title_keys(catalog["videos"])
 
     results = [
         analyze_row(
@@ -1898,6 +1965,7 @@ def analyze_approved_rows(
             catalog,
             sequence_state,
             batch_sources,
+            used_titles,
         )
         for row in approved
     ]
@@ -2004,32 +2072,90 @@ def build_media_plan(
                 "has no Shortcode."
             )
 
-        items.append(
-            {
-                "row": result[
-                    "row"
-                ],
-                "shortcode": shortcode,
-                "username": result[
-                    "username"
-                ],
-                "sourceUrl": result[
-                    "source_url"
-                ],
-                "videoCategory": result[
-                    "video_category"
-                ],
-                "creatorSlug": result[
-                    "creator_slug"
-                ],
-                "payload": result[
-                    "payload"
-                ],
-            }
+        plan_item = {
+            "row": result["row"],
+            "shortcode": shortcode,
+            "username": result["username"],
+            "sourceUrl": result["source_url"],
+            "videoCategory": result["video_category"],
+            "contentKind": result["content_kind"],
+            "creatorSlug": result["creator_slug"],
+        }
+
+        raw_items = raw_media_items(
+            excel_path,
+            plan_item,
+            result["content_kind"],
         )
 
+        if not raw_items:
+            raise RuntimeError(
+                "No downloaded media manifest found for approved row "
+                f"{result['row']} ({shortcode}). Run download_approved.py first."
+            )
+
+        if result["content_kind"] == "VIDEO" and (
+            len(raw_items) != 1
+            or raw_items[0]["mediaType"] != "VIDEO"
+        ):
+            raise RuntimeError(
+                f"Approved row {result['row']} is VIDEO but its raw media "
+                "does not contain exactly one video item."
+            )
+
+        media_items = []
+        planned_media = []
+        stem = result["identity"]["stem"]
+
+        for index, raw_item in enumerate(raw_items, start=1):
+            item_stem = (
+                stem
+                if result["content_kind"] == "VIDEO"
+                else f"{stem}-{index:02d}"
+            )
+            media_type = raw_item["mediaType"]
+            media_url = (
+                f"{item_stem}.mp4"
+                if media_type == "VIDEO"
+                else f"{item_stem}.webp"
+            )
+            thumbnail_url = (
+                f"{item_stem}-thumbnail.webp"
+                if media_type == "VIDEO"
+                else media_url
+            )
+            media_items.append(
+                {
+                    "mediaType": media_type,
+                    "mediaUrl": media_url,
+                    "thumbnailUrl": thumbnail_url,
+                }
+            )
+            planned_media.append(
+                {
+                    "displayOrder": index,
+                    "mediaType": media_type,
+                    "sourceMedia": str(raw_item["mediaPath"]),
+                    "sourceThumbnail": (
+                        str(raw_item["thumbnailPath"])
+                        if raw_item.get("thumbnailPath")
+                        else None
+                    ),
+                    "mediaUrl": media_url,
+                    "thumbnailUrl": thumbnail_url,
+                }
+            )
+
+        payload = dict(result["payload"])
+        payload["mediaItems"] = media_items
+        payload["mediaUrl"] = media_items[0]["mediaUrl"]
+        payload["thumbnailUrl"] = media_items[0]["thumbnailUrl"]
+        plan_item["mediaItems"] = planned_media
+        plan_item["payload"] = payload
+        items.append(plan_item)
+
     return {
-        "version": 1,
+        "version": 2,
         "generatedAt": datetime.now(
             timezone.utc
         ).isoformat(),
@@ -2120,7 +2246,7 @@ def public_url_to_path(
     return candidate
 
 
-def raw_media_paths(
+def legacy_raw_media_paths(
     excel_path: Path,
     item: dict,
 ) -> tuple[Path, Path]:
@@ -2155,6 +2281,94 @@ def raw_media_paths(
     )
 
 
+def raw_media_items(
+    excel_path: Path,
+    item: dict,
+    expected_content_kind: str,
+) -> list[dict]:
+    username = str(item.get("username", "") or "").strip()
+    shortcode = str(item.get("shortcode", "") or "").strip()
+    folder = excel_path.parent / username / "media" / shortcode
+    manifest_path = folder / "media.json"
+
+    if manifest_path.exists():
+        manifest = json.loads(
+            manifest_path.read_text(encoding="utf-8")
+        )
+        if manifest.get("version") != 1:
+            raise RuntimeError(
+                f"Unsupported raw media manifest: {manifest_path}"
+            )
+        if manifest.get("contentKind") != expected_content_kind:
+            raise RuntimeError(
+                f"Content kind changed for {shortcode}. Re-run "
+                "download_approved.py so its media manifest matches Excel."
+            )
+
+        result = []
+        for index, media in enumerate(manifest.get("items", []), start=1):
+            if not isinstance(media, dict):
+                raise RuntimeError(f"Invalid media item in {manifest_path}")
+            media_type = str(media.get("mediaType", "")).strip().upper()
+            media_path = safe_raw_child_path(
+                folder,
+                media.get("mediaPath"),
+            )
+            thumbnail_name = media.get("thumbnailPath")
+            thumbnail_path = (
+                safe_raw_child_path(folder, thumbnail_name)
+                if thumbnail_name
+                else None
+            )
+            if media_type not in {"IMAGE", "VIDEO"}:
+                raise RuntimeError(f"Invalid media type in {manifest_path}")
+            result.append(
+                {
+                    "displayOrder": index,
+                    "mediaType": media_type,
+                    "mediaPath": media_path,
+                    "thumbnailPath": thumbnail_path,
+                }
+            )
+        return result
+
+    video_path, thumb_path = legacy_raw_media_paths(excel_path, item)
+    if expected_content_kind == "VIDEO" and (
+        video_path.exists() or thumb_path.exists()
+    ):
+        return [
+            {
+                "displayOrder": 1,
+                "mediaType": "VIDEO",
+                "mediaPath": video_path,
+                "thumbnailPath": thumb_path,
+            }
+        ]
+
+    return []
+
+
+def safe_raw_child_path(
+    folder: Path,
+    value,
+) -> Path:
+    root = folder.resolve()
+    candidate = (
+        folder
+        / str(value or "")
+    ).resolve()
+
+    try:
+        candidate.relative_to(root)
+    except ValueError as exc:
+        raise RuntimeError(
+            "Raw media manifest path escapes "
+            f"its folder: {value}"
+        ) from exc
+
+    return candidate
+
+
 def validate_raw_media(
     excel_path: Path,
     plan: dict,
@@ -2164,32 +2378,28 @@ def validate_raw_media(
     for item in plan[
         "items"
     ]:
-        video_path, thumb_path = (
-            raw_media_paths(
-                excel_path,
-                item,
-            )
-        )
+        if plan.get("version") == 1:
+            video_path, thumb_path = legacy_raw_media_paths(excel_path, item)
+            media_items = [
+                {
+                    "mediaType": "VIDEO",
+                    "mediaPath": video_path,
+                    "thumbnailPath": thumb_path,
+                }
+            ]
+        else:
+            media_items = item.get("mediaItems", [])
 
-        if (
-            not video_path.exists()
-            or video_path.stat().st_size
-            <= 0
-        ):
-            missing.append(
-                f"Missing video: "
-                f"{video_path}"
-            )
-
-        if (
-            not thumb_path.exists()
-            or thumb_path.stat().st_size
-            <= 0
-        ):
-            missing.append(
-                f"Missing thumbnail: "
-                f"{thumb_path}"
-            )
+        for media in media_items:
+            media_path = Path(media.get("sourceMedia") or media.get("mediaPath", ""))
+            thumbnail_value = media.get("sourceThumbnail") or media.get("thumbnailPath")
+            thumbnail_path = Path(thumbnail_value) if thumbnail_value else None
+            if not media_path.exists() or media_path.stat().st_size <= 0:
+                missing.append(f"Missing media: {media_path}")
+            if media.get("mediaType") == "VIDEO" and thumbnail_path and (
+                not thumbnail_path.exists() or thumbnail_path.stat().st_size <= 0
+            ):
+                missing.append(f"Missing thumbnail: {thumbnail_path}")
 
     if missing:
         raise RuntimeError(
@@ -2356,60 +2566,54 @@ def convert_thumbnail_to_webp(
 
 def verify_prepared_media(
     plan: dict,
-) -> tuple[int, int, int]:
+) -> tuple[int, int, int, int]:
     videos = 0
+    images = 0
     thumbnails = 0
     complete = 0
 
     for item in plan[
         "items"
     ]:
-        payload = item[
-            "payload"
-        ]
+        for media in planned_media_items(plan, item):
+            media_path = public_url_to_path(media["mediaUrl"])
+            thumb_path = public_url_to_path(media["thumbnailUrl"])
+            has_media = media_path.exists() and media_path.stat().st_size > 0
+            has_thumb = thumb_path.exists() and thumb_path.stat().st_size > 0
 
-        video_path = (
-            public_url_to_path(
-                payload[
-                    "mediaUrl"
-                ]
-            )
-        )
-
-        thumb_path = (
-            public_url_to_path(
-                payload[
-                    "thumbnailUrl"
-                ]
-            )
-        )
-
-        has_video = (
-            video_path.exists()
-            and video_path.stat().st_size
-            > 0
-        )
-
-        has_thumb = (
-            thumb_path.exists()
-            and thumb_path.stat().st_size
-            > 0
-        )
-
-        if has_video:
-            videos += 1
-
-        if has_thumb:
-            thumbnails += 1
-
-        if has_video and has_thumb:
-            complete += 1
+            if has_media and media["mediaType"] == "VIDEO":
+                videos += 1
+            if has_media and media["mediaType"] == "IMAGE":
+                images += 1
+            if has_thumb:
+                thumbnails += 1
+            if has_media and has_thumb:
+                complete += 1
 
     return (
         videos,
+        images,
         thumbnails,
         complete,
     )
+
+
+def planned_media_items(
+    plan: dict,
+    item: dict,
+) -> list[dict]:
+    if plan.get("version") == 2:
+        return item.get("mediaItems", [])
+
+    payload = item["payload"]
+    return [
+        {
+            "displayOrder": 1,
+            "mediaType": "VIDEO",
+            "mediaUrl": payload["mediaUrl"],
+            "thumbnailUrl": payload["thumbnailUrl"],
+        }
+    ]
 
 
 
@@ -2444,7 +2648,7 @@ def validate_plan_structure(
 ):
     if plan.get(
         "version"
-    ) != 1:
+    ) not in {1, 2}:
         raise RuntimeError(
             "Unsupported import plan "
             f"version: {plan.get('version')}"
@@ -2514,21 +2718,8 @@ def validate_plan_structure(
             "/"
         )
 
-        media_url = str(
-            payload.get(
-                "mediaUrl",
-                "",
-            )
-            or ""
-        ).strip()
-
-        thumbnail_url = str(
-            payload.get(
-                "thumbnailUrl",
-                "",
-            )
-            or ""
-        ).strip()
+        media_url = str(payload.get("mediaUrl", "") or "").strip()
+        thumbnail_url = str(payload.get("thumbnailUrl", "") or "").strip()
 
         required = {
             "id": video_id,
@@ -2545,7 +2736,7 @@ def validate_plan_structure(
                     f"{name}."
                 )
 
-        duplicate_sets = (
+        duplicate_sets = [
             (
                 "video id",
                 video_id,
@@ -2556,17 +2747,15 @@ def validate_plan_structure(
                 source_url,
                 seen_sources,
             ),
-            (
-                "media URL",
-                media_url,
-                seen_media,
-            ),
-            (
-                "thumbnail URL",
-                thumbnail_url,
-                seen_thumbnails,
-            ),
-        )
+        ]
+
+        if plan.get("version") == 1:
+            duplicate_sets.extend(
+                [
+                    ("media URL", media_url, seen_media),
+                    ("thumbnail URL", thumbnail_url, seen_thumbnails),
+                ]
+            )
 
         for (
             label_name,
@@ -2583,6 +2772,55 @@ def validate_plan_structure(
             seen.add(
                 value
             )
+
+        if plan.get("version") == 1:
+            continue
+
+        planned = planned_media_items(plan, item)
+        if not planned:
+            raise RuntimeError(
+                f"Import plan item {index} has no media items."
+            )
+        content_kind = payload.get("contentKind")
+        if content_kind not in {"VIDEO", "POST", "STORY"}:
+            raise RuntimeError(
+                f"Import plan item {index} has invalid contentKind."
+            )
+        if content_kind == "VIDEO" and (
+            len(planned) != 1
+            or planned[0].get("mediaType") != "VIDEO"
+        ):
+            raise RuntimeError(
+                f"Import plan item {index} violates VIDEO media rules."
+            )
+
+        for media_index, media in enumerate(planned, start=1):
+            media_type = media.get("mediaType")
+            item_media_url = str(media.get("mediaUrl", "") or "").strip()
+            item_thumbnail_url = str(
+                media.get("thumbnailUrl", "") or ""
+            ).strip()
+            if media_type not in {"IMAGE", "VIDEO"}:
+                raise RuntimeError(
+                    f"Import plan item {index}.{media_index} has invalid mediaType."
+                )
+            if not item_media_url or not item_thumbnail_url:
+                raise RuntimeError(
+                    f"Import plan item {index}.{media_index} has empty paths."
+                )
+            for label_name, value, seen in (
+                ("media URL", item_media_url, seen_media),
+                ("thumbnail URL", item_thumbnail_url, seen_thumbnails),
+            ):
+                if value in seen and not (
+                    media_type == "IMAGE"
+                    and label_name == "thumbnail URL"
+                    and value == item_media_url
+                ):
+                    raise RuntimeError(
+                        f"Import plan contains duplicate {label_name}: {value}"
+                    )
+                seen.add(value)
 
 
 def validate_plan_workbook(
@@ -2640,41 +2878,13 @@ def validate_prepared_media_strict(
     for item in plan[
         "items"
     ]:
-        payload = item[
-            "payload"
-        ]
-
-        video_path = public_url_to_path(
-            payload[
-                "mediaUrl"
-            ]
-        )
-
-        thumb_path = public_url_to_path(
-            payload[
-                "thumbnailUrl"
-            ]
-        )
-
-        if (
-            not video_path.exists()
-            or video_path.stat().st_size
-            <= 0
-        ):
-            missing.append(
-                "Missing final video: "
-                f"{video_path}"
-            )
-
-        if (
-            not thumb_path.exists()
-            or thumb_path.stat().st_size
-            <= 0
-        ):
-            missing.append(
-                "Missing final thumbnail: "
-                f"{thumb_path}"
-            )
+        for media in planned_media_items(plan, item):
+            media_path = public_url_to_path(media["mediaUrl"])
+            thumb_path = public_url_to_path(media["thumbnailUrl"])
+            if not media_path.exists() or media_path.stat().st_size <= 0:
+                missing.append(f"Missing final media: {media_path}")
+            if not thumb_path.exists() or thumb_path.stat().st_size <= 0:
+                missing.append(f"Missing final thumbnail: {thumb_path}")
 
     if missing:
         raise RuntimeError(
@@ -3221,6 +3431,8 @@ def run_prepare_media(
 
     copied_videos = 0
     existing_videos = 0
+    converted_images = 0
+    existing_images = 0
     converted_thumbnails = 0
     existing_thumbnails = 0
 
@@ -3230,76 +3442,80 @@ def run_prepare_media(
         ],
         start=1,
     ):
-        source_video, source_thumb = (
-            raw_media_paths(
-                excel_path,
-                item,
-            )
-        )
-
         payload = item[
             "payload"
         ]
-
-        target_video = (
-            public_url_to_path(
-                payload[
-                    "mediaUrl"
-                ]
-            )
-        )
-
-        target_thumb = (
-            public_url_to_path(
-                payload[
-                    "thumbnailUrl"
-                ]
-            )
-        )
-
-        video_status = copy_video_file(
-            source_video,
-            target_video,
-        )
-
-        thumb_status = (
-            convert_thumbnail_to_webp(
-                source_thumb,
-                target_thumb,
-            )
-        )
-
-        if video_status == "COPIED":
-            copied_videos += 1
-        else:
-            existing_videos += 1
-
-        if thumb_status == "CONVERTED":
-            converted_thumbnails += 1
-        else:
-            existing_thumbnails += 1
 
         print(
             f"[{index}/{len(plan['items'])}] "
             f"{item['shortcode']} "
             f"→ {payload['id']}"
         )
-        print(
-            "   Video:",
-            payload[
-                "mediaUrl"
-            ],
-            f"({video_status})",
-        )
-        print(
-            "   Thumb:",
-            payload[
-                "thumbnailUrl"
-            ],
-            f"({thumb_status})",
-        )
 
-    final_videos, final_thumbs, complete = (
+        if plan.get("version") == 1:
+            source_video, source_thumb = legacy_raw_media_paths(
+                excel_path,
+                item,
+            )
+            media_entries = [
+                {
+                    "displayOrder": 1,
+                    "mediaType": "VIDEO",
+                    "sourceMedia": str(source_video),
+                    "sourceThumbnail": str(source_thumb),
+                    "mediaUrl": payload["mediaUrl"],
+                    "thumbnailUrl": payload["thumbnailUrl"],
+                }
+            ]
+        else:
+            media_entries = item["mediaItems"]
+
+        for media in media_entries:
+            source_media = Path(media["sourceMedia"])
+            source_thumbnail = (
+                Path(media["sourceThumbnail"])
+                if media.get("sourceThumbnail")
+                else source_media
+            )
+            target_media = public_url_to_path(media["mediaUrl"])
+            target_thumbnail = public_url_to_path(media["thumbnailUrl"])
+
+            if media["mediaType"] == "VIDEO":
+                media_status = copy_video_file(source_media, target_media)
+                thumbnail_status = convert_thumbnail_to_webp(
+                    source_thumbnail,
+                    target_thumbnail,
+                )
+                if media_status == "COPIED":
+                    copied_videos += 1
+                else:
+                    existing_videos += 1
+                if thumbnail_status == "CONVERTED":
+                    converted_thumbnails += 1
+                else:
+                    existing_thumbnails += 1
+            else:
+                media_status = convert_thumbnail_to_webp(
+                    source_media,
+                    target_media,
+                )
+                thumbnail_status = media_status
+                if media_status == "CONVERTED":
+                    converted_images += 1
+                else:
+                    existing_images += 1
+
+            print(
+                f"   {media['displayOrder']:02d} {media['mediaType']}: "
+                f"{media['mediaUrl']} ({media_status})"
+            )
+            if media["mediaType"] == "VIDEO":
+                print(
+                    f"      Thumb: {media['thumbnailUrl']} "
+                    f"({thumbnail_status})"
+                )
+
+    final_videos, final_images, final_thumbs, complete = (
         verify_prepared_media(
             plan
         )
@@ -3348,6 +3564,14 @@ def run_prepare_media(
         ),
     )
     label(
+        "Images made",
+        str(converted_images),
+    )
+    label(
+        "Images existing",
+        str(existing_images),
+    )
+    label(
         "Thumbs made",
         str(
             converted_thumbnails
@@ -3372,7 +3596,15 @@ def run_prepare_media(
         ),
     )
     label(
-        "Complete pairs",
+        "Final images",
+        str(final_images),
+    )
+    expected_media = sum(
+        len(planned_media_items(plan, item))
+        for item in plan["items"]
+    )
+    label(
+        "Complete media",
         color(
             str(
                 complete
@@ -3380,11 +3612,7 @@ def run_prepare_media(
             (
                 Color.GREEN
                 if complete
-                == len(
-                    plan[
-                        "items"
-                    ]
-                )
+                == expected_media
                 else Color.RED
             ),
         ),
@@ -3466,6 +3694,7 @@ def run_dry_run(
 
     sequence_state = {}
     batch_sources = set()
+    used_titles = existing_video_title_keys(catalog["videos"])
 
     results = [
         analyze_row(
@@ -3473,6 +3702,7 @@ def run_dry_run(
             catalog,
             sequence_state,
             batch_sources,
+            used_titles,
         )
         for row in approved
     ]

@@ -55,6 +55,10 @@ def extract_username(
 
 def create_loader(
     login_user: str | None,
+    *,
+    browser: str | None = None,
+    cookie_file: str | None = None,
+    interactive_login: bool = True,
 ):
     if instaloader is None:
         raise RuntimeError(
@@ -67,8 +71,85 @@ def create_loader(
         )
     )
 
+    if browser:
+        try:
+            import browser_cookie3
+        except ImportError as exc:
+            raise RuntimeError(
+                "Reading an Instagram session from a browser requires "
+                "browser-cookie3. Install it with: "
+                "python3 -m pip install browser-cookie3"
+            ) from exc
+
+        supported_browsers = {
+            "brave": browser_cookie3.brave,
+            "chrome": browser_cookie3.chrome,
+            "chromium": browser_cookie3.chromium,
+            "edge": browser_cookie3.edge,
+            "firefox": browser_cookie3.firefox,
+            "librewolf": browser_cookie3.librewolf,
+            "opera": browser_cookie3.opera,
+            "opera_gx": browser_cookie3.opera_gx,
+            "safari": browser_cookie3.safari,
+            "vivaldi": browser_cookie3.vivaldi,
+        }
+        browser_name = browser.lower()
+        browser_reader = supported_browsers.get(browser_name)
+        if browser_reader is None:
+            choices = ", ".join(sorted(supported_browsers))
+            raise RuntimeError(
+                f"Unsupported browser '{browser}'. Choose one of: {choices}"
+            )
+
+        print(
+            "Loading Instagram session "
+            f"from {browser_name}..."
+        )
+        try:
+            browser_cookies = browser_reader(
+                cookie_file=cookie_file
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                f"Could not read {browser_name} cookies. Make sure Instagram "
+                "is logged in in that browser and allow any macOS Keychain "
+                f"prompt. Detail: {exc}"
+            ) from exc
+
+        cookies = {
+            cookie.name: cookie.value
+            for cookie in browser_cookies
+            if "instagram.com" in cookie.domain
+        }
+        if not cookies:
+            raise RuntimeError(
+                f"No Instagram cookies were found in {browser_name}. "
+                "Log in to instagram.com in that browser first."
+            )
+
+        loader.context.update_cookies(cookies)
+        detected_username = loader.test_login()
+        if not detected_username:
+            raise RuntimeError(
+                f"The Instagram session found in {browser_name} is not valid. "
+                "Open instagram.com in that browser, log in, and retry."
+            )
+        loader.context.username = detected_username
+        loader.save_session_to_file()
+        print(
+            "Instagram session imported for "
+            f"@{detected_username}."
+        )
+        return loader
+
     if not login_user:
         return loader
+
+    if login_user.upper() == "YOUR_INSTAGRAM_USERNAME":
+        raise RuntimeError(
+            "YOUR_INSTAGRAM_USERNAME is only an example placeholder. "
+            "Use your real username or use --load-cookies chrome."
+        )
 
     try:
         print(
@@ -84,6 +165,13 @@ def create_loader(
         print(
             "Saved session not found."
         )
+
+        if not interactive_login:
+            raise RuntimeError(
+                f"No saved Instaloader session exists for @{login_user}. "
+                "Log in to instagram.com in Chrome and run once with "
+                "--load-cookies chrome."
+            )
 
         loader.interactive_login(
             login_user
@@ -287,8 +375,9 @@ def best_media_candidate(
     )
 
 
-def extract_media_metadata(
+def extract_media_item(
     node: dict,
+    display_order: int,
 ) -> dict:
     video = best_media_candidate(
         node.get(
@@ -311,39 +400,98 @@ def extract_media_metadata(
         )
     )
 
+    media_type = (
+        "VIDEO"
+        if video.get("url")
+        or node.get("media_type") in (2, "2")
+        else "IMAGE"
+    )
+
     return {
-        "video_download_url": (
-            video.get(
-                "url",
-                "",
-            )
-        ),
-        "video_width": (
-            video.get(
-                "width"
-            )
-        ),
-        "video_height": (
-            video.get(
-                "height"
-            )
+        "display_order": display_order,
+        "media_type": media_type,
+        "download_url": (
+            video.get("url", "")
+            if media_type == "VIDEO"
+            else thumbnail.get("url", "")
         ),
         "thumbnail_source_url": (
-            thumbnail.get(
-                "url",
+            thumbnail.get("url", "")
+        ),
+        "width": (
+            video.get("width")
+            if media_type == "VIDEO"
+            else thumbnail.get("width")
+        ),
+        "height": (
+            video.get("height")
+            if media_type == "VIDEO"
+            else thumbnail.get("height")
+        ),
+    }
+
+
+def extract_media_metadata(
+    node: dict,
+) -> dict:
+    carousel_media = node.get(
+        "carousel_media"
+    )
+
+    source_items = (
+        carousel_media
+        if isinstance(carousel_media, list)
+        and carousel_media
+        else [node]
+    )
+
+    media_items = [
+        extract_media_item(item, index)
+        for index, item in enumerate(
+            source_items,
+            start=1,
+        )
+        if isinstance(item, dict)
+    ]
+
+    primary = (
+        media_items[0]
+        if media_items
+        else {}
+    )
+
+    return {
+        "video_download_url": (
+            primary.get("download_url", "")
+            if primary.get("media_type")
+            == "VIDEO"
+            else ""
+        ),
+        "video_width": (
+            primary.get("width")
+            if primary.get("media_type")
+            == "VIDEO"
+            else None
+        ),
+        "video_height": (
+            primary.get("height")
+            if primary.get("media_type")
+            == "VIDEO"
+            else None
+        ),
+        "thumbnail_source_url": (
+            primary.get(
+                "thumbnail_source_url",
                 "",
             )
         ),
         "thumbnail_width": (
-            thumbnail.get(
-                "width"
-            )
+            primary.get("width")
         ),
         "thumbnail_height": (
-            thumbnail.get(
-                "height"
-            )
+            primary.get("height")
         ),
+        "media_items": media_items,
     }
 
 def instagram_post_url(
@@ -571,6 +719,11 @@ def parse_graphql_response(
                 "thumbnail_height": (
                     media_metadata[
                         "thumbnail_height"
+                    ]
+                ),
+                "media_items": (
+                    media_metadata[
+                        "media_items"
                     ]
                 ),
                 "matched_provinces": (

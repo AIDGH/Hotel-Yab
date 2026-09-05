@@ -197,6 +197,7 @@ export class HotelsService {
               select: {
                 id: true,
                 videoCategory: true,
+                contentKind: true,
                 instagramUsername: true,
                 platform: true,
                 personCategory: true,
@@ -212,6 +213,15 @@ export class HotelsService {
                 notes: true,
                 mediaUrl: true,
                 thumbnailUrl: true,
+                mediaItems: {
+                  orderBy: { displayOrder: 'asc' },
+                  select: {
+                    displayOrder: true,
+                    mediaType: true,
+                    mediaUrl: true,
+                    thumbnailUrl: true,
+                  },
+                },
                 publicationStatus: true,
               },
             },

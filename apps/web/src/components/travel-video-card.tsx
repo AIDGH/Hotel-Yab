@@ -5,6 +5,7 @@ import {
   type CSSProperties,
   type FormEvent,
   type MouseEvent,
+  type PointerEvent,
   useCallback,
   useEffect,
   useId,
@@ -25,6 +26,13 @@ type TravelVideoCardProps = {
   thumbnailUrl: string;
   sourceUrl: string;
   instagramUsername: string;
+  contentKind?: "VIDEO" | "POST" | "STORY";
+  mediaItems?: Array<{
+    displayOrder: number;
+    mediaType: "IMAGE" | "VIDEO";
+    mediaUrl: string;
+    thumbnailUrl: string | null;
+  }>;
 };
 
 function formatVideoTime(value: number) {
@@ -44,11 +52,15 @@ export function TravelVideoCard({
   thumbnailUrl,
   sourceUrl,
   instagramUsername,
+  contentKind = "VIDEO",
+  mediaItems = [],
 }: TravelVideoCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const wasFullscreenRef = useRef(false);
+  const continuePlaybackRef = useRef(false);
   const playbackId = useId();
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -58,12 +70,19 @@ export function TravelVideoCard({
   const [duration, setDuration] = useState(0);
   const [showPausedThumbnail, setShowPausedThumbnail] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0);
+  const resolvedMediaItems = mediaItems.length > 0
+    ? [...mediaItems].sort((left, right) => left.displayOrder - right.displayOrder)
+    : [{ displayOrder: 1, mediaType: "VIDEO" as const, mediaUrl, thumbnailUrl }];
+  const activeMedia = resolvedMediaItems[activeMediaIndex] ?? resolvedMediaItems[0];
+  const isImage = activeMedia.mediaType === "IMAGE";
 
   const progressPercent = duration > 0
     ? Math.min((currentTime / duration) * 100, 100)
     : 0;
 
   async function togglePlay() {
+    if (isImage) return;
     const video = videoRef.current;
 
     if (!video) return;
@@ -80,14 +99,58 @@ export function TravelVideoCard({
     }
   }
 
+  function navigateMedia(direction: -1 | 1, continuePlayback = false) {
+    continuePlaybackRef.current = continuePlayback;
+    setActiveMediaIndex((index) =>
+      Math.max(0, Math.min(index + direction, resolvedMediaItems.length - 1)),
+    );
+    setIsPlaying(false);
+    setShowPausedThumbnail(false);
+    setCurrentTime(0);
+    setDuration(0);
+  }
+
   function handleMediaClick(event: MouseEvent<HTMLDivElement>) {
     if (event.detail > 1 || Date.now() < suppressTravelVideoClickUntil) return;
+
+    if (resolvedMediaItems.length > 1) {
+      const bounds = event.currentTarget.getBoundingClientRect();
+      const horizontalPosition = (event.clientX - bounds.left) / bounds.width;
+      if (horizontalPosition <= 0.34) {
+        navigateMedia(-1, isPlaying);
+        return;
+      }
+      if (horizontalPosition >= 0.66) {
+        navigateMedia(1, isPlaying);
+        return;
+      }
+    }
 
     if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
     clickTimerRef.current = setTimeout(() => {
       void togglePlay();
       clickTimerRef.current = null;
     }, 220);
+  }
+
+  function handleMediaPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (resolvedMediaItems.length < 2) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("button, a, input")) return;
+    swipeStartRef.current = { x: event.clientX, y: event.clientY };
+  }
+
+  function handleMediaPointerUp(event: PointerEvent<HTMLDivElement>) {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!start || resolvedMediaItems.length < 2) return;
+
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    if (Math.abs(deltaX) < 44 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+
+    suppressTravelVideoClickUntil = Date.now() + 350;
+    navigateMedia(deltaX < 0 ? 1 : -1, isPlaying);
   }
 
   async function toggleFullscreen(event: MouseEvent<HTMLElement>) {
@@ -256,48 +319,83 @@ export function TravelVideoCard({
     };
   }, [navigateFullscreen]);
 
+  useEffect(() => {
+    if (!continuePlaybackRef.current || isImage) return;
+    continuePlaybackRef.current = false;
+    const frame = window.requestAnimationFrame(() => {
+      void videoRef.current?.play().catch(() => setIsPlaying(false));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeMediaIndex, isImage]);
+
   return (
     <article className="travel-video-card">
       <div
         ref={mediaRef}
         className="travel-video-media"
+        tabIndex={resolvedMediaItems.length > 1 ? 0 : undefined}
         onClick={handleMediaClick}
         onDoubleClick={handleMediaDoubleClick}
+        onPointerDown={handleMediaPointerDown}
+        onPointerUp={handleMediaPointerUp}
+        onPointerCancel={() => {
+          swipeStartRef.current = null;
+        }}
+        onKeyDown={(event) => {
+          const target = event.target as HTMLElement;
+          if (target.matches("button, a, input")) return;
+          if (resolvedMediaItems.length < 2) return;
+          if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+          event.preventDefault();
+          navigateMedia(event.key === "ArrowLeft" ? -1 : 1, isPlaying);
+        }}
       >
-        <video
-          ref={videoRef}
-          className="travel-video-player"
-          playsInline
-          preload="metadata"
-          poster={thumbnailUrl}
-          onPlay={() => {
-            setIsPlaying(true);
-            setShowPausedThumbnail(false);
-
-            window.dispatchEvent(
-              new CustomEvent(TRAVEL_VIDEO_PLAY_EVENT, {
-                detail: { playbackId },
-              }),
-            );
-          }}
-          onPause={() => setIsPlaying(false)}
-          onEnded={() => setIsPlaying(false)}
-          onLoadedMetadata={syncVideoDuration}
-          onDurationChange={syncVideoDuration}
-          onTimeUpdate={() => {
-            setCurrentTime(videoRef.current?.currentTime ?? 0);
-          }}
-        >
-          <source
-            src={mediaUrl}
-            type="video/mp4"
+        {isImage ? (
+          <Image
+            className="travel-content-image"
+            src={activeMedia.mediaUrl}
+            alt={title}
+            fill
+            sizes="(max-width: 760px) 100vw, 420px"
+            unoptimized
           />
-        </video>
+        ) : (
+          <video
+            key={activeMedia.mediaUrl}
+            ref={videoRef}
+            className="travel-video-player"
+            playsInline
+            preload="metadata"
+            poster={activeMedia.thumbnailUrl ?? thumbnailUrl}
+            onPlay={() => {
+              setIsPlaying(true);
+              setShowPausedThumbnail(false);
+
+              window.dispatchEvent(
+                new CustomEvent(TRAVEL_VIDEO_PLAY_EVENT, {
+                  detail: { playbackId },
+                }),
+              );
+            }}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => {
+              if (activeMediaIndex < resolvedMediaItems.length - 1) navigateMedia(1, true);
+              else setIsPlaying(false);
+            }}
+            onLoadedMetadata={syncVideoDuration}
+            onDurationChange={syncVideoDuration}
+            onTimeUpdate={() => {
+              setCurrentTime(videoRef.current?.currentTime ?? 0);
+            }}
+          >
+            <source src={activeMedia.mediaUrl} type="video/mp4" />
+          </video>
+        )}
 
         {showPausedThumbnail ? (
           <Image
             className="travel-video-paused-thumbnail"
-            src={thumbnailUrl}
+            src={activeMedia.thumbnailUrl ?? thumbnailUrl}
             alt=""
             fill
             sizes="(max-width: 760px) 100vw, 340px"
@@ -306,7 +404,7 @@ export function TravelVideoCard({
           />
         ) : null}
 
-        {!isPlaying && (
+        {!isImage && !isPlaying && (
           <button
             className="travel-video-play"
             type="button"
@@ -320,7 +418,7 @@ export function TravelVideoCard({
           </button>
         )}
 
-        <button
+        {!isImage ? <button
           className="travel-video-mute"
           type="button"
           onClick={toggleMute}
@@ -353,9 +451,9 @@ export function TravelVideoCard({
               <path d="M15 9 21 15M21 9l-6 6" />
             )}
           </svg>
-        </button>
+        </button> : null}
 
-        <button
+        {!isImage ? <button
           className="travel-video-speed"
           type="button"
           onClick={togglePlaybackRate}
@@ -363,7 +461,7 @@ export function TravelVideoCard({
           aria-pressed={playbackRate === 2}
         >
           {playbackRate}×
-        </button>
+        </button> : null}
 
         <button
           className="travel-video-fullscreen"
@@ -374,6 +472,20 @@ export function TravelVideoCard({
         >
           <SiteIcon name={isFullscreen ? "fullscreen-exit" : "fullscreen"} />
         </button>
+
+        {resolvedMediaItems.length > 1 ? (
+          <>
+            <div className="travel-content-segments" aria-label={`${resolvedMediaItems.length} آیتم`}>
+              {resolvedMediaItems.map((item, index) => (
+                <span className={index === activeMediaIndex ? "is-active" : index < activeMediaIndex ? "is-viewed" : ""} key={`${item.displayOrder}-${item.mediaUrl}`} />
+              ))}
+            </div>
+            <div className="travel-content-navigation">
+              <button type="button" disabled={activeMediaIndex === 0} aria-label="آیتم قبلی" onClick={(event) => { event.stopPropagation(); navigateMedia(-1); }}><SiteIcon name="arrow-left" /></button>
+              <button type="button" disabled={activeMediaIndex === resolvedMediaItems.length - 1} aria-label="آیتم بعدی" onClick={(event) => { event.stopPropagation(); navigateMedia(1); }}><SiteIcon name="arrow-left" /></button>
+            </div>
+          </>
+        ) : null}
 
         <div className="travel-video-fullscreen-navigation">
           <button
@@ -401,11 +513,11 @@ export function TravelVideoCard({
         </div>
 
         <div className="travel-video-overlay">
-          <span>@{instagramUsername}</span>
+          <span>@{instagramUsername} · {contentKind === "POST" ? "پست" : contentKind === "STORY" ? "استوری" : "ویدیو"}</span>
           <strong>{title}</strong>
         </div>
 
-        <div
+        {!isImage ? <div
           className="travel-video-progress"
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
@@ -425,7 +537,7 @@ export function TravelVideoCard({
               "--travel-video-progress": `${progressPercent}%`,
             } as CSSProperties}
           />
-        </div>
+        </div> : null}
       </div>
 
       <a

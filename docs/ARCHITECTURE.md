@@ -352,11 +352,13 @@ VideoDestination (PostgreSQL)
 Destination (PostgreSQL)
 ```
 
-`Video` stores identity, normalized content metadata, media URLs, `sourceUrl`,
-and publication/verification state. Person metadata comes from the existing
+`Video` stores the canonical content identity, `TRAVEL`/`HOTEL` relationship
+category, independent `VIDEO`/`POST`/`STORY` format, normalized metadata,
+`sourceUrl`, and publication/verification state. Ordered `VideoMediaItem` rows
+store the actual images or videos. Person metadata comes from the existing
 notable-person API, while destination labels and links come from `Destination`.
-One video may resolve to multiple destinations. City/province display-order
-values remain scoped independently.
+One content aggregate may resolve to multiple destinations. City/province
+display-order values remain scoped independently.
 
 Destination detail pages also resolve hotels through the existing hotel API:
 
@@ -373,10 +375,18 @@ exact city filters ──deduplicate by hotel.id──> HotelCard
 Hotel records remain canonical in PostgreSQL/API and are not copied into
 destination records. A province result covers its canonical child cities.
 
-`/explore` reads the same normalized travel-video relationships and composes
-each result from the existing creator header, `TravelVideoCard`, and destination
-link components. Search and destination filters operate on resolved video
-relationships; person and destination metadata are not copied into video data.
+`/explore` reads the same normalized content relationships. Its cover grid opens
+a unified full-screen viewer: horizontal navigation changes ordered media within
+the current post/story through edge-aligned desktop keyboard/click controls or a
+mobile drag track that follows the pointer and exposes the adjacent item while
+moving; mobile arrows are intentionally omitted. Each active segment reflects
+video playback progress or a five-second image interval and advances to the next
+media item. Holding the center pauses playback/timing and hides overlays, while
+holding either video edge temporarily uses 2× playback. Vertical snap scrolling
+changes the canonical content aggregate. The same multi-item renderer is reused on destination,
+hotel, and notable-person detail pages. Search and destination filters operate
+on resolved relationships; person and destination metadata are not copied into
+content data.
 
 ---
 
@@ -402,10 +412,15 @@ Current capabilities include:
 - pagination;
 - reusable hotel/person cards;
 - destination detail pages with related hotel cards below travel videos;
-- reusable client-side progressive video lists for destination, hotel, and
+- reusable client-side progressive content lists for destination and
   notable-person sections, revealing at most six cards per batch;
-- filtered travel-video Explore page with creator and multi-destination context on desktop, plus a compact mobile thumbnail grid that opens a vertically snapping Reels viewer without duplicating person or destination data
-  plus client-side progressive reveal in batches of six;
+- filtered travel-content Explore page with creator and multi-destination
+  context, a four-column desktop cover grid and a compact three-column mobile
+  grid that open the shared vertically snapping full-screen viewer without
+  duplicating person or destination data;
+- hotel-detail content rendered through the same Explore grid/viewer, resolving
+  creator profiles by normalized Instagram username and revealing 12 desktop or
+  9 mobile covers per batch;
 - federated global search across hotels, notable people, cities, and provinces;
 - displaying hotel-person relationship data;
 - optional verified registration plus password/OTP login;
@@ -445,15 +460,28 @@ json_to_excel.py
         ↓
 Human review in XLSX (approved / rejected / pending)
         ↓
+download_approved.py (approved media only; ordered IMAGE/VIDEO manifest)
+        ↓
+import_approved.py --prepare-media
+        ↓
 import_approved.py --dry-run
         ↓
 Admin API / PostgreSQL write path   (next step)
 ```
 
-The approved-row importer now supports the protected Admin API write path. The
-first reviewed production batch was applied successfully and created the approved
-travel/hotel video data in PostgreSQL; 32 approved videos were imported in that
-batch. Dry-run remains the required preflight before future applies.
+The approved-media downloader reads rows by Persian header name, downloads only
+`approved` shortcodes, refreshes missing/expired Instagram media metadata through
+an optional Instaloader session, and writes one ordered local manifest per content
+aggregate. The media-preparation phase maps blank-hotel rows to `travel-videos`
+and resolved-hotel rows to `hotel-videos`, converts images/covers to WebP, and
+keeps mixed POST/STORY items under one canonical content ID. The protected Admin
+API apply path remains the final write step; dry-run remains required before it.
+When Instagram CDN URLs expire, the downloader can import the already-authenticated
+browser session with `--load-cookies chrome`, refresh shortcode metadata, and save
+an Instaloader session for later `--login <username>` runs without terminal password
+entry. Per-post download/metadata failures are accumulated in a local failure
+report while the remaining approved rows continue; final media preparation is
+blocked until every still-approved row has a complete manifest.
 
 The long-term normalized flow remains:
 
@@ -538,10 +566,14 @@ The administration layer is split by responsibility:
   surface; self-editing, admin peer-management, and blocking the final active
   admin are prevented;
 - `/admin/catalog` is available to `ADMIN` and `MODERATOR` and creates canonical destination,
-  hotel, notable-person, and categorized `TRAVEL`/`HOTEL` video records directly
-  in PostgreSQL; the current catalog API also updates destinations, hotels, and
-  notable people and exposes protected delete routes for canonical records;
-- the catalog video form provides searchable click-to-toggle multi-selection,
+  hotel, notable-person, and categorized `TRAVEL`/`HOTEL` content records directly
+  in PostgreSQL; the catalog API also updates all four entity groups and exposes
+  protected delete routes for canonical records. Content edits retain the
+  canonical video ID while replacing metadata, ordered media, and selected
+  destination/hotel joins inside one transaction;
+- the catalog content form selects `VIDEO`, `POST`, or `STORY`; each post or
+  story item independently selects `IMAGE` or `VIDEO` and can be reordered,
+  and the form provides searchable click-to-toggle multi-selection,
   generates editable media-path suggestions from stable slugs, offers
   initially empty free-typing datalist suggestions for content/place/creator
   categories, provides searchable single-selection for the existing creator,

@@ -25,7 +25,7 @@ export function SiteFooter() {
           <Link href="/destinations">مقصدها</Link>
           <Link href="/hotels">هتل‌ها</Link>
           <Link href="/notable-people">چهره‌ها</Link>
-          <Link href="/explore">ویدیوها</Link>
+          <Link href="/explore">محتواها</Link>
         </div>
         <div className="footer-links footer-contact" id="contact">
           <strong>ارتباط با ما</strong>

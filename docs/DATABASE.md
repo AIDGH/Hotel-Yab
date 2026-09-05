@@ -270,13 +270,25 @@ decision and when. `moderationNote` is internal and is never returned publicly.
 
 ## Video
 
-`Video` is the canonical database record used by discovery and interactive
-features. It stores the normalized Instagram username, original `sourceUrl`,
-explicit `videoCategory` (`TRAVEL` or `HOTEL`), display metadata, media paths,
-verification status, and publication status.
+`Video` remains the canonical content aggregate used by discovery and
+interactive features so existing stable IDs and comments remain compatible. It
+stores the normalized Instagram username, original `sourceUrl`, explicit
+relationship category (`TRAVEL` or `HOTEL`), independent `contentKind`
+(`VIDEO`, `POST`, or `STORY`), display metadata, verification status, and
+publication status. Legacy `mediaUrl`/`thumbnailUrl` mirror the first media item
+for compatibility with older readers.
 `VideoComment` uses the same stable ID, so comments cannot attach to an
 arbitrary unknown video. Person profile fields are still resolved from
 `NotablePerson` and are not copied into the video.
+
+## VideoMediaItem
+
+`VideoMediaItem` stores the ordered media inside one canonical content record.
+Its composite primary key is `(videoId, displayOrder)` and each row contains a
+`mediaType` (`IMAGE` or `VIDEO`), `mediaUrl`, and optional `thumbnailUrl`.
+Deleting the parent cascades to all items. Validation requires exactly one
+video item for `VIDEO`; `POST` and `STORY` both accept one or more ordered
+items and may mix `IMAGE` and `VIDEO` media.
 
 ## Destination, VideoDestination, and VideoHotel
 
@@ -400,11 +412,11 @@ logoUrl (Hotel only)
 
 The database stores references to media rather than the binary image itself.
 
-Destination and travel-video media currently keep their existing `/images/...`
-and `/travel-videos/...` paths under the frontend `public` directory. Only
-`imageUrl`, `mediaUrl`, and `thumbnailUrl` are stored in PostgreSQL. The local
-image, thumbnail, and video binaries are ignored by Git and are not part of the
-repository or database.
+Destination and content media currently keep their existing `/images/...`,
+`/travel-videos/...`, and `/hotel-videos/...` paths under the frontend `public`
+directory. PostgreSQL stores only path metadata on canonical records and
+`VideoMediaItem`; local image, thumbnail, and video binaries are ignored by Git
+and are not part of the repository or database.
 
 Media storage strategy may change as the product evolves.
 
@@ -520,8 +532,10 @@ extension if every transition must be audited rather than only the latest one.
 ## Data Sync
 
 The private core importer remains idempotent. `data:import-travel` separately
-upserts the transition destination/video JSON, while the admin catalog exports
-the full database in the extended import shape.
+upserts the transition destination/content JSON, including ordered
+`mediaItems`, while the admin catalog exports the full database in the extended
+import shape. Legacy videos without `mediaItems` are normalized to one video
+item during migration/import.
 
 Two operational ingestion tools now exist outside Prisma models:
 

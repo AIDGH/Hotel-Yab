@@ -185,9 +185,12 @@ Returns one published destination. `type` is `cities` or `provinces`.
 
 ## GET /travel-videos
 
-Returns published canonical videos with explicit `videoCategory`, `sourceUrl`,
-media/thumbnail paths, destination records, and optional linked hotels. Person
-profile data remains resolved by exact normalized Instagram username.
+Returns published canonical content records. The legacy route name is retained
+for compatibility. Each item includes explicit `videoCategory`, `contentKind`,
+ordered `mediaItems` (`displayOrder`, `mediaType`, `mediaUrl`, optional
+`thumbnailUrl`), `sourceUrl`, destination records, and optional linked hotels.
+The top-level media/thumbnail fields mirror the first item for older clients.
+Person profile data remains resolved by exact normalized Instagram username.
 
 ---
 
@@ -627,10 +630,14 @@ Creates a NotablePerson after slug and normalized Instagram duplicate checks.
 
 ## POST /admin/catalog/videos
 
-Creates a complete `TRAVEL` or `HOTEL` Video and its selected relations in one
+Creates a complete `TRAVEL` or `HOTEL` content aggregate and its selected relations in one
 transaction. `TRAVEL` requires at least one `VideoDestination`; `HOTEL`
 requires at least one `VideoHotel`. The Instagram username must resolve to an
 existing notable person and the original public `sourceUrl` is required.
+`contentKind` and ordered `mediaItems` are validated as follows: `VIDEO`
+requires exactly one video item, while `POST` and `STORY` accept one or more
+ordered items and may mix images and videos. Omitting the new fields remains
+backward-compatible and creates a one-item `VIDEO` from the legacy media fields.
 
 For every selected hotel without an existing association to that person, a
 published, non-rejected video causes the same transaction to create a `VISITED`
@@ -654,10 +661,21 @@ Updates an existing hotel.
 Updates an existing notable person and preserves normalized Instagram-handle
 duplicate checks.
 
+## PATCH /admin/catalog/videos/:id
+
+Updates an existing content aggregate using the complete validated creation
+shape while preserving its canonical ID so comments and external relationships
+remain stable. Metadata, creator, publication state, ordered media items, and
+destination/hotel joins are replaced atomically. The same `TRAVEL`/`HOTEL` and
+`VIDEO`/`POST`/`STORY` rules are re-applied, and newly selected hotels may create
+the same pending person–hotel association used during creation.
+
 ## POST /admin/catalog/media
 
-Authenticated multipart catalog-media upload. The current controller accepts a
-`file` plus `kind` and `slug`; media storage remains a local/deployment concern.
+Authenticated multipart catalog-media upload. The controller accepts a `file`
+plus `kind` and `slug`; content images support nested travel/hotel slugs and are
+normalized to WebP. Video binaries still use provisioned public paths; media
+storage remains a local/deployment concern.
 
 ## DELETE /admin/catalog/destinations/:id
 

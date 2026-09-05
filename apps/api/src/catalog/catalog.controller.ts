@@ -91,6 +91,11 @@ export class CatalogController {
     return this.catalogService.updateNotablePerson(id, dto);
   }
 
+  @Patch('videos/:id')
+  updateVideo(@Param('id') id: string, @Body() dto: CreateVideoDto) {
+    return this.catalogService.updateVideo(id, dto);
+  }
+
   @Post('media')
   @UseInterceptors(
     FileInterceptor('file', { limits: { fileSize: 15_000_000 } }),

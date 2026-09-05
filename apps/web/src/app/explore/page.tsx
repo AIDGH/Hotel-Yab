@@ -8,9 +8,9 @@ import { getDestinationCatalog } from "@/lib/destination-catalog";
 import { getAllTravelVideos } from "@/lib/travel-videos";
 
 export const metadata: Metadata = {
-  title: "اکسپلور ویدیوهای سفر",
+  title: "محتواهای سفر",
   description:
-    "ویدیوهای سفر را از مسیر سازنده‌ها، شهرها و استان‌های مرتبط کشف کنید.",
+    "ویدیوها، پست‌ها و استوری‌های عکس و ویدیویی سفر را از مسیر سازنده‌ها و مقصدهای مرتبط کشف کنید.",
 };
 
 export const dynamic = "force-dynamic";
@@ -105,8 +105,8 @@ export default async function ExplorePage({
     <main className="listing-page explore-page">
       <section className="page-hero page-hero-compact explore-page-hero">
         <div className="container">
-          <span className="eyebrow">اکسپلور ویدیوها</span>
-          <h1>از یک ویدیو به مقصد بعدی برسید</h1>
+          <span className="eyebrow">محتواهای سفر</span>
+          <h1>از یک روایت به مقصد بعدی برسید</h1>
           <p>
             تجربه‌های سفر را ببینید و از همان‌جا سازنده، شهرها و استان‌های
             مرتبط را کشف کنید.
@@ -114,7 +114,7 @@ export default async function ExplorePage({
 
           <form className="filter-bar filter-bar-four" method="get">
             <label>
-              <span>جست‌وجوی ویدیو</span>
+              <span>جست‌وجوی محتوا</span>
               <input
                 name="query"
                 defaultValue={query}
@@ -157,11 +157,11 @@ export default async function ExplorePage({
       <section className="section container listing-results explore-results">
         <div className="results-header">
           <div>
-            <span className="section-eyebrow">ویدیوهای سفر</span>
+            <span className="section-eyebrow">محتوای سفر</span>
             <h2>تجربه‌های قابل کشف</h2>
           </div>
           <span>
-            {filteredTravelVideos.length.toLocaleString("fa-IR")} ویدیو
+            {filteredTravelVideos.length.toLocaleString("fa-IR")} محتوا
           </span>
         </div>
 
@@ -173,7 +173,7 @@ export default async function ExplorePage({
         ) : (
           <EmptyState
             kind="empty"
-            title="ویدیویی با این فیلتر پیدا نشد"
+            title="محتوایی با این فیلتر پیدا نشد"
             description="عبارت جست‌وجو یا مقصد را تغییر دهید و دوباره امتحان کنید."
           />
         )}

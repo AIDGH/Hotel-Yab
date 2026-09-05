@@ -71,16 +71,21 @@ workbook-to-import converter is the next data-pipeline step. Until that exists,
 the workbook must be converted and validated before running
 `pnpm api:data:import`.
 
-## Destination and Travel Video Workbook
+## Destination and Travel Content Workbook
 
 The private `../Data/HotelYab_Destinations_Data.xlsx` workbook remains a bulk
 research source. Runtime destination/video data now lives in PostgreSQL. It has
 three sheets:
 
 - `Destinations`: one city or province per row;
-- `TravelVideos`: one Instagram travel video per row;
-- `VideoDestinations`: one video-to-city/province link per row, so a video may
-  have multiple destination rows.
+- `TravelVideos`: one canonical Instagram content aggregate per row;
+- `VideoDestinations`: one content-to-city/province link per row, so one content
+  record may have multiple destination rows.
+
+The current workbook is still optimized for single videos. Multi-image posts and
+multi-video stories should be created through `/admin/catalog` or represented in
+the JSON import with `contentKind` plus ordered `mediaItems`; do not create one
+canonical row per slide.
 
 Destination images are not workbook fields. Derive them from the normalized
 slug:
@@ -96,16 +101,20 @@ CITY     → /images/cities/<slug>.webp
 
 For routine additions, use `/admin/catalog`:
 
-1. Store media as
+1. For a single `VIDEO`, store media as
    `apps/web/public/travel-videos/<person-slug>/<sequence>.mp4` for `TRAVEL`, or
    `apps/web/public/hotel-videos/<person-slug>/<hotel-slug>-<sequence>.mp4` for
    single-hotel `HOTEL` media. Use `multi-hotel` instead of one hotel slug when
    a video belongs to several hotels; thumbnails use the same stem plus
-   `-thumbnail.webp`.
+   `-thumbnail.webp`. For `POST` or `STORY`, keep one content stem and append
+   ordered `-01`, `-02`, ... suffixes to its items; either format may mix
+   images and videos.
 2. Add any missing destination or notable person first.
-3. Choose `TRAVEL` or `HOTEL`, create the video, search and toggle all related
-   destinations/hotels, review the automatically suggested editable media
-   paths, and retain the original Instagram `sourceUrl`.
+3. Choose `TRAVEL` or `HOTEL`, then `VIDEO`, `POST`, or `STORY`; choose
+   image or video independently for every post/story item, add/reorder all
+   media items, search and toggle related destinations/hotels, review the
+   automatically suggested editable paths, and retain the original Instagram
+   `sourceUrl`.
 4. Use «دریافت خروجی JSON» when a complete import-compatible snapshot is
    needed; do not edit JSON and PostgreSQL independently.
 
@@ -134,6 +143,10 @@ candidate detector
 json_to_excel.py
     ↓
 human review in XLSX
+    ↓
+download_approved.py --dry-run
+    ↓
+download_approved.py --download --prepare-media
     ↓
 import_approved.py --dry-run
     ↓
@@ -191,15 +204,142 @@ Important rules:
    rather than be silently created.
 7. Existing `sourceUrl` values are reported as already existing instead of
    creating duplicates.
-8. Running `json_to_excel.py` regenerates the workbook from JSON and can erase
+8. Final content titles are checked against the catalog and the current approved
+   batch. A repeated title is kept safe by receiving the first free numeric
+   suffix, for example `سفر به گیلان 2`, then `سفر به گیلان 3`; no existing
+   content is overwritten.
+9. Running `json_to_excel.py` regenerates the workbook from JSON and can erase
    manual review edits, so reviewed XLSX files must be backed up before
    regeneration.
-9. `tools/instagram-travel-finder/output/`, captured `query.json`, and
+10. `tools/instagram-travel-finder/output/`, captured `query.json`, and
    `query.rtf` are local working artifacts and are not committed.
+
+### Approved Media Commands
+
+Use one profile name consistently through this four-step workflow. The following
+example uses `morteza.kowsari`.
+
+1. Crawl the profile and write/update its local JSON checkpoint output:
+
+```bash
+python3 tools/instagram-travel-finder/crawl_graphql.py morteza.kowsari
+```
+
+2. Convert the candidate JSON into the merge-safe review workbook:
+
+```bash
+python3 tools/instagram-travel-finder/json_to_excel.py morteza.kowsari
+```
+
+Pause here for human review. Correct the workbook and mark only ready rows as
+`approved`. Back up the reviewed XLSX before continuing.
+
+3. With the API running, an admin cookie exported in the current shell, and an
+authenticated `instagram.com` Chrome session, download approved media and
+prepare the final `travel-videos`/`hotel-videos` public paths. Install the
+browser-cookie reader once if needed:
+
+```bash
+python3 -m pip install browser-cookie3
+export HOTELYAB_ADMIN_COOKIE='hotel_yab_session=PASTE_VALUE_HERE'
+python3 tools/instagram-travel-finder/download_approved.py morteza.kowsari \
+  --download --prepare-media --load-cookies chrome
+```
+
+4. Validate the stable plan, then explicitly apply it to create the canonical
+content/media items and person/hotel/destination relationships through the
+Admin API:
+
+```bash
+python3 tools/instagram-travel-finder/import_approved.py morteza.kowsari --dry-run
+python3 tools/instagram-travel-finder/import_approved.py morteza.kowsari --apply
+unset HOTELYAB_ADMIN_COOKIE
+```
+
+Do not run `--apply` until dry-run completes without blocked or unresolved rows.
+On macOS, allow the Keychain prompt if it appears. The imported browser session
+is saved locally by Instaloader, so later downloads may reuse it with
+`--login jaryan.hotelyab`.
+
+### Stage-specific troubleshooting
+
+#### 1. Crawl and checkpoint
+
+- If Instagram requests login or a checkpoint, complete it in Chrome first and
+  rerun the crawl. Do not repeatedly submit a password in the terminal.
+- If crawling stops partway through, rerun the same profile command. Keep the
+  existing JSON/checkpoint files so the crawler can resume instead of starting
+  from zero.
+- If a post is private, deleted, or unavailable in the current region, verify
+  the original URL in the browser before deciding whether its workbook row can
+  remain approved.
+
+#### 2. JSON to review workbook
+
+- Never regenerate the XLSX over the only manually reviewed copy. Back up the
+  approved workbook before running `json_to_excel.py` again.
+- A missing or unresolved person, hotel, city, or province must be corrected in
+  the canonical catalog or workbook spelling; it must not be bypassed by
+  manually inventing an ID.
+- Keep one canonical row per Instagram post/story and use ordered media items;
+  do not split carousel slides into unrelated content records.
+
+#### 3. Download and media preparation
+
+- `403`, checkpoint, private, deleted, or region-restricted posts are recorded
+  in `<profile>.download-failures.json`. Fix only those rows and rerun; complete
+  `media.json` manifests are reused.
+- If Chrome cookies cannot be imported, log in to `instagram.com` in Chrome,
+  allow the macOS Keychain prompt, close extra Instagram login tabs, and rerun
+  with `--load-cookies chrome`.
+- If preparation reports `image file is truncated`, the MP4 may still be valid
+  while only its JPEG cover is incomplete. Rebuild that exact cover from the
+  local video, preserving the manifest filename, then rerun preparation:
+
+```bash
+ffmpeg -y -ss 00:00:00.5 \
+  -i tools/instagram-travel-finder/output/<profile>/media/<shortcode>/01.mp4 \
+  -frames:v 1 \
+  tools/instagram-travel-finder/output/<profile>/media/<shortcode>/01-thumbnail.jpg
+python3 tools/instagram-travel-finder/import_approved.py <profile> --prepare-media
+```
+
+- A rerun is resumable: items reported as `already downloaded`, `EXISTS`, or
+  already copied are not a reason to delete the whole output directory.
+
+#### 4. Dry-run and apply
+
+- `BLOCKED` means the row failed canonical validation. Read the reported row,
+  fix its unresolved catalog relation or workbook field, rebuild the stable
+  plan when needed, and rerun `--dry-run`.
+- If authentication fails, confirm the API is running and export a fresh
+  `HOTELYAB_ADMIN_COOKIE` in the same terminal session.
+- Never use `--apply` while any row is blocked. After a clean dry-run, apply once
+  and verify the created content plus its person/hotel/destination relations in
+  both PostgreSQL/API and the public page.
+
+If an individual Instagram post is deleted, private, or region-restricted, the
+downloader continues with the remaining approved rows and writes
+`<profile>.download-failures.json`. It skips final media preparation while any
+approved row is missing. Either retry from a connection where Instagram itself
+can display the post, or change that workbook row away from `approved`, then
+rerun. Successful per-post manifests are retained and are not downloaded again.
+
+The downloader first reuses complete crawler media metadata. Carousels missing
+child metadata and expired CDN links are refreshed from the shortcode. Raw files
+and their ordered `media.json` stay under
+`output/<username>/media/<shortcode>/`. `--prepare-media` then uses the reviewed
+hotel column to choose `hotel-videos` versus `travel-videos`, converts images and
+video covers to WebP, preserves all mixed POST/STORY items with `-01`, `-02`, ...
+suffixes, and creates a stable import plan. It does not write PostgreSQL; run the
+normal `import_approved.py --dry-run` and explicit `--apply` afterward.
+Because `--prepare-media` resolves canonical people, hotels, and destinations
+through the protected Catalog API, the API must be running and
+`HOTELYAB_ADMIN_COOKIE` must be set just like the existing importer workflow.
 
 The approved-row importer now supports the protected Admin Catalog apply path.
 The first production-reviewed batch successfully applied 32 approved travel/hotel
 videos. Future batches should keep the same order: back up the reviewed workbook,
-run dry-run, fix all blocked rows, ensure the required MP4/thumbnail media is
-provisioned, then run explicit apply and verify the resulting PostgreSQL/public
+run the download preview, download/prepare approved media, run importer dry-run,
+fix all blocked rows, then run explicit apply and verify the resulting PostgreSQL/public
 website records.

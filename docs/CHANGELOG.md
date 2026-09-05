@@ -6,6 +6,42 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
+- Replaced the hotel-detail page's standalone creator/video cards with the
+  shared Explore cover grid and full-screen viewer on desktop and mobile. Hotel
+  content now uses the same multi-item navigation, comments sheet, creator
+  resolution, and progressive 12-desktop/9-mobile batching as `/explore`.
+- Enabled full editing of existing catalog content for administrators and
+  moderators. The form now loads and saves titles, metadata, creator, status,
+  destination/hotel relationships, and ordered mixed-media items through a new
+  transactional `PATCH /admin/catalog/videos/:id` route while preserving the
+  canonical content ID and its comments.
+- Refined Highlight-style multi-item navigation with subdued background-free
+  edge arrows on desktop, no mobile arrows, desktop left/right keyboard and
+  side-click controls, and a mobile horizontal drag that exposes the adjacent
+  item continuously without changing vertical content navigation. Active
+  segments now fill from video time or a five-second image timer; holding the
+  center pauses timing/playback and hides overlays, while holding either video
+  edge temporarily plays at 2×. Approved imports now make duplicate titles safe
+  by appending the first available numeric suffix (`2`, `3`, ...). Expanded the
+  Commands PDF and workbook guide with stage-specific
+  recovery instructions, including rebuilding a truncated video thumbnail from
+  its already-downloaded MP4.
+- Added authenticated Instagram media refresh from an existing Chrome session,
+  avoiding terminal password/checkpoint loops and persisting a local Instaloader
+  session for later approved-media downloads. Per-post unavailable/restricted
+  failures now produce a resumable local report instead of aborting the whole
+  batch, while incomplete approved batches are prevented from media preparation.
+- Rebuilt the full 14-page Commands PDF with B Nazanin Persian body typography,
+  IranSansDN Bold headings, stable LTR code/URL rendering, and the ordered crawl,
+  JSON-to-XLSX, approved-media preparation, dry-run, and explicit apply workflow.
+- Added an approved-workbook Instagram media downloader with dry-run output,
+  automatic fallback to fresh Instaloader metadata, resumable local per-post
+  manifests, mixed image/video carousel support, and final preparation into the
+  correct travel/hotel public folder. Upgraded `import_approved.py` to emit
+  `contentKind` and ordered `mediaItems` while retaining legacy plan support.
+- Renamed the public Explore navigation and page label to «محتواها», allowed both posts and stories/highlights to contain any ordered mix of images and videos, and added per-item media-type selection to the admin catalog.
+- Unified destination search results across matching cities and provinces, enlarged and repositioned select chevrons across the interface, and reduced Explore batches to 12 desktop items and 9 mobile items to lower initial media load.
+- Added canonical `VIDEO`/`POST`/`STORY` content formats with ordered image/video media items, a backward-compatible database migration for all existing videos, full import/export/API plumbing, multi-item catalog authoring with path suggestions and reordering, and one Highlight-style viewer shared by Explore and destination/hotel/person pages.
 - Reduced authenticated sessions to an absolute 24-hour lifetime and enforced the same ceiling for previously issued sessions with longer stored expiries.
 - Accepted Persian and Arabic-Indic digits in Iranian mobile numbers and OTP codes across the authentication UI and API, including password login, OTP login, and registration.
 - Added a repeatable import-compatible catalog export command and documented the safe code/catalog/media production deployment workflow without replacing production user data.

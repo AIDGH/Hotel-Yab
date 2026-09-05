@@ -77,6 +77,10 @@ Publication
 
 A record should not automatically become public simply because it exists in the database.
 
+Instagram browser cookies and Instaloader sessions used by local ingestion tools
+are credentials. They must remain on the operator's machine, must not be copied
+into workbooks or import plans, and must never be committed to Git.
+
 ---
 
 ## Publication Status
@@ -193,15 +197,22 @@ Follower refresh policy:
 - repeating the applied collector in one UTC day upserts the same person's daily
   snapshot rather than creating duplicates.
 
-## Travel Videos
+## Travel Content
 
-Travel videos must retain `sourceUrl` for the original public post. A video is
-connected to a person only when `instagramUsername` exactly matches the
+Travel content must retain `sourceUrl` for the original public post. A content
+record is connected to a person only when `instagramUsername` exactly matches the
 normalized published `instagramHandle`; similar display names are not enough.
 
-Destination relationships use destination type and slug. One video may belong
+The canonical aggregate keeps an independent `contentKind`: `VIDEO` is exactly
+one video item, while `POST` and `STORY` each contain one or more ordered
+`IMAGE` or `VIDEO` items in any valid combination. Ordered files belong in
+`VideoMediaItem`; person and destination metadata must not be copied into
+those rows. Legacy primary media fields only mirror the first item for backward
+compatibility.
+
+Destination relationships use destination type and slug. One content record may belong
 to multiple destinations, and destination/person metadata must be resolved
-from their canonical records rather than copied into the video dataset.
+from their canonical records rather than copied into the content dataset.
 
 The current Instagram travel research pipeline intentionally separates
 collection from publication:
@@ -214,6 +225,10 @@ candidate detection
 local JSON/checkpoint
         ↓
 XLSX human review
+        ↓
+approved-only media download + ordered local manifest
+        ↓
+public media preparation
         ↓
 approved-row dry-run validation
         ↓
@@ -231,11 +246,20 @@ the intended media class to `/hotel-videos/...`; otherwise the media belongs
 under `/travel-videos/...`. Duplicate canonical `sourceUrl` values are skipped
 and reported rather than re-created.
 
-Destination and full video records are now canonical in PostgreSQL. New records
+Downloaded Instagram CDN URLs are transient research inputs and must never become
+canonical `sourceUrl` values. Raw approved media stays under
+`tools/instagram-travel-finder/output/<username>/media/<shortcode>/` with a local
+`media.json` manifest. Final files alone are provisioned under
+`apps/web/public/{travel-videos,hotel-videos}/<person-slug>/`. A `VIDEO` contains
+exactly one video item; `POST` and `STORY` retain every ordered image/video item
+under the same canonical content record.
+
+Destination and full content records are now canonical in PostgreSQL. New records
 created through `/admin/catalog` must keep the original public source URL,
 resolve an existing notable person by normalized Instagram handle, and connect
-only to existing destination/hotel IDs. The transition JSON files are import
-inputs or backups, not a second writable runtime source.
+only to existing destination/hotel IDs. Their ordered `mediaItems` must match
+`contentKind`; the transition JSON files are import inputs or backups, not a
+second writable runtime source.
 
 ## Destination Hotel Matching
 
@@ -362,8 +386,11 @@ expose a new public association. Video verification alone must not silently
 promote the association to `VERIFIED`; normal source review rules still apply.
 
 Destination duplicate checks use `(type, slug)` and type-scoped display order.
-Video duplicate checks use canonical ID and original `sourceUrl`; join-table
-primary keys prevent duplicate video–destination or video–hotel links.
+Video duplicate checks use canonical ID and original `sourceUrl`; the approved
+Instagram importer also compares normalized titles with both the current catalog
+and earlier ready rows in the same batch, assigning the first available numeric
+suffix instead of overwriting an existing title. Join-table primary keys prevent
+duplicate video–destination or video–hotel links.
 
 ---
 

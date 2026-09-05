@@ -32,6 +32,7 @@ const visibleAssociationWhere = {
 const personVideoSelect = {
   id: true,
   videoCategory: true,
+  contentKind: true,
   instagramUsername: true,
   platform: true,
   personCategory: true,
@@ -47,6 +48,15 @@ const personVideoSelect = {
   notes: true,
   mediaUrl: true,
   thumbnailUrl: true,
+  mediaItems: {
+    orderBy: { displayOrder: 'asc' },
+    select: {
+      displayOrder: true,
+      mediaType: true,
+      mediaUrl: true,
+      thumbnailUrl: true,
+    },
+  },
   publicationStatus: true,
   destinations: {
     select: {

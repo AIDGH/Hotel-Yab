@@ -45,6 +45,7 @@ async function main(): Promise<void> {
         prisma.video.findMany({
           orderBy: { id: 'asc' },
           include: {
+            mediaItems: { orderBy: { displayOrder: 'asc' } },
             destinations: { include: { destination: true } },
             hotels: { include: { hotel: { select: { slug: true } } } },
           },
@@ -123,6 +124,7 @@ async function main(): Promise<void> {
       videos: videos.map((video) => ({
         id: video.id,
         videoCategory: video.videoCategory,
+        contentKind: video.contentKind,
         instagramUsername: video.instagramUsername,
         platform: video.platform,
         personCategory: video.personCategory,
@@ -138,6 +140,11 @@ async function main(): Promise<void> {
         notes: video.notes,
         mediaUrl: video.mediaUrl,
         thumbnailUrl: video.thumbnailUrl,
+        mediaItems: video.mediaItems.map((item) => ({
+          mediaType: item.mediaType,
+          mediaUrl: item.mediaUrl,
+          thumbnailUrl: item.thumbnailUrl,
+        })),
         publicationStatus: video.publicationStatus,
         destinationRefs: video.destinations.map(({ destination }) => ({
           type: destination.type,

@@ -85,6 +85,17 @@ enum VideoCategory {
   HOTEL
 }
 
+enum ContentKind {
+  VIDEO
+  POST
+  STORY
+}
+
+enum ContentMediaType {
+  IMAGE
+  VIDEO
+}
+
 model Hotel {
   id                String             @id @default(uuid()) @db.Uuid
   slug              String             @unique @db.VarChar(160)
@@ -340,6 +351,7 @@ model HotelReview {
 model Video {
   id                 String             @id @db.VarChar(160)
   videoCategory      VideoCategory      @default(TRAVEL)
+  contentKind        ContentKind        @default(VIDEO)
   instagramUsername  String?            @db.VarChar(30)
   platform           String?            @db.VarChar(30)
   personCategory     String?            @db.VarChar(40)
@@ -357,6 +369,7 @@ model Video {
   thumbnailUrl       String?            @db.Text
   publicationStatus  PublicationStatus  @default(DRAFT)
   comments           VideoComment[]
+  mediaItems         VideoMediaItem[]
   destinations       VideoDestination[]
   hotels             VideoHotel[]
   createdAt          DateTime           @default(now()) @db.Timestamptz(3)
@@ -365,6 +378,19 @@ model Video {
   @@index([instagramUsername])
   @@index([videoCategory, publicationStatus])
   @@index([publicationStatus])
+}
+
+model VideoMediaItem {
+  videoId      String           @db.VarChar(160)
+  displayOrder Int
+  mediaType    ContentMediaType
+  mediaUrl     String           @db.Text
+  thumbnailUrl String?          @db.Text
+  video        Video            @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+
+  @@id([videoId, displayOrder])
+  @@index([mediaType])
 }
 
 model Destination {

@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 import type {
   ResolvedTravelDestination,
   TravelVideo,
@@ -12,10 +16,19 @@ type ExploreVideoItem = {
 };
 
 export function ExploreVideoList({ items }: { items: ExploreVideoItem[] }) {
-  return (
-    <>
-      <ExploreReels items={items} variant="desktop" />
-      <ExploreReels items={items} variant="mobile" />
-    </>
-  );
+  const [variant, setVariant] = useState<"desktop" | "mobile" | null>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 760px)");
+    const updateVariant = () =>
+      setVariant(media.matches ? "mobile" : "desktop");
+
+    updateVariant();
+    media.addEventListener("change", updateVariant);
+    return () => media.removeEventListener("change", updateVariant);
+  }, []);
+
+  if (!variant) return null;
+
+  return <ExploreReels items={items} variant={variant} key={variant} />;
 }

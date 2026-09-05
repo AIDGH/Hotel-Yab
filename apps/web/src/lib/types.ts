@@ -125,6 +125,7 @@ export type Destination = {
 export type TravelVideo = {
   id: string;
   videoCategory: "TRAVEL" | "HOTEL";
+  contentKind: "VIDEO" | "POST" | "STORY";
   instagramUsername: string;
   platform: string;
   personCategory: string | null;
@@ -140,6 +141,12 @@ export type TravelVideo = {
   notes: string | null;
   mediaUrl: string;
   thumbnailUrl: string;
+  mediaItems: Array<{
+    displayOrder: number;
+    mediaType: "IMAGE" | "VIDEO";
+    mediaUrl: string;
+    thumbnailUrl: string | null;
+  }>;
   publicationStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   destinations: Destination[];
   hotels: Array<{ id: string; slug: string; name: string }>;

@@ -1,6 +1,8 @@
 import Joi from 'joi';
 import {
   AssociationType,
+  ContentKind,
+  ContentMediaType,
   DestinationType,
   NotablePersonCategory,
   PublicationStatus,
@@ -74,6 +76,7 @@ export type AssociationImportRecord = {
 export type VideoImportRecord = {
   id: string;
   videoCategory?: VideoCategory;
+  contentKind?: ContentKind;
   instagramUsername?: string | null;
   platform?: string | null;
   personCategory?: string | null;
@@ -89,6 +92,11 @@ export type VideoImportRecord = {
   notes?: string | null;
   mediaUrl?: string | null;
   thumbnailUrl?: string | null;
+  mediaItems?: Array<{
+    mediaType: ContentMediaType;
+    mediaUrl: string;
+    thumbnailUrl?: string | null;
+  }>;
   publicationStatus?: PublicationStatus;
   destinationRefs?: Array<{ type: DestinationType; slug: string }>;
   hotelSlugs?: string[];
@@ -279,6 +287,7 @@ const datasetSchema = Joi.object<ImportDataset>({
       Joi.object<VideoImportRecord>({
         id: Joi.string().trim().min(1).max(160).required(),
         videoCategory: Joi.string().valid(...Object.values(VideoCategory)),
+        contentKind: Joi.string().valid(...Object.values(ContentKind)),
         instagramUsername: Joi.string()
           .trim()
           .pattern(/^[A-Za-z0-9._]+$/)
@@ -300,6 +309,20 @@ const datasetSchema = Joi.object<ImportDataset>({
         notes: optionalText,
         mediaUrl: optionalMediaPath,
         thumbnailUrl: optionalMediaPath,
+        mediaItems: Joi.array()
+          .items(
+            Joi.object({
+              mediaType: Joi.string()
+                .valid(...Object.values(ContentMediaType))
+                .required(),
+              mediaUrl: Joi.string()
+                .trim()
+                .pattern(/^(?:\/(?!\/)\S*|https?:\/\/\S+)$/i)
+                .required(),
+              thumbnailUrl: optionalMediaPath,
+            }).unknown(false),
+          )
+          .min(1),
         publicationStatus: Joi.string().valid(
           ...Object.values(PublicationStatus),
         ),
@@ -365,6 +388,23 @@ function validateReferences(dataset: ImportDataset): void {
   }
 
   for (const video of dataset.videos) {
+    const contentKind = video.contentKind ?? ContentKind.VIDEO;
+    const mediaItems = video.mediaItems ?? [];
+    if (video.contentKind && mediaItems.length === 0) {
+      throw new Error(
+        `Content "${video.id}" requires at least one ordered media item`,
+      );
+    }
+    if (
+      mediaItems.length > 0 &&
+      contentKind === ContentKind.VIDEO &&
+      (mediaItems.length !== 1 ||
+        mediaItems[0].mediaType !== ContentMediaType.VIDEO)
+    ) {
+      throw new Error(
+        `Content "${video.id}" of kind VIDEO requires exactly one video item`,
+      );
+    }
     if (
       video.instagramUsername &&
       !personInstagramHandles.has(video.instagramUsername.toLowerCase())

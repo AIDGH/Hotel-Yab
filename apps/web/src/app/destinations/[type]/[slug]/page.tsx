@@ -122,7 +122,7 @@ export default async function DestinationPage({
         <div className="results-header">
           <div>
             <span className="section-eyebrow">
-              ویدیوهای سفر
+              روایت‌های سفر
             </span>
 
             <h2>
@@ -152,6 +152,8 @@ export default async function DestinationPage({
                   thumbnailUrl={video.thumbnailUrl}
                   sourceUrl={video.sourceUrl}
                   instagramUsername={video.instagramUsername}
+                  contentKind={video.contentKind}
+                  mediaItems={video.mediaItems}
                 />
               </div>
             ))}
@@ -159,8 +161,8 @@ export default async function DestinationPage({
         ) : (
           <EmptyState
             kind="empty"
-            title="هنوز ویدیوی سفری ثبت نشده است"
-            description={`به‌زودی ویدیوهای مربوط به ${destination.name} در این صفحه نمایش داده می‌شوند.`}
+            title="هنوز محتوای سفری ثبت نشده است"
+            description={`به‌زودی محتواهای مربوط به ${destination.name} در این صفحه نمایش داده می‌شوند.`}
           />
         )}
       </section>

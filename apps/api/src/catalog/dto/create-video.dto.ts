@@ -1,4 +1,5 @@
 import {
+  ArrayMinSize,
   IsArray,
   IsEnum,
   IsOptional,
@@ -8,8 +9,12 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import {
+  ContentKind,
+  ContentMediaType,
   PublicationStatus,
   VideoCategory,
   VerificationStatus,
@@ -21,9 +26,17 @@ import {
   NormalizeInstagram,
 } from './catalog-fields';
 
+export class ContentMediaItemDto {
+  @IsEnum(ContentMediaType) mediaType!: ContentMediaType;
+  @Matches(mediaPathPattern) mediaUrl!: string;
+  @IsOptional() @EmptyToNull() @Matches(mediaPathPattern) thumbnailUrl?:
+    string | null;
+}
+
 export class CreateVideoDto {
   @IsString() @MinLength(1) @MaxLength(160) id!: string;
   @IsEnum(VideoCategory) videoCategory!: VideoCategory;
+  @IsOptional() @IsEnum(ContentKind) contentKind?: ContentKind;
   @NormalizeInstagram()
   @Matches(instagramPattern)
   @MaxLength(30)
@@ -45,6 +58,12 @@ export class CreateVideoDto {
   @IsOptional() @EmptyToNull() @IsString() notes?: string | null;
   @Matches(mediaPathPattern) mediaUrl!: string;
   @Matches(mediaPathPattern) thumbnailUrl!: string;
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => ContentMediaItemDto)
+  mediaItems?: ContentMediaItemDto[];
   @IsEnum(PublicationStatus) publicationStatus!: PublicationStatus;
   @IsArray()
   @IsUUID(undefined, { each: true })

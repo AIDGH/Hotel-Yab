@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
 import { EntityLibraryActions } from "@/components/entity-library-actions";
+import { ExploreVideoList } from "@/components/explore-video-list";
 import { HotelLogo } from "@/components/hotel-logo";
 import { HotelReviews } from "@/components/hotel-reviews";
 import { HotelStars } from "@/components/hotel-stars";
@@ -10,11 +11,8 @@ import { MediaTile } from "@/components/media-tile";
 import { PersonDisplayName } from "@/components/person-display-name";
 import { PersonInstagramHandle } from "@/components/person-instagram-handle";
 import { compactPersonOccupation } from "@/components/person-occupation";
-import { ProgressiveVideoList } from "@/components/progressive-video-list";
-import { TravelVideoCard } from "@/components/travel-video-card";
-import { TravelVideoPersonCard } from "@/components/travel-video-person-card";
 import { SiteIcon } from "@/components/site-icon";
-import { getHotel } from "@/lib/api";
+import { getHotel, getNotablePersonByInstagramUsername } from "@/lib/api";
 import {
   categoryLabel,
   formatFollowerCount,
@@ -57,14 +55,28 @@ export default async function HotelPage({ params }: HotelPageProps) {
   }
 
   const hotel = result.value.data;
-  const peopleByInstagramHandle = new Map(
-    hotel.associations.flatMap((association) => {
-      const handle = normalizeInstagramHandle(
-        association.notablePerson.instagramHandle,
-      );
-      return handle ? [[handle, association.notablePerson] as const] : [];
-    }),
+  const videoHandles = [
+    ...new Set(
+      hotel.videos
+        .map((video) => normalizeInstagramHandle(video.instagramUsername))
+        .filter(Boolean),
+    ),
+  ];
+  const videoPeople = await Promise.all(
+    videoHandles.map(async (handle) => [
+      handle,
+      await getNotablePersonByInstagramUsername(handle),
+    ] as const),
   );
+  const peopleByInstagramHandle = new Map(videoPeople);
+  const hotelExploreItems = hotel.videos.map(({ id, ...video }) => ({
+    video: { ...video, videoId: id },
+    destinations: [],
+    person:
+      peopleByInstagramHandle.get(
+        normalizeInstagramHandle(video.instagramUsername),
+      ) ?? null,
+  }));
   const videoCreatorHandles = new Set(
     hotel.videos.map((video) =>
       normalizeInstagramHandle(video.instagramUsername),
@@ -164,42 +176,16 @@ export default async function HotelPage({ params }: HotelPageProps) {
         </div>
       </section>
 
-      {hotel.videos.length > 0 ? (
-        <section className="section section-tint">
-          <div className="container">
-            <div className="results-header">
-              <div>
-                <span className="section-eyebrow">معرفی ویدیویی</span>
-                <h2>ویدیوهای {hotel.name}</h2>
-              </div>
-              <span>{hotel.videos.length.toLocaleString("fa-IR")} ویدیو</span>
+      {hotelExploreItems.length > 0 ? (
+        <section className="section container listing-results explore-results">
+          <div className="results-header">
+            <div>
+              <span className="section-eyebrow">محتوای معرفی</span>
+              <h2>روایت‌های {hotel.name}</h2>
             </div>
-            <ProgressiveVideoList className="hotel-video-list" key={hotel.slug}>
-              {hotel.videos.map((video) => {
-                const normalizedHandle = normalizeInstagramHandle(
-                  video.instagramUsername,
-                );
-                return (
-                  <div className="hotel-video-item" key={video.id}>
-                    <TravelVideoPersonCard
-                      instagramUsername={video.instagramUsername}
-                      person={
-                        peopleByInstagramHandle.get(normalizedHandle) ?? null
-                      }
-                    />
-                    <TravelVideoCard
-                      videoId={video.id}
-                      title={video.title}
-                      mediaUrl={video.mediaUrl}
-                      thumbnailUrl={video.thumbnailUrl}
-                      sourceUrl={video.sourceUrl}
-                      instagramUsername={video.instagramUsername}
-                    />
-                  </div>
-                );
-              })}
-            </ProgressiveVideoList>
+            <span>{hotelExploreItems.length.toLocaleString("fa-IR")} محتوا</span>
           </div>
+          <ExploreVideoList items={hotelExploreItems} key={hotel.slug} />
         </section>
       ) : null}
 

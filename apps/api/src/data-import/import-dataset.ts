@@ -1,5 +1,6 @@
 import { PrismaClient } from '../generated/prisma/client';
 import {
+  ContentMediaType,
   DestinationType,
   PublicationStatus,
   VerificationStatus,
@@ -168,9 +169,13 @@ export async function importDataset(
     }
 
     for (const video of dataset.videos) {
+      const primaryMedia = video.mediaItems?.[0];
       const videoData = {
         ...(video.videoCategory !== undefined
           ? { videoCategory: video.videoCategory }
+          : {}),
+        ...(video.contentKind !== undefined
+          ? { contentKind: video.contentKind }
           : {}),
         ...(video.instagramUsername !== undefined
           ? { instagramUsername: video.instagramUsername }
@@ -205,10 +210,18 @@ export async function importDataset(
           ? { verificationStatus: video.verificationStatus }
           : {}),
         ...(video.notes !== undefined ? { notes: video.notes } : {}),
-        ...(video.mediaUrl !== undefined ? { mediaUrl: video.mediaUrl } : {}),
-        ...(video.thumbnailUrl !== undefined
-          ? { thumbnailUrl: video.thumbnailUrl }
-          : {}),
+        ...(primaryMedia
+          ? { mediaUrl: primaryMedia.mediaUrl }
+          : video.mediaUrl !== undefined
+            ? { mediaUrl: video.mediaUrl }
+            : {}),
+        ...(primaryMedia
+          ? {
+              thumbnailUrl: primaryMedia.thumbnailUrl ?? primaryMedia.mediaUrl,
+            }
+          : video.thumbnailUrl !== undefined
+            ? { thumbnailUrl: video.thumbnailUrl }
+            : {}),
         ...(video.publicationStatus !== undefined
           ? { publicationStatus: video.publicationStatus }
           : {}),
@@ -218,6 +231,38 @@ export async function importDataset(
         update: videoData,
         create: { id: video.id, ...videoData },
       });
+
+      if (video.mediaItems !== undefined) {
+        await transaction.videoMediaItem.deleteMany({
+          where: { videoId: video.id },
+        });
+        await transaction.videoMediaItem.createMany({
+          data: video.mediaItems.map((item, index) => ({
+            videoId: video.id,
+            displayOrder: index + 1,
+            mediaType: item.mediaType,
+            mediaUrl: item.mediaUrl,
+            thumbnailUrl: item.thumbnailUrl ?? null,
+          })),
+        });
+      } else if (video.mediaUrl) {
+        await transaction.videoMediaItem.upsert({
+          where: {
+            videoId_displayOrder: { videoId: video.id, displayOrder: 1 },
+          },
+          update: {
+            mediaUrl: video.mediaUrl,
+            thumbnailUrl: video.thumbnailUrl ?? null,
+          },
+          create: {
+            videoId: video.id,
+            displayOrder: 1,
+            mediaType: ContentMediaType.VIDEO,
+            mediaUrl: video.mediaUrl,
+            thumbnailUrl: video.thumbnailUrl ?? null,
+          },
+        });
+      }
 
       if (video.destinationRefs !== undefined) {
         await transaction.videoDestination.deleteMany({

@@ -171,6 +171,8 @@ export default async function PersonPage({ params }: PersonPageProps) {
                           thumbnailUrl={video.thumbnailUrl}
                           sourceUrl={video.sourceUrl}
                           instagramUsername={video.instagramUsername}
+                          contentKind={video.contentKind}
+                          mediaItems={video.mediaItems}
                         />
                       ))}
                     </ProgressiveVideoList>
@@ -190,10 +192,10 @@ export default async function PersonPage({ params }: PersonPageProps) {
       <section className="section container person-video-section">
         <div className="results-header">
           <div>
-            <span className="section-eyebrow">ویدیوهای این چهره</span>
+            <span className="section-eyebrow">محتواهای این چهره</span>
             <h2>سفرها و مقصدها</h2>
           </div>
-          <span>{travelVideos.length.toLocaleString("fa-IR")} ویدیو</span>
+          <span>{travelVideos.length.toLocaleString("fa-IR")} محتوا</span>
         </div>
 
         <ProgressiveVideoList
@@ -209,6 +211,8 @@ export default async function PersonPage({ params }: PersonPageProps) {
                   thumbnailUrl={video.thumbnailUrl}
                   sourceUrl={video.sourceUrl}
                   instagramUsername={video.instagramUsername}
+                  contentKind={video.contentKind}
+                  mediaItems={video.mediaItems}
                 />
                 <VideoDestinationLinks
                   destinations={video.destinations.map((destination) => {

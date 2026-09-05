@@ -621,6 +621,12 @@ def save_matches(
                         "thumbnail_height"
                     )
                 ),
+                "media_items": (
+                    post.get(
+                        "media_items",
+                        [],
+                    )
+                ),
                 "thumbnail_local_path": (
                     local_thumbnail
                 ),

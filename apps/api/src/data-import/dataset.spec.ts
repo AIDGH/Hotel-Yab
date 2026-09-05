@@ -200,10 +200,21 @@ describe('validateDataset', () => {
         {
           id: 'example.person-001',
           videoCategory: 'TRAVEL',
+          contentKind: 'POST',
           instagramUsername: 'example.person',
           sourceUrl: 'https://www.instagram.com/p/example/',
           mediaUrl: '/travel-videos/example.person/001.mp4',
           thumbnailUrl: '/travel-videos/example.person/001-thumbnail.webp',
+          mediaItems: [
+            {
+              mediaType: 'IMAGE',
+              mediaUrl: '/travel-videos/example-person/001-01.webp',
+            },
+            {
+              mediaType: 'IMAGE',
+              mediaUrl: '/travel-videos/example-person/001-02.webp',
+            },
+          ],
           destinationRefs: [{ type: 'CITY', slug: 'example-city' }],
           hotelSlugs: ['example-hotel'],
         },
@@ -216,10 +227,59 @@ describe('validateDataset', () => {
         {
           id: 'example.person-001',
           videoCategory: 'TRAVEL',
+          contentKind: 'POST',
+          mediaItems: [{ mediaType: 'IMAGE' }, { mediaType: 'IMAGE' }],
           destinationRefs: [{ type: 'CITY', slug: 'example-city' }],
           hotelSlugs: ['example-hotel'],
         },
       ],
     });
+  });
+
+  it('accepts mixed image and video items in posts and stories', () => {
+    const dataset = structuredClone(validDataset);
+    Object.assign(dataset, {
+      videos: [
+        {
+          id: 'mixed-post',
+          contentKind: 'POST',
+          mediaItems: [
+            {
+              mediaType: 'IMAGE',
+              mediaUrl: '/travel-videos/example-person/mixed-01.webp',
+            },
+            {
+              mediaType: 'VIDEO',
+              mediaUrl: '/travel-videos/example-person/mixed-02.mp4',
+            },
+          ],
+        },
+        {
+          id: 'mixed-story',
+          contentKind: 'STORY',
+          mediaItems: [
+            {
+              mediaType: 'VIDEO',
+              mediaUrl: '/travel-videos/example-person/story-01.mp4',
+            },
+            {
+              mediaType: 'IMAGE',
+              mediaUrl: '/travel-videos/example-person/story-02.webp',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(validateDataset(dataset).videos).toMatchObject([
+      {
+        id: 'mixed-post',
+        mediaItems: [{ mediaType: 'IMAGE' }, { mediaType: 'VIDEO' }],
+      },
+      {
+        id: 'mixed-story',
+        mediaItems: [{ mediaType: 'VIDEO' }, { mediaType: 'IMAGE' }],
+      },
+    ]);
   });
 });

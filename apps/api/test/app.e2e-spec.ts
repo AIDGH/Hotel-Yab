@@ -178,6 +178,14 @@ describe('Hotel-Yab API (e2e)', () => {
         mediaUrl: '/travel-videos/e2e/001.mp4',
         thumbnailUrl: '/travel-videos/e2e/001-thumbnail.webp',
         publicationStatus: PublicationStatus.PUBLISHED,
+        mediaItems: {
+          create: {
+            displayOrder: 1,
+            mediaType: 'VIDEO',
+            mediaUrl: '/travel-videos/e2e/001.mp4',
+            thumbnailUrl: '/travel-videos/e2e/001-thumbnail.webp',
+          },
+        },
         hotels: { create: { hotelId: visibleHotel.id } },
       },
     });
@@ -444,6 +452,7 @@ describe('Hotel-Yab API (e2e)', () => {
             {
               id: fixtureVideoId,
               videoCategory: 'TRAVEL',
+              contentKind: 'VIDEO',
               instagramUsername: 'e2e_visible_athlete',
               platform: 'INSTAGRAM',
               personCategory: null,
@@ -459,6 +468,14 @@ describe('Hotel-Yab API (e2e)', () => {
               notes: null,
               mediaUrl: '/travel-videos/e2e/001.mp4',
               thumbnailUrl: '/travel-videos/e2e/001-thumbnail.webp',
+              mediaItems: [
+                {
+                  displayOrder: 1,
+                  mediaType: 'VIDEO',
+                  mediaUrl: '/travel-videos/e2e/001.mp4',
+                  thumbnailUrl: '/travel-videos/e2e/001-thumbnail.webp',
+                },
+              ],
               publicationStatus: 'PUBLISHED',
             },
           ],
