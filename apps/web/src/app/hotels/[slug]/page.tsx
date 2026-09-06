@@ -181,7 +181,7 @@ export default async function HotelPage({ params }: HotelPageProps) {
           <div className="results-header">
             <div>
               <span className="section-eyebrow">محتوای معرفی</span>
-              <h2>روایت‌های {hotel.name}</h2>
+              <h2>محتواهای {hotel.name}</h2>
             </div>
             <span>{hotelExploreItems.length.toLocaleString("fa-IR")} محتوا</span>
           </div>

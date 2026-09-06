@@ -254,6 +254,22 @@ canonical `sourceUrl` values. Raw approved media stays under
 exactly one video item; `POST` and `STORY` retain every ordered image/video item
 under the same canonical content record.
 
+Direct Highlight ingestion preserves one Highlight as one `STORY` aggregate.
+For hotel content, final filenames use
+`<hotel-slug>-<content-index>-<item-index>`; travel Highlight filenames omit the
+hotel slug. Images are normalized to WebP, videos remain MP4, video covers are
+WebP, and a local manifest prevents an interrupted retry from overwriting an
+unrelated existing target.
+The corresponding Highlight importer must resolve the manifest person and hotel
+against the canonical Admin Catalog, require explicit destination references for
+travel content, validate every local media file, and require an explicit final
+title. Database writes happen only with `--apply`; a prior `--dry-run` is the
+normal workflow.
+Curators may remove an unwanted Highlight item by deleting its downloaded media
+before import. Missing items are omitted, filename gaps are preserved, and the
+surviving items receive a contiguous database display order. At least one complete
+media item must remain; a video whose cover alone is missing is also omitted.
+
 Destination and full content records are now canonical in PostgreSQL. New records
 created through `/admin/catalog` must keep the original public source URL,
 resolve an existing notable person by normalized Instagram handle, and connect

@@ -261,6 +261,70 @@ On macOS, allow the Keychain prompt if it appears. The imported browser session
 is saved locally by Instaloader, so later downloads may reuse it with
 `--login jaryan.hotelyab`.
 
+### Direct Highlight Downloads
+
+Direct Highlight links can be downloaded outside the timeline workbook while
+retaining their ordered image/video items. Each supplied URL receives one
+content index, starting at `--start-index`. Images are converted to WebP;
+videos remain MP4 and receive a WebP thumbnail.
+
+Hotel Highlight example (two URLs become content indexes `004` and `005`):
+
+```bash
+python3 tools/instagram-travel-finder/download_highlights.py \
+  'https://www.instagram.com/stories/highlights/HIGHLIGHT_ID_1/' \
+  'https://www.instagram.com/stories/highlights/HIGHLIGHT_ID_2/' \
+  --category hotel \
+  --person-slug PERSON_SLUG \
+  --hotel-slug HOTEL_SLUG \
+  --start-index 4 \
+  --load-cookies chrome
+```
+
+Travel Highlight example (no hotel slug is accepted):
+
+```bash
+python3 tools/instagram-travel-finder/download_highlights.py \
+  'https://www.instagram.com/stories/highlights/HIGHLIGHT_ID/' \
+  --category travel \
+  --person-slug PERSON_SLUG \
+  --start-index 1 \
+  --load-cookies chrome
+```
+
+Hotel filenames use
+`/hotel-videos/<person-slug>/<hotel-slug>-<content-index>-<item-index>`;
+travel filenames omit the hotel slug. A local resume manifest is written under
+`tools/instagram-travel-finder/output/highlights/<person-slug>/`. On later runs,
+`--login <saved-instagram-account>` may replace `--load-cookies chrome`.
+
+Import one completed Highlight as one ordered mixed-media content record through
+the Admin API. Preview first, then repeat with `--apply`:
+
+```bash
+export HOTELYAB_ADMIN_COOKIE='hotel_yab_session=PASTE_VALUE_HERE'
+python3 tools/instagram-travel-finder/import_highlight.py \
+  tools/instagram-travel-finder/output/highlights/PERSON_SLUG/hotel-004.json \
+  --title 'FINAL_TITLE' \
+  --dry-run
+python3 tools/instagram-travel-finder/import_highlight.py \
+  tools/instagram-travel-finder/output/highlights/PERSON_SLUG/hotel-004.json \
+  --title 'FINAL_TITLE' \
+  --apply
+```
+
+Hotel manifests resolve their hotel and use its name as the default place name.
+Travel manifests require at least one explicit destination, repeated as needed:
+`--destination CITY:mashhad --destination PROVINCE:razavi-khorasan`. Optional
+metadata can be supplied with `--place-name`, `--place-type`,
+`--caption-summary`, and `--notes`.
+
+To curate a downloaded Highlight before import, delete the main MP4 or WebP files
+that should not appear, then run `--dry-run`. The importer reports and skips those
+items; filenames do not need to be renumbered when gaps remain. Do not rerun the
+Highlight downloader after this manual curation, because a downloader retry will
+restore files that are missing from its ready manifest.
+
 ### Stage-specific troubleshooting
 
 #### 1. Crawl and checkpoint

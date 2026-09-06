@@ -50,6 +50,8 @@ Hotel-Yab/
 │   └── api/        # Backend API
 ├── tools/
 │   ├── instagram-travel-finder/
+│   │   ├── download_highlights.py # Direct ordered Highlight media downloader
+│   │   ├── import_highlight.py # Validated Highlight manifest to Admin API importer
 │   └── instagram-follower-tracker/
 ├── docs/           # Project documentation
 ├── PROJECT_CONTEXT.md

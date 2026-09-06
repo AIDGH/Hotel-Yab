@@ -6,6 +6,16 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
+- Added a resumable authenticated Instagram Highlight downloader that accepts
+  multiple direct Highlight URLs, preserves their ordered mixed media, converts
+  images and video covers to WebP, keeps videos as MP4, and writes directly to
+  stable hotel/travel public paths with collision-safe local manifests.
+- Added an explicit dry-run/apply Highlight manifest importer that resolves
+  canonical people, hotels, and destinations and creates one ordered mixed-media
+  content record through the protected Admin Catalog API.
+- Allowed Highlight curators to delete unwanted downloaded items before import;
+  missing media is skipped while the surviving non-contiguous filenames retain
+  their original relative order in a contiguous database display sequence.
 - Kept the user's mute choice across vertical content navigation in the shared
   Explore viewer, so unmuting one item no longer mutes the next item again.
 - Allowed separate content records to reuse the same original source URL while

@@ -513,6 +513,21 @@ explicit --apply
 Admin API / PostgreSQL
 ```
 
+لینک‌های مستقیم Highlight خارج از workbook با
+`tools/instagram-travel-finder/download_highlights.py` دریافت می‌شوند. هر
+Highlight یک محتوای `STORY` است و تمام عکس/ویدیوهای آن به‌ترتیب در مسیر پایدار
+`/travel-videos/<person-slug>/<content-index>-<item-index>` یا
+`/hotel-videos/<person-slug>/<hotel-slug>-<content-index>-<item-index>` قرار
+می‌گیرند؛ تصاویر به WebP تبدیل می‌شوند و برای ویدیوها کاور WebP نیز نگهداری
+می‌شود. manifest قابل‌ادامه آن در خروجی محلی ابزار باقی می‌ماند.
+پس از دانلود، `tools/instagram-travel-finder/import_highlight.py` همان manifest
+را اعتبارسنجی می‌کند و با عنوان نهایی صریح، هر Highlight را به‌صورت یک محتوای
+چندرسانه‌ای مرتب از مسیر Admin Catalog API وارد PostgreSQL می‌کند. اجرای
+`--dry-run` پیش‌نیاز بررسی است و فقط `--apply` داده را می‌نویسد.
+در مرحله بازبینی محلی می‌توان آیتم‌های نامناسب یک Highlight را با حذف فایل
+اصلی‌شان کنار گذاشت؛ importer مسیرهای باقی‌مانده را بدون نیاز به شماره‌گذاری
+مجدد می‌پذیرد و ترتیب نمایشی پیوسته را هنگام ثبت در دیتابیس می‌سازد.
+
 فایل‌های اصلی:
 
 ```text
@@ -521,6 +536,8 @@ tools/instagram-travel-finder/crawl_graphql.py
 tools/instagram-travel-finder/detector.py
 tools/instagram-travel-finder/json_to_excel.py
 tools/instagram-travel-finder/download_approved.py
+tools/instagram-travel-finder/download_highlights.py
+tools/instagram-travel-finder/import_highlight.py
 tools/instagram-travel-finder/import_approved.py
 ```
 
