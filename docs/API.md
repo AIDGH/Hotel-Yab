@@ -562,9 +562,10 @@ endpoint; the final active administrator still cannot be blocked.
 Updates username, first/last name, email, Instagram handle, and status. An
 `ADMIN` managing a non-admin account may also switch between `USER` and
 `MODERATOR`. A moderator may update administrator profile/status fields but
-cannot change the administrator role. Staff cannot change their own account
-here, and the final active administrator cannot be blocked. Blocking revokes
-active sessions.
+cannot change the administrator role. The role field of every existing
+`ADMIN` account is immutable through this endpoint, regardless of the caller's
+staff role. Staff cannot change their own account here, and the final active
+administrator cannot be blocked. Blocking revokes active sessions.
 
 ---
 
@@ -696,6 +697,62 @@ from contribution moderation deletion.
 Returns a JSON snapshot containing `hotels`, `notablePeople`, `sources`,
 `associations`, `destinations`, and enriched `videos` in the extended validated
 import shape.
+
+## GET /admin/crawl-reviews/bootstrap
+
+Returns canonical destination/hotel options plus review batches and their
+pending/approved/rejected counts. Requires `ADMIN` or `MODERATOR`.
+
+## POST /admin/crawl-reviews/upload
+
+Accepts multipart field `file` containing one crawler JSON array (maximum 25 MB
+and 2,000 candidates). It creates one PostgreSQL review batch, rejects exact
+duplicate uploads by content hash, resolves known destination/hotel hints, and
+keeps the original candidate payload internal.
+
+## GET /admin/crawl-reviews/:id
+
+Returns a paginated batch detail. Query parameters are `page` and `pageSize`;
+the admin UI uses 12 rows per page.
+
+## PATCH /admin/crawl-reviews/items/:id
+
+Stores one explicit review decision plus optional `hotelId`/`hotelName`, arrays
+of canonical `cityIds` and `provinceIds`, and `finalTitle`. `APPROVED` requires a
+non-empty title and at least one province. Changing a reviewed row back to
+`PENDING` returns its batch to `REVIEWING`; moving a fully decided batch to
+`READY` remains an explicit finish action.
+
+## POST /admin/crawl-reviews/:id/finish-review
+
+Explicitly moves a fully decided `REVIEWING` batch to `READY`. It rejects any
+batch that still contains pending rows.
+
+## GET /admin/crawl-reviews/:id/export
+
+Returns `kind: "hotel-yab-crawl-review"` JSON containing reviewed rows with the
+Persian logical headers expected by `download_approved.py` and
+`import_approved.py`, plus original crawler candidates for media lookup.
+
+## POST /admin/crawl-reviews/:id/complete
+
+Marks a `READY` batch as `COMPLETED` after local download/import processing.
+
+## POST /admin/crawl-reviews/:id/process
+
+Starts the approved-media downloader, media preparation, import dry-run, and
+final API apply as one sequential background job. Only an authenticated
+`MODERATOR` may start this operation; an `ADMIN` may still review and export the
+batch manually. The endpoint returns `202 Accepted`, prevents parallel jobs,
+and requires the server-side crawl-processing configuration and a saved
+Instaloader session. Progress, terminal output, failure, and completion are
+reported through the normal batch detail endpoint. A successful job marks the
+batch `COMPLETED`; a failed job remains `READY` and can be retried.
+
+## DELETE /admin/crawl-reviews/:id
+
+Deletes an internal review batch and its rows. It does not delete already
+imported canonical videos or local media.
 
 ---
 

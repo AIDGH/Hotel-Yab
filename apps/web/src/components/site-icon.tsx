@@ -8,6 +8,7 @@ export type SiteIconName =
   | "administrator"
   | "moderation"
   | "catalog"
+  | "review-table"
   | "profile"
   | "logout"
   | "chevron-down"
@@ -68,7 +69,9 @@ const icons: Record<SiteIconName, ReactNode> = {
       <path d="M4 4v5h5M12 7.5V12l3 1.8" />
     </>
   ),
-  heart: <path d="M20.8 5.9c-1.8-1.9-4.8-1.9-6.7 0L12 8l-2.1-2.1a4.7 4.7 0 0 0-6.7 6.7L12 21l8.8-8.4a4.7 4.7 0 0 0 0-6.7Z" />,
+  heart: (
+    <path d="M20.8 5.9c-1.8-1.9-4.8-1.9-6.7 0L12 8l-2.1-2.1a4.7 4.7 0 0 0-6.7 6.7L12 21l8.8-8.4a4.7 4.7 0 0 0 0-6.7Z" />
+  ),
   users: (
     <>
       <circle cx="9" cy="8" r="3" />
@@ -92,6 +95,13 @@ const icons: Record<SiteIconName, ReactNode> = {
     <>
       <ellipse cx="12" cy="5.5" rx="7.5" ry="3" />
       <path d="M4.5 5.5v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6M4.5 11.5v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6" />
+    </>
+  ),
+  "review-table": (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2.5" />
+      <path d="M3 9h18M8 9v11M13.5 9v11M8 14h10.5" />
+      <path d="m15.5 6.4 1.1 1.1 2-2" />
     </>
   ),
   profile: (
@@ -170,7 +180,9 @@ const icons: Record<SiteIconName, ReactNode> = {
   "arrow-left": <path d="M19 12H5M10 7l-5 5 5 5" />,
   fullscreen: <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" />,
   "fullscreen-exit": <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5" />,
-  comment: <path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 9.5 9.5 0 0 1-3.4-.7L4 20l1.5-4A7.6 7.6 0 1 1 20 11.5Z" />,
+  comment: (
+    <path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 9.5 9.5 0 0 1-3.4-.7L4 20l1.5-4A7.6 7.6 0 1 1 20 11.5Z" />
+  ),
   volume: (
     <>
       <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" />

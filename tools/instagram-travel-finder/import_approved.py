@@ -574,6 +574,11 @@ def allocate_unique_video_title(
 def load_excel_rows(
     path: Path,
 ):
+    if path.suffix.lower() == ".json":
+        return load_review_export_rows(
+            path
+        )
+
     workbook = load_workbook(
         path,
         data_only=True,
@@ -659,6 +664,86 @@ def load_excel_rows(
         rows.append(row)
 
     return rows
+
+
+def load_review_export_rows(
+    path: Path,
+):
+    payload = json.loads(
+        path.read_text(
+            encoding="utf-8"
+        )
+    )
+
+    if (
+        not isinstance(payload, dict)
+        or payload.get("kind")
+        != "hotel-yab-crawl-review"
+    ):
+        raise RuntimeError(
+            "JSON input is not a Hotel-Yab "
+            "crawl review export."
+        )
+
+    rows = payload.get("rows")
+
+    if not isinstance(rows, list):
+        raise RuntimeError(
+            "Review export has no rows list."
+        )
+
+    required_headers = [
+        "اینستاگرام",
+        "لینک پست",
+        "تاریخ انتشار",
+        "وضعیت بررسی",
+        "هتل",
+        "شهر نهایی",
+        "استان نهایی",
+        "نام مکان نهایی",
+        "عنوان نهایی",
+        "نوع مکان",
+        "نوع محتوا",
+        "خلاصه کپشن",
+        "یادداشت",
+        "Shortcode",
+    ]
+
+    normalized = []
+
+    for index, raw_row in enumerate(
+        rows,
+        start=2,
+    ):
+        if not isinstance(raw_row, dict):
+            raise RuntimeError(
+                "Review export row "
+                f"{index} is not an object."
+            )
+
+        missing = [
+            header
+            for header in required_headers
+            if header not in raw_row
+        ]
+
+        if missing:
+            raise RuntimeError(
+                "Review export row "
+                f"{index} is missing: "
+                + ", ".join(missing)
+            )
+
+        row = dict(raw_row)
+        row["_row_number"] = int(
+            row.get(
+                "_row_number",
+                index,
+            )
+        )
+        normalized.append(row)
+
+    return normalized
 
 
 def is_approved(
@@ -1917,24 +2002,32 @@ def resolve_excel_path(
     if direct.exists():
         return direct.resolve()
 
-    filename = (
-        value
-        if value.lower().endswith(
-            ".xlsx"
-        )
-        else f"{value}.xlsx"
-    )
-
-    candidate = (
+    output_dir = (
         Path(__file__)
         .resolve()
         .parent
         / "output"
-        / filename
     )
 
-    if candidate.exists():
-        return candidate.resolve()
+    filenames = (
+        [value]
+        if value.lower().endswith(
+            (".xlsx", ".json")
+        )
+        else [
+            f"{value}.xlsx",
+            f"{value}.reviewed.json",
+        ]
+    )
+
+    for filename in filenames:
+        candidate = (
+            output_dir
+            / filename
+        )
+
+        if candidate.exists():
+            return candidate.resolve()
 
     raise FileNotFoundError(
         direct
@@ -3835,7 +3928,7 @@ def main():
     parser.add_argument(
         "excel",
         help=(
-            "Reviewed XLSX path or "
+            "Reviewed XLSX/JSON path or "
             "profile name such as "
             "minaaaslife"
         ),

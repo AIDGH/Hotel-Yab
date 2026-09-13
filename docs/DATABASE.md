@@ -327,6 +327,28 @@ bypass premoderation. First and last name remain optional for commenting; serial
 back to the public label `کاربر هتل‌یاب` when both are absent. An administrator
 may permanently delete a comment; deleting a parent cascades to its replies.
 
+## CrawlReviewBatch and CrawlReviewItem
+
+`CrawlReviewBatch` stores one uploaded Instagram crawler result before it becomes
+public catalog content. `contentHash` prevents uploading the exact same file
+twice. Its lifecycle is `REVIEWING` → `READY` → `COMPLETED`; `READY` means every
+row has received an explicit decision, while `COMPLETED` means the exported
+batch has been processed by the local media/import tooling.
+
+Background execution is tracked separately by `processingStatus` (`IDLE`,
+`RUNNING`, `SUCCEEDED`, or `FAILED`), start/finish timestamps, a bounded
+`processingLog`, and the optional `processedById` moderator audit relation. A
+processing failure does not promote canonical content or complete the batch.
+
+`CrawlReviewItem` stores one candidate source URL and its review state
+(`PENDING`, `APPROVED`, or `REJECTED`). Optional `hotelId` points to a known
+hotel, while `hotelName` may preserve an unresolved name for later validation.
+`cityIds` and `provinceIds` contain only validated canonical destination UUIDs.
+Approved rows require a final title and at least one province at the service
+boundary. `rawPayload` retains the original crawler candidate for export and
+media URL lookup without copying person/destination display data into final
+`Video` rows. Deleting a batch cascades to its review items.
+
 ## VideoCommentReport
 
 `VideoCommentReport` links one reporter to one published comment and stores a
@@ -540,12 +562,16 @@ upserts the transition destination/content JSON, including ordered
 import shape. Legacy videos without `mediaItems` are normalized to one video
 item during migration/import.
 
-Two operational ingestion tools now exist outside Prisma models:
+Two operational ingestion tools exist beside the canonical catalog models:
 
 - the Instagram follower tracker, which reads the canonical person list and
   writes successful observations through the Admin Catalog API;
-- the Instagram travel finder, which crawls candidate posts, produces a human
-  review workbook, and currently supports approved-row dry-run validation.
+- the Instagram travel finder, which crawls candidate posts and accepts either
+  the PostgreSQL-backed admin review JSON export or the legacy review workbook
+  for approved-media download, dry-run, and explicit apply.
+
+The review queue itself is represented by `CrawlReviewBatch` and
+`CrawlReviewItem`; it is staging data and never a public runtime content source.
 
 The reviewed-travel XLSX write path is implemented and has been used for the
 first production batch: 32 explicitly approved travel/hotel videos were applied

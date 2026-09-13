@@ -14,6 +14,7 @@ import { ModerationModule } from './moderation/moderation.module';
 import { AccountActivityModule } from './account-activity/account-activity.module';
 import { AccountLibraryModule } from './account-library/account-library.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { CrawlReviewsModule } from './crawl-reviews/crawl-reviews.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { CatalogModule } from './catalog/catalog.module';
     AccountActivityModule,
     AccountLibraryModule,
     CatalogModule,
+    CrawlReviewsModule,
   ],
 })
 export class AppModule {}

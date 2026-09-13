@@ -96,6 +96,25 @@ enum ContentMediaType {
   VIDEO
 }
 
+enum CrawlReviewBatchStatus {
+  REVIEWING
+  READY
+  COMPLETED
+}
+
+enum CrawlReviewItemStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CrawlReviewProcessingStatus {
+  IDLE
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
 model Hotel {
   id                String             @id @default(uuid()) @db.Uuid
   slug              String             @unique @db.VarChar(160)
@@ -234,6 +253,8 @@ model User {
   resolvedCommentReports VideoCommentReport[]     @relation("VideoCommentReportResolver")
   moderatedHotelReviews  HotelReview[]            @relation("HotelReviewModerator")
   moderatedVideoComments VideoComment[]           @relation("VideoCommentModerator")
+  createdCrawlReviews    CrawlReviewBatch[]       @relation("CrawlReviewCreatedBy")
+  processedCrawlReviews  CrawlReviewBatch[]       @relation("CrawlReviewProcessedBy")
   lastLoginAt            DateTime?                @db.Timestamptz(3)
   createdAt              DateTime                 @default(now()) @db.Timestamptz(3)
   updatedAt              DateTime                 @updatedAt @db.Timestamptz(3)
@@ -484,4 +505,60 @@ model VideoCommentReport {
   @@index([commentId, resolvedAt])
   @@index([reporterId, createdAt])
   @@index([resolvedById, resolvedAt])
+}
+
+model CrawlReviewBatch {
+  id                   String                      @id @default(uuid()) @db.Uuid
+  instagramUsername    String                      @db.VarChar(30)
+  sourceFilename       String                      @db.VarChar(255)
+  contentHash          String                      @unique @db.Char(64)
+  status               CrawlReviewBatchStatus      @default(REVIEWING)
+  processingStatus     CrawlReviewProcessingStatus @default(IDLE)
+  processingStartedAt  DateTime?                   @db.Timestamptz(3)
+  processingFinishedAt DateTime?                   @db.Timestamptz(3)
+  processingLog        String?                     @db.Text
+  createdById          String                      @db.Uuid
+  createdBy            User                        @relation("CrawlReviewCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  processedById        String?                     @db.Uuid
+  processedBy          User?                       @relation("CrawlReviewProcessedBy", fields: [processedById], references: [id], onDelete: SetNull)
+  reviewedAt           DateTime?                   @db.Timestamptz(3)
+  completedAt          DateTime?                   @db.Timestamptz(3)
+  items                CrawlReviewItem[]
+  createdAt            DateTime                    @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime                    @updatedAt @db.Timestamptz(3)
+
+  @@index([status, updatedAt])
+  @@index([processingStatus, updatedAt])
+  @@index([instagramUsername, createdAt])
+  @@index([createdById, createdAt])
+  @@index([processedById, processingStartedAt])
+}
+
+model CrawlReviewItem {
+  id                String                @id @default(uuid()) @db.Uuid
+  batchId           String                @db.Uuid
+  displayOrder      Int
+  sourceUrl         String                @db.Text
+  shortcode         String                @db.VarChar(80)
+  instagramUsername String                @db.VarChar(30)
+  reviewStatus      CrawlReviewItemStatus @default(PENDING)
+  hotelId           String?               @db.Uuid
+  hotelName         String?               @db.VarChar(200)
+  cityIds           String[]              @db.Uuid
+  provinceIds       String[]              @db.Uuid
+  finalTitle        String?               @db.VarChar(240)
+  placeName         String?               @db.VarChar(200)
+  placeType         String?               @db.VarChar(40)
+  contentType       String?               @db.VarChar(40)
+  captionSummary    String?               @db.Text
+  notes             String?               @db.Text
+  publishedAt       String?               @db.VarChar(40)
+  rawPayload        Json
+  batch             CrawlReviewBatch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  createdAt         DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime              @updatedAt @db.Timestamptz(3)
+
+  @@unique([batchId, sourceUrl])
+  @@index([batchId, displayOrder])
+  @@index([batchId, reviewStatus])
 }

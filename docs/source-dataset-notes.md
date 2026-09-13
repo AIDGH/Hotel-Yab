@@ -96,8 +96,12 @@ daily historical observation.
 Instagram candidate discovery now uses `tools/instagram-travel-finder/` rather
 than relying only on the original workbook. The crawler keeps local
 checkpoint/JSON output, the detector favors high recall and explicitly
-prioritizes HOTEL signals, and `json_to_excel.py` creates a human-review XLSX.
-Only rows explicitly marked `approved` are eligible for the importer.
+prioritizes HOTEL signals. Crawler JSON can now be uploaded directly to the
+protected `/admin/crawl-reviews` queue, where reviewers select canonical
+destinations and explicitly approve or reject every candidate. The resulting
+reviewed JSON export is consumed directly by the existing downloader/importer.
+`json_to_excel.py` and human-review XLSX remain available for legacy or offline
+batches. Only rows explicitly marked `approved` are eligible for the importer.
 
 The JSON-to-Excel step performs lightweight enrichment before creating the
 review workbook:

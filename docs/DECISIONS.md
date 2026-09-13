@@ -892,9 +892,11 @@ challenge avoids trapping the user behind a cooldown for a message that was not
 accepted by the provider. Avoiding automatic retries reduces duplicate SMS
 risk.
 
-**Status:** Adapter and automated tests are active. Production temporarily uses
-preview mode; token, sender configuration, account credit, and live delivery
-verification are pending. Preview must be removed when Najva is activated.
+**Status:** Active in production with `SMS_PROVIDER=najva`, the approved
+template, sender, WebOTP hostname, and whitelisted VPS IP. Najva accepted the
+first real production request successfully and its delivery to the handset was
+confirmed. Resend/failure regression remains an operational follow-up. Preview
+is no longer the active production provider.
 
 ## 46. Keep Core Interaction Feedback Inside the Site UI
 
@@ -950,3 +952,46 @@ relation depends on that URL.
 
 **Status:** Active through migration
 `20260905120000_allow_shared_video_source_urls`.
+
+## 49. Store Crawler Review State in PostgreSQL and Run Media Work as a Controlled Job
+
+**Decision:** Replace mandatory JSON-to-XLSX review with a protected
+`/admin/crawl-reviews` queue. Upload raw crawler JSON, persist each candidate and
+its explicit review decision in `CrawlReviewBatch`/`CrawlReviewItem`, and export
+a machine-readable reviewed JSON file that the existing approved-media tools can
+consume. Keep XLSX accepted as a legacy/offline review format.
+
+Keep manual reviewed-JSON export available, but also allow only `MODERATOR` to
+trigger the existing downloader and importer as a persisted server-side
+background job. The job must use a pre-provisioned Instaloader session, run one
+batch at a time, execute downloader → preparation → dry-run → apply in order,
+and preserve logs/status in PostgreSQL. It must not hold a long-running browser
+request or construct a shell command from review data.
+
+**Reason:** Review benefits from canonical hotel/destination selectors, shared
+progress, and durable status. Reusing the tested Python tools avoids maintaining
+a second importer, while the background boundary keeps Instagram authentication
+and large media work out of the HTTP request lifecycle. Manual processing
+remains the recovery path.
+
+**Status:** Implemented with migrations
+`20260913120000_add_crawl_review_queue` and
+`20260913123000_link_crawl_review_creator` and
+`20260913140000_add_crawl_review_processing`; production deployment and the
+one-time server session/runtime bootstrap are still needed.
+
+## 50. Deploy Production from GitHub Actions After Push to Main
+
+**Decision:** A push to `main` runs `.github/workflows/deploy-production.yml`.
+The workflow uses repository/environment secrets to SSH to the VPS and invokes
+the repository-owned deployment script. The script refuses tracked production
+changes and uses a fast-forward-only update before installing dependencies,
+applying migrations, building, restarting services, and checking health.
+
+**Reason:** One reviewed deployment path prevents the laptop and VPS commands
+from drifting while retaining an auditable GitHub run and a reusable manual
+server script. Media and secrets remain outside Git.
+
+**Status:** Implemented in code; GitHub secrets and the VPS Actions public key
+must be configured once before the first automatic run, then repository variable
+`PRODUCTION_DEPLOY_ENABLED` must be set to `true`.

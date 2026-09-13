@@ -224,7 +224,9 @@ candidate detection
         ↓
 local JSON/checkpoint
         ↓
-XLSX human review
+protected PostgreSQL admin review (legacy XLSX remains supported)
+        ↓
+reviewed machine JSON export
         ↓
 approved-only media download + ordered local manifest
         ↓
@@ -253,6 +255,15 @@ canonical `sourceUrl` values. Raw approved media stays under
 `apps/web/public/{travel-videos,hotel-videos}/<person-slug>/`. A `VIDEO` contains
 exactly one video item; `POST` and `STORY` retain every ordered image/video item
 under the same canonical content record.
+
+Uploaded crawler review batches and their raw candidate payloads are internal
+staging data. They are visible only to authenticated `ADMIN`/`MODERATOR` users,
+are not public catalog records, and may be deleted without deleting already
+imported videos. City/province IDs saved during review must resolve to canonical
+`Destination` rows. Exact duplicate JSON uploads are rejected by content hash.
+Instagram media downloading remains local and uses the operator's authenticated
+browser session; browser cookies and temporary CDN URLs are never uploaded as
+application credentials or used as canonical source URLs.
 
 Direct Highlight ingestion preserves one Highlight as one `STORY` aggregate.
 For hotel content, final filenames use

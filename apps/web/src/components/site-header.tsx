@@ -3,7 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { useAuth } from "./auth-provider";
 import { BrandMark } from "./brand-mark";
 import { SiteIcon, type SiteIconName } from "./site-icon";
@@ -30,11 +37,14 @@ export function SiteHeader() {
     closeTimerRef.current = null;
   }, []);
 
-  const showPanel = useCallback((panel: VisiblePanel) => {
-    clearCloseTimer();
-    setClosingPanel(null);
-    setOpenPanel(panel);
-  }, [clearCloseTimer]);
+  const showPanel = useCallback(
+    (panel: VisiblePanel) => {
+      clearCloseTimer();
+      setClosingPanel(null);
+      setOpenPanel(panel);
+    },
+    [clearCloseTimer],
+  );
 
   const closePanels = useCallback(() => {
     if (!openPanel) return;
@@ -52,7 +62,10 @@ export function SiteHeader() {
 
   useEffect(() => {
     function closeOnOutsidePointer(event: PointerEvent) {
-      if (openPanel === "account" && !accountRef.current?.contains(event.target as Node)) {
+      if (
+        openPanel === "account" &&
+        !accountRef.current?.contains(event.target as Node)
+      ) {
         closePanels();
       }
     }
@@ -68,7 +81,11 @@ export function SiteHeader() {
   }, [closePanels, openPanel]);
 
   useEffect(() => {
-    if ((!openPanel && !closingPanel) || !window.matchMedia("(max-width: 760px)").matches) return;
+    if (
+      (!openPanel && !closingPanel) ||
+      !window.matchMedia("(max-width: 760px)").matches
+    )
+      return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -82,7 +99,9 @@ export function SiteHeader() {
     <header
       className={`site-header${visiblePanel ? " has-open-panel" : ""}`}
       data-open-panel={visiblePanel ?? undefined}
-      data-panel-state={closingPanel ? "closing" : openPanel ? "open" : undefined}
+      data-panel-state={
+        closingPanel ? "closing" : openPanel ? "open" : undefined
+      }
     >
       <div className="container header-inner">
         <BrandMark />
@@ -98,7 +117,9 @@ export function SiteHeader() {
           </div>
           {navigation.map((item) => (
             <Link
-              className={pathname.startsWith(item.href) ? "nav-active" : undefined}
+              className={
+                pathname.startsWith(item.href) ? "nav-active" : undefined
+              }
               href={item.href}
               key={item.href}
               onClick={closePanels}
@@ -116,7 +137,9 @@ export function SiteHeader() {
           accountRef={accountRef}
           open={openPanel === "account"}
           closing={closingPanel === "account"}
-          onToggle={() => openPanel === "account" ? closePanels() : showPanel("account")}
+          onToggle={() =>
+            openPanel === "account" ? closePanels() : showPanel("account")
+          }
           onClose={closePanels}
         />
         <button
@@ -124,13 +147,20 @@ export function SiteHeader() {
           type="button"
           aria-label={openPanel === "navigation" ? "بستن منو" : "نمایش منو"}
           aria-expanded={openPanel === "navigation"}
-          onClick={() => openPanel === "navigation" ? closePanels() : showPanel("navigation")}
+          onClick={() =>
+            openPanel === "navigation" ? closePanels() : showPanel("navigation")
+          }
         >
           <SiteIcon name={openPanel === "navigation" ? "close" : "menu"} />
         </button>
       </div>
       {visiblePanel ? (
-        <button className={`header-panel-backdrop${closingPanel ? " is-closing" : ""}`} type="button" aria-label="بستن منو" onClick={closePanels} />
+        <button
+          className={`header-panel-backdrop${closingPanel ? " is-closing" : ""}`}
+          type="button"
+          aria-label="بستن منو"
+          onClick={closePanels}
+        />
       ) : null}
     </header>
   );
@@ -157,16 +187,30 @@ function HeaderAccount({
         <span className="account-loading" aria-label="در حال بررسی حساب" />
       ) : user ? (
         <div className="account-menu-wrap">
-          <button className="account-trigger" type="button" aria-expanded={open} onClick={onToggle}>
+          <button
+            className="account-trigger"
+            type="button"
+            aria-expanded={open}
+            onClick={onToggle}
+          >
             <span className="account-avatar">
               {user.avatarUrl ? (
-                <Image src={user.avatarUrl} alt="" width={36} height={36} unoptimized />
+                <Image
+                  src={user.avatarUrl}
+                  alt=""
+                  width={36}
+                  height={36}
+                  unoptimized
+                />
               ) : (
                 (user.firstName ?? user.username ?? "ک").slice(0, 1)
               )}
             </span>
             <span>{user.displayName ?? "حساب من"}</span>
-            <SiteIcon className={`account-trigger-chevron${open ? " is-open" : ""}`} name="chevron-down" />
+            <SiteIcon
+              className={`account-trigger-chevron${open ? " is-open" : ""}`}
+              name="chevron-down"
+            />
           </button>
           {open || closing ? (
             <div className={`account-dropdown${closing ? " is-closing" : ""}`}>
@@ -174,36 +218,106 @@ function HeaderAccount({
                 <div className="account-drawer-identity">
                   <span className="account-avatar">
                     {user.avatarUrl ? (
-                      <Image src={user.avatarUrl} alt="" width={36} height={36} unoptimized />
+                      <Image
+                        src={user.avatarUrl}
+                        alt=""
+                        width={36}
+                        height={36}
+                        unoptimized
+                      />
                     ) : (
                       (user.firstName ?? user.username ?? "ک").slice(0, 1)
                     )}
                   </span>
                   <strong>{user.displayName ?? "حساب من"}</strong>
                 </div>
-                <button type="button" aria-label="بستن منوی حساب" onClick={onClose}>
+                <button
+                  type="button"
+                  aria-label="بستن منوی حساب"
+                  onClick={onClose}
+                >
                   <SiteIcon name="close" />
                 </button>
               </div>
-              <AccountMenuLink href="/account" icon="account" onClose={onClose}>حساب من</AccountMenuLink>
-              <AccountMenuLink href="/account/library" icon="heart" onClose={onClose}>پسندیده‌ها و ذخیره‌ها</AccountMenuLink>
-              <AccountMenuLink href="/account/activity" icon="activity" onClose={onClose}>فعالیت‌های من</AccountMenuLink>
+              <AccountMenuLink href="/account" icon="account" onClose={onClose}>
+                حساب من
+              </AccountMenuLink>
+              <AccountMenuLink
+                href="/account/library"
+                icon="heart"
+                onClose={onClose}
+              >
+                پسندیده‌ها و ذخیره‌ها
+              </AccountMenuLink>
+              <AccountMenuLink
+                href="/account/activity"
+                icon="activity"
+                onClose={onClose}
+              >
+                فعالیت‌های من
+              </AccountMenuLink>
               {user.role === "ADMIN" || user.role === "MODERATOR" ? (
-                <AccountMenuLink href="/admin/users" icon="users" onClose={onClose}>مدیریت کاربران</AccountMenuLink>
+                <AccountMenuLink
+                  href="/admin/users"
+                  icon="users"
+                  onClose={onClose}
+                >
+                  مدیریت کاربران
+                </AccountMenuLink>
               ) : null}
               {user.role === "MODERATOR" ? (
-                <AccountMenuLink href="/admin/administrators" icon="administrator" onClose={onClose}>بررسی مدیران</AccountMenuLink>
+                <AccountMenuLink
+                  href="/admin/administrators"
+                  icon="administrator"
+                  onClose={onClose}
+                >
+                  بررسی مدیران
+                </AccountMenuLink>
               ) : null}
               {user.role === "ADMIN" || user.role === "MODERATOR" ? (
-                <AccountMenuLink href="/admin/moderation" icon="moderation" onClose={onClose}>بررسی محتوا</AccountMenuLink>
+                <AccountMenuLink
+                  href="/admin/moderation"
+                  icon="moderation"
+                  onClose={onClose}
+                >
+                  بررسی محتوا
+                </AccountMenuLink>
               ) : null}
               {user.role === "ADMIN" || user.role === "MODERATOR" ? (
-                <AccountMenuLink href="/admin/catalog" icon="catalog" onClose={onClose}>مدیریت داده‌ها</AccountMenuLink>
+                <AccountMenuLink
+                  href="/admin/catalog"
+                  icon="catalog"
+                  onClose={onClose}
+                >
+                  مدیریت داده‌ها
+                </AccountMenuLink>
+              ) : null}
+              {user.role === "ADMIN" || user.role === "MODERATOR" ? (
+                <AccountMenuLink
+                  href="/admin/crawl-reviews"
+                  icon="review-table"
+                  onClose={onClose}
+                >
+                  بررسی داده‌های کرال‌شده
+                </AccountMenuLink>
               ) : null}
               {user.notablePerson ? (
-                <AccountMenuLink href={`/notable-people/${user.notablePerson.slug}`} icon="profile" onClose={onClose}>پروفایل چهرهٔ من</AccountMenuLink>
+                <AccountMenuLink
+                  href={`/notable-people/${user.notablePerson.slug}`}
+                  icon="profile"
+                  onClose={onClose}
+                >
+                  پروفایل چهرهٔ من
+                </AccountMenuLink>
               ) : null}
-              <button className="account-menu-logout" type="button" onClick={() => { onClose(); void logout(); }}>
+              <button
+                className="account-menu-logout"
+                type="button"
+                onClick={() => {
+                  onClose();
+                  void logout();
+                }}
+              >
                 <SiteIcon name="logout" />
                 <span>خروج</span>
               </button>
@@ -211,15 +325,24 @@ function HeaderAccount({
           ) : null}
         </div>
       ) : (
-        <button className="button button-small account-login-button" type="button" onClick={openAuth}>
-          ورود یا عضویت
+        <button
+          className="button button-small account-login-button"
+          type="button"
+          onClick={openAuth}
+        >
+          ورود / ثبت‌نام
         </button>
       )}
     </div>
   );
 }
 
-function AccountMenuLink({ href, icon, onClose, children }: {
+function AccountMenuLink({
+  href,
+  icon,
+  onClose,
+  children,
+}: {
   href: string;
   icon: SiteIconName;
   onClose: () => void;

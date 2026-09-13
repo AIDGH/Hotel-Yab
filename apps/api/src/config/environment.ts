@@ -16,6 +16,11 @@ export type EnvironmentVariables = {
   NAJVA_SENDER?: string;
   NAJVA_OTP_TEMPLATE: string;
   SMS_OTP_ORIGIN_HOST?: string;
+  CRAWL_PROCESSING_ENABLED: boolean;
+  CRAWL_PROCESSING_REPO_ROOT?: string;
+  CRAWL_PROCESSING_PYTHON: string;
+  CRAWL_PROCESSING_INSTAGRAM_LOGIN?: string;
+  CRAWL_PROCESSING_API_BASE: string;
 };
 
 const nodeEnvironment = process.env.NODE_ENV ?? 'development';
@@ -73,4 +78,25 @@ export const environmentValidationSchema = Joi.object<EnvironmentVariables>({
     then: Joi.required(),
     otherwise: Joi.optional(),
   }),
+  CRAWL_PROCESSING_ENABLED: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(false),
+  CRAWL_PROCESSING_REPO_ROOT: Joi.string().when('CRAWL_PROCESSING_ENABLED', {
+    is: true,
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  CRAWL_PROCESSING_PYTHON: Joi.string().default('python3'),
+  CRAWL_PROCESSING_INSTAGRAM_LOGIN: Joi.string().when(
+    'CRAWL_PROCESSING_ENABLED',
+    {
+      is: true,
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    },
+  ),
+  CRAWL_PROCESSING_API_BASE: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .default('http://127.0.0.1:4000/api/v1'),
 });

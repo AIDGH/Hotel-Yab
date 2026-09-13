@@ -123,7 +123,7 @@ The tracked transition JSON can still be imported idempotently with
 recovery, not the routine add workflow. Future large batches should use a
 dry-run converter/import report rather than returning to manual JSON editing.
 
-## Instagram Travel Review Workbook
+## Instagram Travel Review Queue and Legacy Workbook
 
 The current bulk Instagram discovery tooling lives under:
 
@@ -131,7 +131,7 @@ The current bulk Instagram discovery tooling lives under:
 tools/instagram-travel-finder/
 ```
 
-The review flow is:
+The primary review flow is now:
 
 ```text
 GraphQL crawler
@@ -140,9 +140,11 @@ JSON + checkpoint
     ↓
 candidate detector
     ↓
-json_to_excel.py
+upload crawler JSON in `/admin/crawl-reviews`
     ↓
-human review in XLSX
+human review with canonical destination selectors
+    ↓
+download `<username>.reviewed.json`
     ↓
 download_approved.py --dry-run
     ↓
@@ -154,6 +156,12 @@ explicit reviewed apply
     ↓
 Admin API / PostgreSQL
 ```
+
+The reviewed JSON export can be passed directly to both approved-media scripts;
+manual Excel generation is no longer required. The existing
+`json_to_excel.py` and reviewed XLSX format remain supported for offline or
+legacy batches.
+
 ### Generated Review Field Defaults
 
 The JSON-to-XLSX converter fills several review fields with initial suggestions
@@ -214,7 +222,7 @@ Important rules:
 10. `tools/instagram-travel-finder/output/`, captured `query.json`, and
    `query.rtf` are local working artifacts and are not committed.
 
-### Approved Media Commands
+### Admin Review and Approved Media Commands
 
 Use one profile name consistently through this four-step workflow. The following
 example uses `morteza.kowsari`.
@@ -225,14 +233,20 @@ example uses `morteza.kowsari`.
 python3 tools/instagram-travel-finder/crawl_graphql.py morteza.kowsari
 ```
 
-2. Convert the candidate JSON into the merge-safe review workbook:
+2. In `/admin/crawl-reviews`, upload
+`tools/instagram-travel-finder/output/<username>.json`, review every row, and
+download the reviewed JSON export. Save it locally as, for example,
+`<username>.reviewed.json`.
+
+For a legacy/offline run only, convert the candidate JSON into the merge-safe
+review workbook instead:
 
 ```bash
 python3 tools/instagram-travel-finder/json_to_excel.py morteza.kowsari
 ```
 
-Pause here for human review. Correct the workbook and mark only ready rows as
-`approved`. Back up the reviewed XLSX before continuing.
+When using XLSX, pause for human review and back up the reviewed workbook before
+continuing. In either format, only explicitly approved rows are imported.
 
 3. With the API running, an admin cookie exported in the current shell, and an
 authenticated `instagram.com` Chrome session, download approved media and
@@ -242,7 +256,8 @@ browser-cookie reader once if needed:
 ```bash
 python3 -m pip install browser-cookie3
 export HOTELYAB_ADMIN_COOKIE='hotel_yab_session=PASTE_VALUE_HERE'
-python3 tools/instagram-travel-finder/download_approved.py morteza.kowsari \
+python3 tools/instagram-travel-finder/download_approved.py \
+  /path/to/morteza.kowsari.reviewed.json \
   --download --prepare-media --load-cookies chrome
 ```
 
@@ -251,8 +266,10 @@ content/media items and person/hotel/destination relationships through the
 Admin API:
 
 ```bash
-python3 tools/instagram-travel-finder/import_approved.py morteza.kowsari --dry-run
-python3 tools/instagram-travel-finder/import_approved.py morteza.kowsari --apply
+python3 tools/instagram-travel-finder/import_approved.py \
+  /path/to/morteza.kowsari.reviewed.json --dry-run
+python3 tools/instagram-travel-finder/import_approved.py \
+  /path/to/morteza.kowsari.reviewed.json --apply
 unset HOTELYAB_ADMIN_COOKIE
 ```
 

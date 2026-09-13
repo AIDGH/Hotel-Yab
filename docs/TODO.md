@@ -28,8 +28,9 @@ This file tracks open product and technical work for Hotel-Yab.
 - [x] Integrate the approved Najva OTP template for registration/login delivery.
 - [x] Keep production API/password login available with a safe disabled SMS mode until Najva credentials arrive.
 - [x] Add an explicit temporary preview provider so controlled server testing can display OTP without pretending that SMS was delivered.
-- [ ] Configure the Najva API key/sender/WebOTP hostname on production and verify account credit and real delivery.
-- [ ] Test OTP resend cooldown, provider failure handling, and production delivery end-to-end.
+- [x] Configure the Najva API key, sender, WebOTP hostname, and production IP whitelist; verify that Najva accepts a real production OTP request.
+- [x] Confirm that a live production OTP reaches the handset.
+- [ ] Test OTP resend cooldown and provider failure handling end-to-end.
 - [ ] Decide whether email is actually required for MVP before integrating a provider.
 
 ## 3. Crawler and Data Growth
@@ -37,8 +38,10 @@ This file tracks open product and technical work for Hotel-Yab.
 - [x] Implement approved Instagram review XLSX `--apply` through the protected Admin Catalog API.
 - [x] Apply the first reviewed production batch successfully; 32 approved travel/hotel videos were imported.
 - [x] Verify the resulting canonical PostgreSQL/video relationships and public-site output.
-- [ ] Reduce manual steps in the Instagram crawler workflow and make repeated profile runs easier.
-- [ ] Add a practical batch/profile queue around the existing checkpoint/resume crawler.
+- [x] Replace mandatory JSON-to-XLSX review with an admin crawler-review queue and downloader-compatible JSON export.
+- [x] Add a practical batch/profile review queue around the existing checkpoint/resume crawler.
+- [x] Add Moderator-only background download/preparation/dry-run/apply from the crawl-review page.
+- [ ] Provision the crawler Python environment and saved Instaloader session on production, deploy the crawl-review migrations/routes, and run the first real reviewed JSON batch end-to-end.
 - [ ] Continue collecting more reviewed travel and hotel videos.
 - [ ] Complete missing hotel fields, images, logos, and official metadata.
 - [ ] Complete missing notable-person image, Instagram, occupation, biography, and follower metadata.
@@ -97,6 +100,7 @@ This file tracks open product and technical work for Hotel-Yab.
 - [x] Support one-video, multi-image post, and multi-video story/highlight formats through ordered media items without breaking canonical video IDs or comments.
 - [x] Add checkpoint/resume Instagram travel crawling and high-recall candidate detection.
 - [x] Add JSON -> XLSX human review.
+- [x] Add direct crawler JSON -> PostgreSQL admin review -> reviewed JSON export while retaining XLSX compatibility.
 - [x] Add approved-row dry-run validation.
 - [x] Download approved Instagram media and prepare ordered VIDEO/POST/STORY
   items in the correct travel/hotel public folders.
@@ -119,7 +123,9 @@ This file tracks open product and technical work for Hotel-Yab.
 - [x] Independent likes/saves and private library.
 - [ ] Fix production refresh/session persistence behavior.
 - [x] Add the production Najva template adapter and environment validation.
-- [ ] Activate Najva credentials and verify live OTP delivery on production.
+- [x] Activate Najva credentials and receive a successful provider response for a live production OTP request.
+- [x] Confirm the live OTP reaches the handset.
+- [ ] Complete resend/failure regression checks.
 - [ ] Consider user-submitted hotel/person data later, behind moderation.
 
 ---
@@ -157,7 +163,8 @@ This file tracks open product and technical work for Hotel-Yab.
 - [ ] Domain and HTTPS.
 - [ ] Off-server backup copy.
 - [ ] Monitoring/alerting/log aggregation.
-- [ ] Automated deployment/CI-CD after the manual deploy workflow is stable.
+- [x] Add GitHub Actions plus a checked-in safe production deployment script.
+- [ ] Configure the production GitHub secrets/VPS Actions key and verify the first automatic deployment from `main`.
 - [ ] Schedule follower refresh in production when the desired cadence is decided.
 - [ ] Decide when to migrate content media to object storage/CDN.
 - [ ] Remove the old stopped PostgreSQL 16 cluster only after the production setup has remained stable long enough.

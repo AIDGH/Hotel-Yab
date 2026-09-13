@@ -278,6 +278,10 @@ export class ModerationService {
     if (!target) throw new NotFoundException('کاربر پیدا نشد');
     this.assertCanManageUser(actorId, actorRole, target);
 
+    if (target.role === UserRole.ADMIN && dto.role !== undefined) {
+      throw new ForbiddenException('نقش حساب‌های مدیر از پنل قابل تغییر نیست');
+    }
+
     if (actorRole === UserRole.MODERATOR && dto.role !== undefined) {
       throw new ForbiddenException(
         'ناظر محتوا نمی‌تواند نقش مدیر را تغییر دهد',

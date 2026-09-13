@@ -115,6 +115,7 @@ Main routes currently include:
 /account/activity
 /account/library
 /admin/catalog
+/admin/crawl-reviews
 ```
 
 Frontend data access is handled through functions such as:
@@ -458,9 +459,11 @@ detector.py (high-recall candidate scoring, HOTEL priority)
         ↓
 JSON output
         ↓
-json_to_excel.py
+Admin `/admin/crawl-reviews` upload and PostgreSQL review queue
         ↓
-Human review in XLSX (approved / rejected / pending)
+Human review with canonical city/province selectors and optional hotel
+        ↓
+Reviewed JSON export (legacy XLSX remains supported)
         ↓
 download_approved.py (approved media only; ordered IMAGE/VIDEO manifest)
         ↓
@@ -468,8 +471,14 @@ import_approved.py --prepare-media
         ↓
 import_approved.py --dry-run
         ↓
-Admin API / PostgreSQL write path   (next step)
+Admin API / PostgreSQL write path
 ```
+
+The review queue persists batches and individual review rows, but keeps raw
+crawler payloads internal. An approved row requires a final title and at least
+one province. The exported JSON deliberately exposes the same Persian logical
+headers consumed by the legacy workbook importer, so `download_approved.py` and
+`import_approved.py` accept either a reviewed JSON export or an XLSX workbook.
 
 The approved-media downloader reads rows by Persian header name, downloads only
 `approved` shortcodes, refreshes missing/expired Instagram media metadata through
@@ -484,6 +493,12 @@ an Instaloader session for later `--login <username>` runs without terminal pass
 entry. Per-post download/metadata failures are accumulated in a local failure
 report while the remaining approved rows continue; final media preparation is
 blocked until every still-approved row has a complete manifest.
+
+Instagram fetching and public-media preparation remain local operations rather
+than API jobs: they rely on a user's authenticated browser session and write
+large ignored files below `apps/web/public`. The server-side admin queue handles
+review state and canonical selections, while the protected Catalog API remains
+the only database write boundary for final content.
 
 The long-term normalized flow remains:
 
@@ -586,6 +601,14 @@ The administration layer is split by responsibility:
   same video-creation transaction;
 - a read-only export endpoint produces a JSON snapshot compatible with the
   extended import schema.
+- `/admin/crawl-reviews` is available to `ADMIN` and `MODERATOR`; it accepts a
+  crawler JSON file, stores a paginated review batch, resolves detected catalog
+  hints, supports explicit approved/rejected decisions, exports a reviewed JSON
+  file for the local media tools, and records when the batch has been processed.
+  A `MODERATOR` can additionally start the downloader, preparation, dry-run, and
+  apply sequence as a server-side background job. The browser request returns
+  immediately and polls persisted job state; the server runs only one such job
+  at a time with argument-array child processes rather than a shell command.
 
 The administration layer may later expand to:
 
@@ -683,15 +706,26 @@ The first production deployment currently uses:
 - a daily custom-format PostgreSQL backup timer at 03:00 UTC under
   `/var/backups/hotel-yab`.
 
-The site is currently reachable through the VPS IP. Domain/HTTPS, off-server
-backup, monitoring, and production Najva credentials/live-delivery validation
-remain follow-up work. A production auth
+The site is reachable through its HTTPS domain. Najva production credentials,
+sender, WebOTP hostname, and VPS IP whitelist are active, and the provider has
+accepted a real OTP request whose handset delivery was confirmed. Provider
+failure/resend regression, off-server backup, and monitoring are follow-up work. A production auth
 session-refresh issue is also still open and must be fixed before broader launch.
 
-The intended code-update flow is development/testing on the Mac, commit/push to
-Git, `git pull` on the VPS, dependency/migration/build steps as required, then
-controlled systemd service restart. Direct production code editing is not the
-normal workflow.
+The crawler background worker is part of the API process but remains disabled
+until `scripts/bootstrap-crawl-processing.sh` has created the dedicated Python
+environment, the service user has a saved Instaloader session, and the
+`CRAWL_PROCESSING_*` production variables are configured. This one-time setup is
+separate from normal code deployments so an absent Instagram session cannot
+silently downgrade into an interactive password prompt.
+
+The intended code-update flow is development/testing on the Mac followed by a
+push to `main`. GitHub Actions then connects to the VPS and runs the checked-in
+`scripts/deploy-production.sh`, which performs a fast-forward-only pull,
+dependency install, Prisma generation/migration, both production builds,
+controlled systemd restarts, and local health checks. Media remains outside Git
+and still requires explicit synchronization. Direct production code editing is
+not the normal workflow.
 
 ---
 

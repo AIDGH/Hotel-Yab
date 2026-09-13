@@ -120,6 +120,7 @@ discovery، PostgreSQL، API، Next.js، رسانه‌های provisionشده و 
 - نمایش مقصدهای منتخب در صفحه اصلی قبل از هتل‌ها و چهره‌ها
 - فونت Vazirmatn با فرمت WOFF2
 - ورود اختیاری با شماره/نام‌کاربری و رمز عبور یا OTP
+- ارسال OTP واقعی production از طریق قالب تأییدشده نجوا؛ کلید، سرشماره، hostname و وایت‌لیست IP فعال‌اند و دریافت اولین پیامک واقعی روی گوشی تأیید شده است
 - ثبت‌نام حداقلی فقط با شماره `09…`، نام‌کاربری یکتا و رمز قوی hash‌شده؛ اطلاعات شخصی بعداً در حساب تکمیل می‌شوند
 - پروفایل کاربر با نام، نام خانوادگی، نام‌کاربری، ایمیل و Instagram اختیاری و یکتا، همراه عکس پروفایل قابل آپلود
 - Session امن مبتنی بر Cookie از نوع HttpOnly
@@ -128,9 +129,10 @@ discovery، PostgreSQL، API، Next.js، رسانه‌های provisionشده و 
 - گزارش کامنت، مخفی‌سازی خودکار پس از ۳ گزارش مستقل و محدودیت ۵ کامنت در دقیقه
 - پنل محافظت‌شده مدیر/ناظر برای انتشار، رد، پنهان‌کردن و بازگرداندن Review و Comment؛ همراه رسیدگی به گزارش‌ها و مسدودسازی کاربر توسط مدیر
 - پنل مدیریتی `/admin/catalog` برای `ADMIN` و `MODERATOR` جهت افزودن مقصد، هتل، چهره و محتوای تک‌ویدیو/پست/استوری، مرتب‌سازی آیتم‌های رسانه، اتصال چندمقصدی/چندهتلی و دریافت خروجی JSON سازگار با Import
+- صف مدیریتی `/admin/crawl-reviews` برای بارگذاری مستقیم JSON کرالر، بررسی ردیف‌ها بدون ساخت Excel، انتخاب مقصدهای canonical، ثبت هتل اختیاری، خروجی JSON سازگار با downloader/importer و اجرای مستقیم پس‌زمینه فقط توسط `MODERATOR`
 - API و فرم ویرایش مقصد/هتل/چهره/محتوا، شامل روابط مقصد و هتل و آیتم‌های مرتب رسانه؛ همراه حذف رکوردهای Catalog و endpoint آپلود رسانه
 - pipeline پژوهشی Instagram برای crawl → checkpoint → candidate detection →
-  Excel review → دانلود خودکار رسانه‌های approved → ساخت مسیرهای نهایی
+  بررسی داخل پنل یا Excel قدیمی → دانلود خودکار رسانه‌های approved → ساخت مسیرهای نهایی
   `travel-videos`/`hotel-videos` → dry-run/apply؛ شامل پست و استوری چندآیتمی
 
   Excel generation includes initial Persian review suggestions:
@@ -270,6 +272,7 @@ User ──< UserSession
   ├──< HotelReview >── Hotel
   ├──< VideoComment >── Video
   ├──< VideoCommentReport >── VideoComment
+  ├──< CrawlReviewBatch ──< CrawlReviewItem (دادهٔ staging داخلی)
   └── NotablePerson (اتصال اختیاری و تأییدشده توسط ادمین)
 
 Destination ──< VideoDestination >── Video ──< VideoHotel >── Hotel
@@ -324,6 +327,13 @@ NotablePerson ──< FollowerSnapshot
 - `VideoMediaItem` آیتم‌های مرتب هر محتوا را با `displayOrder`، نوع `IMAGE | VIDEO`، مسیر رسانه و کاور اختیاری نگه می‌دارد. `VIDEO` دقیقاً یک آیتم ویدیویی دارد؛ `POST` و `STORY` یک یا چند آیتم دارند و هر دو می‌توانند ترکیبی از عکس و ویدیو باشند.
 - `VideoDestination` اتصال چندبه‌چند ویدیو به شهرها/استان‌ها و `VideoHotel` اتصال اختیاری ویدیو به هتل‌ها را نگه می‌دارند.
 - رسانهٔ سفر با الگوی `/travel-videos/<person-slug>/<content-stem>` و رسانهٔ هتل با الگوی `/hotel-videos/<person-slug>/<hotel-slug|multi-hotel>-<sequence>` نگهداری می‌شود؛ آیتم‌های مجموعه با پسوندهای مرتب `-01`, `-02`, ... ذخیره می‌شوند و تصمیم نمایش براساس `videoCategory` و `contentKind` است، نه حدس از مسیر فایل.
+
+### صف بررسی داده‌های کرالر
+
+- `CrawlReviewBatch` یک فایل JSON بارگذاری‌شده را با حساب مدیر سازنده، hash فایل و وضعیت `REVIEWING | READY | COMPLETED` نگه می‌دارد.
+- وضعیت اجرای پس‌زمینه batch با `IDLE | RUNNING | SUCCEEDED | FAILED`، زمان شروع/پایان، لاگ محدود و شناسه Moderator اجراکننده ثبت می‌شود.
+- `CrawlReviewItem` تصمیم `PENDING | APPROVED | REJECTED`، لینک اصلی، عنوان نهایی، هتل اختیاری، شناسه‌های canonical شهر/استان و payload خام همان candidate را نگه می‌دارد.
+- این دو مدل staging داخلی‌اند و تا اجرای downloader/importer هیچ `Video` عمومی ایجاد نمی‌کنند. حذف batch نیز محتوای canonical قبلاً importشده را حذف نمی‌کند.
 
 ### دسته‌بندی فعلی افراد
 
@@ -498,7 +508,11 @@ High-recall detector + HOTEL priority
         ↓
 JSON
         ↓
-Excel review
+Admin crawl-review queue (مسیر اصلی) یا Excel review (سازگاری قدیمی)
+        ↓
+انتخاب شهر/استان canonical + هتل اختیاری + تصمیم ردیف
+        ↓
+خروجی `<username>.reviewed.json` از پنل
         ↓
 download_approved.py --dry-run / --download
         ↓
@@ -512,6 +526,22 @@ explicit --apply
         ↓
 Admin API / PostgreSQL
 ```
+
+صف `/admin/crawl-reviews` خود JSON خروجی crawler را می‌پذیرد و batch و ردیف‌های
+آن را در PostgreSQL نگه می‌دارد. ردیف `approved` باید عنوان نهایی و حداقل یک
+استان داشته باشد؛ شهر و استان از مقصدهای موجود انتخاب می‌شوند و هتل می‌تواند
+خالی، از Catalog انتخاب‌شده یا به‌صورت نام حل‌نشده برای تکمیل بعدی باشد. پس از
+تعیین تکلیف همه ردیف‌ها، خروجی JSON پنل همان headerهای مورد انتظار importer
+قدیمی را تولید می‌کند و مستقیماً به `download_approved.py` و
+`import_approved.py` داده می‌شود؛ مرحلهٔ ساخت XLSX دیگر اجباری نیست.
+
+دانلود رسانه هم به‌صورت دستی از خروجی JSON قابل انجام است و هم `MODERATOR`
+می‌تواند آن را از پنل به شکل job پس‌زمینه سرور اجرا کند. حالت سرور به runtime
+پایتون و نشست ازقبل‌ذخیره‌شده Instaloader نیاز دارد، هم‌زمان فقط یک batch را
+اجرا می‌کند و به‌ترتیب `download_approved.py --prepare-media`، dry-run و apply
+را پیش می‌برد. درخواست مرورگر منتظر فرایند طولانی نمی‌ماند و وضعیت/لاگ در
+PostgreSQL ثبت و با polling نمایش داده می‌شود. فایل‌های نهایی همچنان زیر
+`apps/web/public` و خارج از Git قرار می‌گیرند.
 
 لینک‌های مستقیم Highlight خارج از workbook با
 `tools/instagram-travel-finder/download_highlights.py` دریافت می‌شوند. هر
@@ -693,6 +723,15 @@ Endpointهای فعلی:
 | POST            | `/api/v1/admin/catalog/media`                                              | آپلود رسانه Catalog                            |
 | POST            | `/api/v1/admin/catalog/followers`                                          | ثبت followerهای موفق و snapshot روزانه         |
 | GET             | `/api/v1/admin/catalog/export`                                             | خروجی JSON قابل ورود مجدد                      |
+| GET             | `/api/v1/admin/crawl-reviews/bootstrap`                                    | مقصدها، هتل‌ها و batchهای صف بررسی کرالر       |
+| POST            | `/api/v1/admin/crawl-reviews/upload`                                       | ساخت batch از فایل JSON کرالر                  |
+| GET             | `/api/v1/admin/crawl-reviews/:id`                                          | دریافت صفحه‌بندی‌شده ردیف‌های batch            |
+| PATCH           | `/api/v1/admin/crawl-reviews/items/:id`                                    | ذخیره تصمیم و داده‌های نهایی یک ردیف           |
+| POST            | `/api/v1/admin/crawl-reviews/:id/finish-review`                            | پایان بررسی پس از تعیین تکلیف همه ردیف‌ها      |
+| GET             | `/api/v1/admin/crawl-reviews/:id/export`                                   | دریافت JSON سازگار با ابزار دانلود و import    |
+| POST            | `/api/v1/admin/crawl-reviews/:id/process`                                  | شروع job مستقیم دانلود و import فقط برای Moderator |
+| POST            | `/api/v1/admin/crawl-reviews/:id/complete`                                 | علامت‌گذاری batch پس از پردازش نهایی            |
+| DELETE          | `/api/v1/admin/crawl-reviews/:id`                                          | حذف batch داخلی صف بررسی                       |
 
 Swagger در development:
 
@@ -839,6 +878,18 @@ Landing Page
 از فهرست انتخاب کند. در حالت افزودن محتوای جدید، پس از ثبت موفق دسته ارتباط،
 عنوان، نام مکان، نوع مکان، مقصدها و هتل‌های مرتبط موقتاً در فرم حفظ می‌شوند؛
 سایر فیلدها پاک یا به مقدار پیش‌فرض خود بازمی‌گردند تا ورود محتوای مشابه سریع‌تر شود
+
+```text
+/admin/crawl-reviews
+```
+
+صف داخلی `ADMIN` و `MODERATOR` برای تبدیل خروجی خام crawler به دادهٔ بررسی‌شده.
+JSON هر حساب مستقیم بارگذاری می‌شود؛ batchهای در حال بررسی و آماده/تکمیل‌شده
+جدا دیده می‌شوند و هر صفحه ۱۲ ردیف دارد. مدیر وضعیت ردیف، هتل اختیاری، شهرها،
+استان‌ها و عنوان نهایی را ذخیره می‌کند. پس از پایان review، فایل JSON خروجی برای
+اجرای دستی downloader/importer قابل دانلود است. فقط `MODERATOR` دکمهٔ «دانلود
+و ورود مستقیم به سایت» را می‌بیند؛ این دکمه job پس‌زمینه را شروع می‌کند و نتیجه
+و جزئیات خطا را در همان پنل نشان می‌دهد.
 
 ### قابلیت‌های فعلی UI
 
@@ -1070,13 +1121,12 @@ Health:   http://localhost:4000/api/v1/health
 ```bash
 # Mac
 git status --short --branch
-# test, commit, then push explicitly when ready
+# test, commit, then push to main; GitHub Actions deploys production
 
-# VPS
+# VPS — مسیر دستی جایگزین
 ssh jaryan@87.247.170.136
 cd ~/Hotel-Yab
-git pull
-pnpm install --frozen-lockfile
+bash scripts/deploy-production.sh
 ```
 
 اگر Prisma migration جدید وجود دارد:
@@ -1086,13 +1136,18 @@ pnpm api:prisma:generate
 pnpm api:prisma:migrate:deploy
 ```
 
-Build و restart:
+workflow خودکار `.github/workflows/deploy-production.yml` پس از Push به `main`
+با SSH همین اسکریپت را روی VPS اجرا می‌کند. Secretهای GitHub و کلید عمومی
+Actions روی VPS یک‌بار باید تنظیم شوند و variable مخزن
+`PRODUCTION_DEPLOY_ENABLED=true` فعال شود. اسکریپت فقط fast-forward را می‌پذیرد،
+migration/build/restart را انجام می‌دهد و در پایان health check می‌زند.
 
-```bash
-pnpm api:build
-pnpm web:build
-sudo systemctl restart hotel-yab-api hotel-yab-web
-```
+برای فعال‌کردن یک‌باره پردازش مستقیم crawler روی VPS، ابتدا
+`scripts/bootstrap-crawl-processing.sh` محیط `.venv-instagram` را می‌سازد، سپس
+session ذخیره‌شده Instaloader باید برای user سرویس در
+`~/.config/instaloader/` قرار گیرد و متغیرهای `CRAWL_PROCESSING_ENABLED`,
+`CRAWL_PROCESSING_REPO_ROOT`, `CRAWL_PROCESSING_PYTHON`,
+`CRAWL_PROCESSING_INSTAGRAM_LOGIN` و `CRAWL_PROCESSING_API_BASE` تنظیم شوند.
 
 Health check:
 
@@ -1205,6 +1260,7 @@ apps/api/prisma/import-data.ts
 apps/api/prisma/import-travel-data.ts
 apps/api/prisma/data/import.example.json
 apps/api/src/catalog/
+apps/api/src/crawl-reviews/
 ```
 
 ### Frontend
@@ -1214,6 +1270,7 @@ apps/web/src/app/
 apps/web/src/components/
 apps/web/src/lib/
 apps/web/src/app/admin/catalog/
+apps/web/src/app/admin/crawl-reviews/
 apps/web/public/images/
 ```
 
@@ -1410,22 +1467,22 @@ docs/TODO.md
 ### Product
 
 - پنل Moderation برای Review/Comment/Report، پنل Users برای مدیریت role-aware حساب‌ها و پنل Catalog برای مقصد/هتل/چهره/ویدیو وجود دارند؛ review association/source هنوز اضافه نشده است.
-- نقش USER/MODERATOR از پنل Users قابل مدیریت است؛ bootstrap نقش ADMIN همچنان با `pnpm --filter @hotel-yab/api user:set-role -- <mobile-or-username> ADMIN` انجام می‌شود.
-- اتصال فنی OTP به endpoint قالبی v1 نجوا با قالب تاییدشده
-  `HotelYabOTPTemplate` اضافه شده است؛ فعال‌سازی production به تنظیم
-  `NAJVA_API_KEY`، `NAJVA_SENDER` و `SMS_OTP_ORIGIN_HOST` روی VPS و تست تحویل
-  واقعی نیاز دارد.
+- نقش USER/MODERATOR از پنل Users قابل مدیریت است؛ نقش هر حساب `ADMIN` در پنل برای همه staffها تغییرناپذیر است و bootstrap نقش ADMIN همچنان با `pnpm --filter @hotel-yab/api user:set-role -- <mobile-or-username> ADMIN` انجام می‌شود.
+- اتصال فنی OTP به endpoint قالبی v1 نجوا با قالب تأییدشده
+  `HotelYabOTPTemplate` فعال است؛ `NAJVA_API_KEY`، `NAJVA_SENDER` و
+  `SMS_OTP_ORIGIN_HOST` روی VPS تنظیم شده‌اند و IP سرور whitelist شده است.
 - نمایش `developmentCode` با `SMS_PROVIDER=development` در لوکال و با حالت صریح
   و موقت `SMS_PROVIDER=preview` روی نسخهٔ محدود سرور فعال است.
-- تا قبل از تحویل credential نجوا، production موقتاً با `SMS_PROVIDER=preview`
-  اجرا می‌شود؛ این حالت پیامک نمی‌فرستد و کد را در UI نشان می‌دهد و باید هنگام
-  فعال‌سازی نجوا به `SMS_PROVIDER=najva` تغییر کند.
+- production با `SMS_PROVIDER=najva`، سرشماره `90008136`، قالب
+  `HotelYabOTPTemplate` و hostname `hotelyab.jaryan.net` اجرا می‌شود. درخواست
+  واقعی OTP از API production با پاسخ موفق provider پذیرفته و دریافت آن روی
+  گوشی تأیید شده است. حالت `preview` دیگر تنظیم فعال production نیست.
 - account activity و library پیاده‌سازی شده‌اند؛ باگ production session بعد refresh هنوز باز است.
 - Follower refresh به‌صورت command + Admin API عملیاتی است، اما scheduler
   production هنوز ساخته نشده است.
-- Travel reviewed-XLSX importer write/apply تکمیل شده و اولین batch production اعمال شده است.
-- Production infrastructure پایه فعال است؛ دامنه/HTTPS، فعال‌سازی و تست تحویل
-  نجوا، off-server backup و monitoring هنوز نهایی نشده‌اند.
+- Travel review queue داخل پنل و خروجی JSON سازگار با downloader/importer پیاده‌سازی شده است؛ reviewed-XLSX نیز برای سازگاری قدیمی باقی مانده و اولین batch production آن قبلاً اعمال شده است.
+- Production infrastructure پایه و تحویل واقعی OTP نجوا فعال‌اند؛ تست مسیرهای
+  failure/resend، off-server backup و monitoring هنوز نهایی نشده‌اند.
 
 ---
 

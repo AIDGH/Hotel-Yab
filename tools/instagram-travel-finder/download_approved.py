@@ -30,12 +30,21 @@ USER_AGENT = (
 
 
 def load_candidate_index(excel_path: Path) -> dict[str, dict]:
-    json_path = excel_path.with_suffix(".json")
+    json_path = excel_path
+
+    if excel_path.suffix.lower() != ".json":
+        json_path = excel_path.with_suffix(".json")
 
     if not json_path.exists():
         return {}
 
-    records = json.loads(json_path.read_text(encoding="utf-8"))
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    records = (
+        payload.get("candidates")
+        if isinstance(payload, dict)
+        and payload.get("kind") == "hotel-yab-crawl-review"
+        else payload
+    )
     if not isinstance(records, list):
         raise RuntimeError(f"Candidate JSON must contain a list: {json_path}")
 
@@ -430,7 +439,10 @@ def main():
             "prepare final Hotel-Yab public paths."
         )
     )
-    parser.add_argument("excel", help="Reviewed XLSX path or profile name")
+    parser.add_argument(
+        "excel",
+        help="Reviewed XLSX/JSON path or profile name",
+    )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--download", action="store_true")

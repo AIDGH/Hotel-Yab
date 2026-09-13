@@ -6,6 +6,30 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
+- Added Moderator-only background processing for reviewed crawler batches: the
+  admin page can now run media download/preparation, import dry-run, and final
+  API apply sequentially while persisting status and bounded logs in PostgreSQL.
+  Administrators retain review/export access but cannot start the server job.
+- Added a GitHub Actions production workflow and a checked-in safe deployment
+  script for automatic fast-forward pull, dependency/migration/build steps,
+  systemd restart, and health checks after pushes to `main`.
+- Made existing administrator roles immutable through staff account management,
+  including attempts made by a moderator, while preserving the separate
+  moderator administrator-review page for profile/status operations.
+- Changed the public header action to «ورود / ثبت‌نام» and refreshed the home
+  hero message around seeing other people's experiences before choosing a
+  destination.
+- Activated the approved Najva OTP provider in production with the configured
+  sender, WebOTP hostname, and whitelisted VPS IP. The first real login-OTP
+  request was accepted successfully by Najva without exposing a development
+  code, and delivery to the handset was confirmed.
+- Added a PostgreSQL-backed admin crawler-review queue at
+  `/admin/crawl-reviews`: administrators and moderators can upload crawler JSON,
+  review paginated candidates, choose canonical cities/provinces and an optional
+  hotel, approve/reject rows, download a reviewed machine JSON export, and mark
+  processed batches complete. Added compatible JSON input to the existing
+  approved-media downloader/importer so the normal workflow no longer requires
+  generating or editing XLSX; legacy reviewed workbooks remain supported.
 - Added a resumable authenticated Instagram Highlight downloader that accepts
   multiple direct Highlight URLs, preserves their ordered mixed media, converts
   images and video covers to WebP, keeps videos as MP4, and writes directly to
