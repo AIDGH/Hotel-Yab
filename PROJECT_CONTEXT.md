@@ -541,7 +541,9 @@ Admin API / PostgreSQL
 اجرا می‌کند و به‌ترتیب `download_approved.py --prepare-media`، dry-run و apply
 را پیش می‌برد. درخواست مرورگر منتظر فرایند طولانی نمی‌ماند و وضعیت/لاگ در
 PostgreSQL ثبت و با polling نمایش داده می‌شود. فایل‌های نهایی همچنان زیر
-`apps/web/public` و خارج از Git قرار می‌گیرند.
+`apps/web/public` و خارج از Git قرار می‌گیرند. اگر API وسط پردازش restart شود،
+batch باقی‌مانده در حالت `RUNNING` هنگام startup به `FAILED` و قابل‌تلاش‌مجدد
+تبدیل می‌شود.
 
 لینک‌های مستقیم Highlight خارج از workbook با
 `tools/instagram-travel-finder/download_highlights.py` دریافت می‌شوند. هر

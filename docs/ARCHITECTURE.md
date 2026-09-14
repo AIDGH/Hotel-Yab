@@ -609,6 +609,8 @@ The administration layer is split by responsibility:
   apply sequence as a server-side background job. The browser request returns
   immediately and polls persisted job state; the server runs only one such job
   at a time with argument-array child processes rather than a shell command.
+  Because production currently has one API instance, any job left `RUNNING`
+  across an API restart is marked `FAILED` during startup and becomes retryable.
 
 The administration layer may later expand to:
 

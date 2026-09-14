@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleInit,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -43,13 +44,30 @@ const hotelSelect = {
 } satisfies Prisma.HotelSelect;
 
 @Injectable()
-export class CrawlReviewsService {
+export class CrawlReviewsService implements OnModuleInit {
   private readonly logger = new Logger(CrawlReviewsService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService<EnvironmentVariables, true>,
   ) {}
+
+  async onModuleInit() {
+    const interrupted = await this.prisma.crawlReviewBatch.updateMany({
+      where: { processingStatus: CrawlReviewProcessingStatus.RUNNING },
+      data: {
+        processingStatus: CrawlReviewProcessingStatus.FAILED,
+        processingFinishedAt: new Date(),
+        processingLog:
+          'پردازش به‌دلیل راه‌اندازی مجدد سرویس متوقف شد؛ دوباره اجرا کنید.',
+      },
+    });
+    if (interrupted.count > 0) {
+      this.logger.warn(
+        `Marked ${interrupted.count} interrupted crawl processing job(s) as failed`,
+      );
+    }
+  }
 
   async getBootstrap() {
     const [destinations, hotels, batches] = await this.prisma.$transaction([

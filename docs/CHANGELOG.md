@@ -9,7 +9,8 @@ All notable changes to Hotel-Yab are recorded in this file.
 - Added Moderator-only background processing for reviewed crawler batches: the
   admin page can now run media download/preparation, import dry-run, and final
   API apply sequentially while persisting status and bounded logs in PostgreSQL.
-  Administrators retain review/export access but cannot start the server job.
+  Administrators retain review/export access but cannot start the server job;
+  interrupted jobs are marked failed and retryable when the API restarts.
 - Added a GitHub Actions production workflow and a checked-in safe deployment
   script for automatic fast-forward pull, dependency/migration/build steps,
   systemd restart, and health checks after pushes to `main`. The deployment
