@@ -993,6 +993,6 @@ from drifting. Server-side polling reuses the VPS's existing read-only GitHub
 access and avoids placing a server-login private key in GitHub. The same deploy
 script remains reusable manually, while media and secrets stay outside Git.
 
-**Status:** Implemented through `hotel-yab-deploy.service` and
-`hotel-yab-deploy.timer`; production installation and first timer-triggered run
-must be verified once.
+**Status:** Active in production through `hotel-yab-deploy.service` and
+`hotel-yab-deploy.timer`; the timer is enabled and its first GitHub check was
+verified successfully.

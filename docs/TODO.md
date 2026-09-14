@@ -164,7 +164,7 @@ This file tracks open product and technical work for Hotel-Yab.
 - [ ] Off-server backup copy.
 - [ ] Monitoring/alerting/log aggregation.
 - [x] Add a checked-in safe production deployment script and locked GitHub revision checker.
-- [ ] Install/enable the production systemd deploy timer and verify its first automatic deployment from `main`.
+- [x] Install/enable the production systemd deploy timer and verify its first automatic deployment from `main`.
 - [ ] Schedule follower refresh in production when the desired cadence is decided.
 - [ ] Decide when to migrate content media to object storage/CDN.
 - [ ] Remove the old stopped PostgreSQL 16 cluster only after the production setup has remained stable long enough.

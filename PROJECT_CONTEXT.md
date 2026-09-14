@@ -1144,6 +1144,7 @@ timer خودکار `hotel-yab-deploy.timer` هر یک دقیقه `origin/main` �
 GitHub موجود خود VPS استفاده می‌کند و private key ورود به سرور را در GitHub
 نگه نمی‌دارد. اسکریپت اصلی فقط fast-forward را می‌پذیرد،
 migration/build/restart را انجام می‌دهد و در پایان health check retryدار می‌زند.
+این service/timer اکنون روی VPS نصب و enabled است.
 
 برای فعال‌کردن یک‌باره پردازش مستقیم crawler روی VPS، ابتدا
 `scripts/bootstrap-crawl-processing.sh` محیط `.venv-instagram` را می‌سازد، سپس

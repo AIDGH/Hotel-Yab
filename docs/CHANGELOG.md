@@ -16,6 +16,7 @@ All notable changes to Hotel-Yab are recorded in this file.
   deploy performs a fast-forward pull, dependency/migration/build steps,
   systemd restart, and retrying health checks. It explicitly resolves the
   server's NVM-managed Node/pnpm path and requires no VPS private key in GitHub.
+  The timer is installed, enabled, and successfully checking production.
 - Made existing administrator roles immutable through staff account management,
   including attempts made by a moderator, while preserving the separate
   moderator administrator-review page for profile/status operations.
