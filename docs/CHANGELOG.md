@@ -14,7 +14,8 @@ All notable changes to Hotel-Yab are recorded in this file.
   script for automatic fast-forward pull, dependency/migration/build steps,
   systemd restart, and health checks after pushes to `main`. The deployment
   script resolves the server's NVM-managed Node/pnpm path explicitly so it also
-  works in non-interactive SSH sessions.
+  works in non-interactive SSH sessions, and retries post-restart health checks
+  while systemd services finish starting.
 - Made existing administrator roles immutable through staff account management,
   including attempts made by a moderator, while preserving the separate
   moderator administrator-review page for profile/status operations.

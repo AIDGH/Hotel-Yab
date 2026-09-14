@@ -37,7 +37,20 @@ sudo -n systemctl restart hotel-yab-api hotel-yab-web
 sudo -n systemctl is-active --quiet hotel-yab-api
 sudo -n systemctl is-active --quiet hotel-yab-web
 
-curl --fail --silent --show-error http://127.0.0.1:4000/api/v1/health >/dev/null
-curl --fail --silent --show-error http://127.0.0.1:3000/ >/dev/null
+wait_for_url() {
+  local url="$1"
+  local attempt
+  for attempt in {1..30}; do
+    if curl --fail --silent --show-error "$url" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "Deployment failed: health check did not pass for $url." >&2
+  return 1
+}
+
+wait_for_url http://127.0.0.1:4000/api/v1/health
+wait_for_url http://127.0.0.1:3000/
 
 echo "Hotel-Yab production deployment completed successfully."
