@@ -1,0 +1,12 @@
+[Unit]
+Description=Check Hotel-Yab main branch for production updates
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Persistent=true
+Unit=hotel-yab-deploy.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,11 @@
+[Unit]
+Description=Check GitHub and deploy Hotel-Yab production updates
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=jaryan
+Group=jaryan
+WorkingDirectory=/home/jaryan/Hotel-Yab
+ExecStart=/bin/bash /home/jaryan/Hotel-Yab/scripts/check-and-deploy-production.sh

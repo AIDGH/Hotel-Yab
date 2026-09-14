@@ -980,18 +980,19 @@ remains the recovery path.
 `20260913140000_add_crawl_review_processing`; production deployment and the
 one-time server session/runtime bootstrap are still needed.
 
-## 50. Deploy Production from GitHub Actions After Push to Main
+## 50. Poll GitHub from Production and Deploy New Main Revisions
 
-**Decision:** A push to `main` runs `.github/workflows/deploy-production.yml`.
-The workflow uses repository/environment secrets to SSH to the VPS and invokes
-the repository-owned deployment script. The script refuses tracked production
-changes and uses a fast-forward-only update before installing dependencies,
-applying migrations, building, restarting services, and checking health.
+**Decision:** A systemd timer on production checks `origin/main` once per minute.
+When the remote revision differs, a locked repository script invokes the safe
+production deployment script. The deploy refuses tracked production changes and
+uses a fast-forward-only update before installing dependencies, applying
+migrations, building, restarting services, and checking health.
 
 **Reason:** One reviewed deployment path prevents the laptop and VPS commands
-from drifting while retaining an auditable GitHub run and a reusable manual
-server script. Media and secrets remain outside Git.
+from drifting. Server-side polling reuses the VPS's existing read-only GitHub
+access and avoids placing a server-login private key in GitHub. The same deploy
+script remains reusable manually, while media and secrets stay outside Git.
 
-**Status:** Implemented in code; GitHub secrets and the VPS Actions public key
-must be configured once before the first automatic run, then repository variable
-`PRODUCTION_DEPLOY_ENABLED` must be set to `true`.
+**Status:** Implemented through `hotel-yab-deploy.service` and
+`hotel-yab-deploy.timer`; production installation and first timer-triggered run
+must be verified once.

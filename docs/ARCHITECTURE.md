@@ -722,12 +722,15 @@ separate from normal code deployments so an absent Instagram session cannot
 silently downgrade into an interactive password prompt.
 
 The intended code-update flow is development/testing on the Mac followed by a
-push to `main`. GitHub Actions then connects to the VPS and runs the checked-in
+push to `main`. The production `hotel-yab-deploy.timer` checks `origin/main`
+once per minute and runs `scripts/check-and-deploy-production.sh` only when a
+new revision exists. The locked checker delegates to the checked-in
 `scripts/deploy-production.sh`, which performs a fast-forward-only pull,
 dependency install, Prisma generation/migration, both production builds,
-controlled systemd restarts, and local health checks. Media remains outside Git
-and still requires explicit synchronization. Direct production code editing is
-not the normal workflow.
+controlled systemd restarts, and retrying local health checks. This avoids
+storing a VPS login key in GitHub. Media remains outside Git and still requires
+explicit synchronization. Direct production code editing is not the normal
+workflow.
 
 ---
 

@@ -1123,7 +1123,7 @@ Health:   http://localhost:4000/api/v1/health
 ```bash
 # Mac
 git status --short --branch
-# test, commit, then push to main; GitHub Actions deploys production
+# test, commit, then push to main; the VPS timer deploys production
 
 # VPS — مسیر دستی جایگزین
 ssh jaryan@87.247.170.136
@@ -1138,11 +1138,12 @@ pnpm api:prisma:generate
 pnpm api:prisma:migrate:deploy
 ```
 
-workflow خودکار `.github/workflows/deploy-production.yml` پس از Push به `main`
-با SSH همین اسکریپت را روی VPS اجرا می‌کند. Secretهای GitHub و کلید عمومی
-Actions روی VPS یک‌بار باید تنظیم شوند و variable مخزن
-`PRODUCTION_DEPLOY_ENABLED=true` فعال شود. اسکریپت فقط fast-forward را می‌پذیرد،
-migration/build/restart را انجام می‌دهد و در پایان health check می‌زند.
+timer خودکار `hotel-yab-deploy.timer` هر یک دقیقه `origin/main` را بررسی می‌کند
+و فقط در صورت وجود کامیت تازه، اسکریپت قفل‌شده
+`scripts/check-and-deploy-production.sh` را اجرا می‌کند. این مسیر از دسترسی
+GitHub موجود خود VPS استفاده می‌کند و private key ورود به سرور را در GitHub
+نگه نمی‌دارد. اسکریپت اصلی فقط fast-forward را می‌پذیرد،
+migration/build/restart را انجام می‌دهد و در پایان health check retryدار می‌زند.
 
 برای فعال‌کردن یک‌باره پردازش مستقیم crawler روی VPS، ابتدا
 `scripts/bootstrap-crawl-processing.sh` محیط `.venv-instagram` را می‌سازد، سپس

@@ -11,12 +11,11 @@ All notable changes to Hotel-Yab are recorded in this file.
   API apply sequentially while persisting status and bounded logs in PostgreSQL.
   Administrators retain review/export access but cannot start the server job;
   interrupted jobs are marked failed and retryable when the API restarts.
-- Added a GitHub Actions production workflow and a checked-in safe deployment
-  script for automatic fast-forward pull, dependency/migration/build steps,
-  systemd restart, and health checks after pushes to `main`. The deployment
-  script resolves the server's NVM-managed Node/pnpm path explicitly so it also
-  works in non-interactive SSH sessions, and retries post-restart health checks
-  while systemd services finish starting.
+- Added a production systemd timer that checks GitHub once per minute and runs a
+  locked, checked-in deployment path only when `main` has changed. The safe
+  deploy performs a fast-forward pull, dependency/migration/build steps,
+  systemd restart, and retrying health checks. It explicitly resolves the
+  server's NVM-managed Node/pnpm path and requires no VPS private key in GitHub.
 - Made existing administrator roles immutable through staff account management,
   including attempts made by a moderator, while preserving the separate
   moderator administrator-review page for profile/status operations.
