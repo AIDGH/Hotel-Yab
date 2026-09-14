@@ -1152,6 +1152,11 @@ session ذخیره‌شده Instaloader باید برای user سرویس در
 `~/.config/instaloader/` قرار گیرد و متغیرهای `CRAWL_PROCESSING_ENABLED`,
 `CRAWL_PROCESSING_REPO_ROOT`, `CRAWL_PROCESSING_PYTHON`,
 `CRAWL_PROCESSING_INSTAGRAM_LOGIN` و `CRAWL_PROCESSING_API_BASE` تنظیم شوند.
+محیط `.venv-instagram` و فایل session خصوصی اکنون روی VPS provision شده‌اند،
+اما شبکه دیتاسنتر دامنه Instagram را به آدرس داخلی `10.10.34.36` resolve می‌کند
+و HTTPS برقرار نمی‌شود. بنابراین `CRAWL_PROCESSING_ENABLED` تا فراهم‌شدن مسیر
+خروجی محدود فقط برای downloader یا انتقال worker به شبکه‌ای با دسترسی Instagram
+خاموش می‌ماند؛ دیپلوی خودکار و سایر سرویس‌های production تحت‌تأثیر نیستند.
 
 Health check:
 

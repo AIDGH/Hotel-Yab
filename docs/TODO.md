@@ -41,7 +41,8 @@ This file tracks open product and technical work for Hotel-Yab.
 - [x] Replace mandatory JSON-to-XLSX review with an admin crawler-review queue and downloader-compatible JSON export.
 - [x] Add a practical batch/profile review queue around the existing checkpoint/resume crawler.
 - [x] Add Moderator-only background download/preparation/dry-run/apply from the crawl-review page.
-- [ ] Provision the crawler Python environment and saved Instaloader session on production, deploy the crawl-review migrations/routes, and run the first real reviewed JSON batch end-to-end.
+- [x] Provision the crawler Python environment and private Instaloader session on production and deploy the crawl-review migrations/routes.
+- [ ] Provide Instagram-capable outbound connectivity for the downloader (scoped proxy or external worker), enable direct processing, verify the saved session, and run the first real reviewed JSON batch end-to-end.
 - [ ] Continue collecting more reviewed travel and hotel videos.
 - [ ] Complete missing hotel fields, images, logos, and official metadata.
 - [ ] Complete missing notable-person image, Instagram, occupation, biography, and follower metadata.

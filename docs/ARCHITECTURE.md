@@ -721,6 +721,13 @@ environment, the service user has a saved Instaloader session, and the
 separate from normal code deployments so an absent Instagram session cannot
 silently downgrade into an interactive password prompt.
 
+The dedicated Python runtime and private Instaloader session are provisioned on
+the current VPS. Direct processing remains disabled because the Iranian
+datacenter network resolves Instagram to an unreachable internal address while
+normal GitHub egress works. Activation requires a downloader-scoped outbound
+proxy or moving the worker to a network that can reach Instagram; the public API
+and automatic code-deployment timer do not depend on that route.
+
 The intended code-update flow is development/testing on the Mac followed by a
 push to `main`. The production `hotel-yab-deploy.timer` checks `origin/main`
 once per minute and runs `scripts/check-and-deploy-production.sh` only when a

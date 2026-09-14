@@ -11,6 +11,10 @@ All notable changes to Hotel-Yab are recorded in this file.
   API apply sequentially while persisting status and bounded logs in PostgreSQL.
   Administrators retain review/export access but cannot start the server job;
   interrupted jobs are marked failed and retryable when the API restarts.
+- Provisioned the production crawler Python runtime and private Instaloader
+  session, but kept direct processing disabled after confirming that the current
+  datacenter network cannot reach Instagram. Automatic Git/code deployment and
+  public services remain independent and healthy.
 - Added a production systemd timer that checks GitHub once per minute and runs a
   locked, checked-in deployment path only when `main` has changed. The safe
   deploy performs a fast-forward pull, dependency/migration/build steps,
