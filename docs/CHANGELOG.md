@@ -12,7 +12,9 @@ All notable changes to Hotel-Yab are recorded in this file.
   Administrators retain review/export access but cannot start the server job.
 - Added a GitHub Actions production workflow and a checked-in safe deployment
   script for automatic fast-forward pull, dependency/migration/build steps,
-  systemd restart, and health checks after pushes to `main`.
+  systemd restart, and health checks after pushes to `main`. The deployment
+  script resolves the server's NVM-managed Node/pnpm path explicitly so it also
+  works in non-interactive SSH sessions.
 - Made existing administrator roles immutable through staff account management,
   including attempts made by a moderator, while preserving the separate
   moderator administrator-review page for profile/status operations.
