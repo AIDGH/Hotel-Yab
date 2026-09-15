@@ -449,17 +449,17 @@ frontend.
 Travel discovery/review flow:
 
 ```text
-Public Instagram posts
+Public Instagram posts + authenticated browser session on the operator laptop
         ↓
-tools/instagram-travel-finder/graphql_client.py
+local_crawl_worker.py (primary) or graphql_client.py (manual fallback)
         ↓
-crawl_graphql.py + checkpoint/resume
+crawl/checkpoint/resume + detector.py
         ↓
 detector.py (high-recall candidate scoring, HOTEL priority)
         ↓
 JSON output
         ↓
-Admin `/admin/crawl-reviews` upload and PostgreSQL review queue
+automatic local result upload to Admin `/admin/crawl-reviews`
         ↓
 Human review with canonical city/province selectors and optional hotel
         ↓
@@ -471,7 +471,7 @@ import_approved.py --prepare-media
         ↓
 import_approved.py --dry-run
         ↓
-Admin API / PostgreSQL write path
+batch-scoped local-worker API / PostgreSQL write path
 ```
 
 The review queue persists batches and individual review rows, but keeps raw
@@ -602,15 +602,19 @@ The administration layer is split by responsibility:
 - a read-only export endpoint produces a JSON snapshot compatible with the
   extended import schema.
 - `/admin/crawl-reviews` is available to `ADMIN` and `MODERATOR`; it accepts a
-  crawler JSON file, stores a paginated review batch, resolves detected catalog
+  selected catalog person's Instagram handle or a fallback crawler JSON file,
+  stores a paginated review batch, resolves detected catalog
   hints, supports explicit approved/rejected decisions, exports a reviewed JSON
   file for the local media tools, and records when the batch has been processed.
-  A `MODERATOR` can additionally start the downloader, preparation, dry-run, and
-  apply sequence as a server-side background job. The browser request returns
-  immediately and polls persisted job state; the server runs only one such job
-  at a time with argument-array child processes rather than a shell command.
-  Because production currently has one API instance, any job left `RUNNING`
-  across an API restart is marked `FAILED` during startup and becomes retryable.
+  The primary crawler is a loopback-only helper bound to `127.0.0.1`: it reads
+  the operator's authenticated browser session locally, checkpoints interrupted
+  crawls, and uploads candidate JSON without exporting Instagram cookies.
+  A `MODERATOR` can additionally start downloader → preparation → dry-run →
+  apply through that helper. The API issues a short-lived HMAC-signed ticket
+  scoped to one reviewed batch; the helper may fetch that batch/catalog, upload
+  only final MP4/WebP paths in chunks below the reverse-proxy request limit,
+  create only approved batch content, and report
+  completion/failure. Only one local job runs at a time.
 
 The administration layer may later expand to:
 
@@ -714,19 +718,13 @@ accepted a real OTP request whose handset delivery was confirmed. Provider
 failure/resend regression, off-server backup, and monitoring are follow-up work. A production auth
 session-refresh issue is also still open and must be fixed before broader launch.
 
-The crawler background worker is part of the API process but remains disabled
-until `scripts/bootstrap-crawl-processing.sh` has created the dedicated Python
-environment, the service user has a saved Instaloader session, and the
-`CRAWL_PROCESSING_*` production variables are configured. This one-time setup is
-separate from normal code deployments so an absent Instagram session cannot
-silently downgrade into an interactive password prompt.
-
-The dedicated Python runtime and private Instaloader session are provisioned on
-the current VPS. Direct processing remains disabled because the Iranian
-datacenter network resolves Instagram to an unreachable internal address while
-normal GitHub egress works. Activation requires a downloader-scoped outbound
-proxy or moving the worker to a network that can reach Instagram; the public API
-and automatic code-deployment timer do not depend on that route.
+The old API-process crawler job remains disabled because the current datacenter
+cannot reach Instagram. Production review/download now uses the operator-side
+`local_crawl_worker.py --environment production`. Its HTTP server is loopback
+only, accepts only the known local and Hotel-Yab origins, and has fixed local or
+`hotelyab.jaryan.net` API targets. Browser cookies and Instaloader sessions stay
+on the operator machine; only candidate metadata and approved final media are
+sent to Hotel-Yab. API restarts still mark stale `RUNNING` batches retryable.
 
 The intended code-update flow is development/testing on the Mac followed by a
 push to `main`. The production `hotel-yab-deploy.timer` checks `origin/main`

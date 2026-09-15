@@ -6,11 +6,17 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
-- Added Moderator-only background processing for reviewed crawler batches: the
-  admin page can now run media download/preparation, import dry-run, and final
-  API apply sequentially while persisting status and bounded logs in PostgreSQL.
-  Administrators retain review/export access but cannot start the server job;
-  interrupted jobs are marked failed and retryable when the API restarts.
+- Added a loopback-only Instagram crawler/downloader helper integrated with
+  `/admin/crawl-reviews`: staff can select an existing person, start or resume a
+  crawl using their local browser session, preview candidate media, and import
+  only newly discovered shortcodes. Moderators can finish a reviewed batch with
+  one local download/prepare/dry-run/apply action using a short-lived,
+  batch-scoped API ticket; cookies never leave the operator machine, final media
+  uploads are path/type/size constrained and chunked below the production Nginx
+  request limit, and interrupted jobs are retryable.
+- Retained the earlier Moderator-only API-process crawler job as a disabled
+  fallback; the local-browser helper is now the active path because production
+  cannot connect to Instagram directly.
 - Provisioned the production crawler Python runtime and private Instaloader
   session, but kept direct processing disabled after confirming that the current
   datacenter network cannot reach Instagram. Automatic Git/code deployment and

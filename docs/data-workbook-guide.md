@@ -134,30 +134,44 @@ tools/instagram-travel-finder/
 The primary review flow is now:
 
 ```text
-GraphQL crawler
+local browser crawler (primary) or GraphQL crawler (fallback)
     ↓
 JSON + checkpoint
     ↓
 candidate detector
     ↓
-upload crawler JSON in `/admin/crawl-reviews`
+automatic candidate upload to `/admin/crawl-reviews`
     ↓
 human review with canonical destination selectors
     ↓
-download `<username>.reviewed.json`
+finish the review batch
     ↓
-download_approved.py --dry-run
-    ↓
-download_approved.py --download --prepare-media
-    ↓
-import_approved.py --dry-run
-    ↓
-explicit reviewed apply
+Moderator starts local download/import (or uses the manual commands below)
     ↓
 Admin API / PostgreSQL
 ```
 
-The reviewed JSON export can be passed directly to both approved-media scripts;
+Run the local helper from the repository root, then leave that terminal open:
+
+```bash
+python3 tools/instagram-travel-finder/local_crawl_worker.py \
+  --environment local --browser chrome
+```
+
+For the live site, use the fixed production target instead:
+
+```bash
+python3 tools/instagram-travel-finder/local_crawl_worker.py \
+  --environment production --browser chrome
+```
+
+Log in to `instagram.com` in Chrome first. In `/admin/crawl-reviews`, choose an
+existing person, start the crawl, review the newly found rows, finish review,
+then let a Moderator select «دانلود و ورود مستقیم به سایت». Stopping the local
+job preserves its checkpoint; rerunning the same person continues safely.
+Previously seen shortcodes are not added to a new review batch.
+
+The reviewed JSON export can still be passed directly to both approved-media scripts;
 manual Excel generation is no longer required. The existing
 `json_to_excel.py` and reviewed XLSX format remain supported for offline or
 legacy batches.
@@ -222,15 +236,15 @@ Important rules:
 10. `tools/instagram-travel-finder/output/`, captured `query.json`, and
    `query.rtf` are local working artifacts and are not committed.
 
-### Admin Review and Approved Media Commands
+### Manual Admin Review and Approved Media Fallback
 
-Use one profile name consistently through this four-step workflow. The following
-example uses `morteza.kowsari`.
+Use this only when the loopback helper cannot be used. Keep one profile name
+consistent through the four-step workflow. The example uses `username`.
 
 1. Crawl the profile and write/update its local JSON checkpoint output:
 
 ```bash
-python3 tools/instagram-travel-finder/crawl_graphql.py morteza.kowsari
+python3 tools/instagram-travel-finder/crawl_graphql.py username
 ```
 
 2. In `/admin/crawl-reviews`, upload
@@ -242,7 +256,7 @@ For a legacy/offline run only, convert the candidate JSON into the merge-safe
 review workbook instead:
 
 ```bash
-python3 tools/instagram-travel-finder/json_to_excel.py morteza.kowsari
+python3 tools/instagram-travel-finder/json_to_excel.py username
 ```
 
 When using XLSX, pause for human review and back up the reviewed workbook before
@@ -257,7 +271,7 @@ browser-cookie reader once if needed:
 python3 -m pip install browser-cookie3
 export HOTELYAB_ADMIN_COOKIE='hotel_yab_session=PASTE_VALUE_HERE'
 python3 tools/instagram-travel-finder/download_approved.py \
-  /path/to/morteza.kowsari.reviewed.json \
+  /path/to/username.reviewed.json \
   --download --prepare-media --load-cookies chrome
 ```
 
@@ -267,9 +281,9 @@ Admin API:
 
 ```bash
 python3 tools/instagram-travel-finder/import_approved.py \
-  /path/to/morteza.kowsari.reviewed.json --dry-run
+  /path/to/username.reviewed.json --dry-run
 python3 tools/instagram-travel-finder/import_approved.py \
-  /path/to/morteza.kowsari.reviewed.json --apply
+  /path/to/username.reviewed.json --apply
 unset HOTELYAB_ADMIN_COOKIE
 ```
 
@@ -346,8 +360,12 @@ restore files that are missing from its ready manifest.
 
 #### 1. Crawl and checkpoint
 
+- If the panel says the local crawler is unavailable, run
+  `local_crawl_worker.py` with the environment matching the open site and keep
+  its terminal open. The helper listens only on `127.0.0.1:4317`.
 - If Instagram requests login or a checkpoint, complete it in Chrome first and
-  rerun the crawl. Do not repeatedly submit a password in the terminal.
+  rerun the crawl from the panel. Do not repeatedly submit a password in the
+  terminal; the helper imports the existing browser session locally.
 - If crawling stops partway through, rerun the same profile command. Keep the
   existing JSON/checkpoint files so the crawler can resume instead of starting
   from zero.
@@ -367,6 +385,12 @@ restore files that are missing from its ready manifest.
 
 #### 3. Download and media preparation
 
+- If local processing is stopped or the helper restarts, start the processing
+  action again. Existing downloads/manifests are reused and the batch is made
+  retryable; do not delete the output directory.
+- The production VPS does not need Instagram access for this path. The helper
+  downloads on the moderator laptop and sends only prepared MP4/WebP files and
+  catalog payloads to the fixed Hotel-Yab API.
 - `403`, checkpoint, private, deleted, or region-restricted posts are recorded
   in `<profile>.download-failures.json`. Fix only those rows and rerun; complete
   `media.json` manifests are reused.

@@ -10,9 +10,24 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { spawn } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { basename, join, resolve } from 'node:path';
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from 'node:crypto';
+import { createWriteStream } from 'node:fs';
+import {
+  access,
+  mkdir,
+  rename,
+  stat,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
+import { basename, dirname, join, resolve, sep } from 'node:path';
+import { pipeline } from 'node:stream/promises';
+import { Transform, type Readable } from 'node:stream';
 import { EnvironmentVariables } from '../config/environment';
 import { Prisma } from '../generated/prisma/client';
 import {
@@ -70,33 +85,45 @@ export class CrawlReviewsService implements OnModuleInit {
   }
 
   async getBootstrap() {
-    const [destinations, hotels, batches] = await this.prisma.$transaction([
-      this.prisma.destination.findMany({
-        orderBy: [{ type: 'desc' }, { displayOrder: 'asc' }, { name: 'asc' }],
-        select: destinationSelect,
-      }),
-      this.prisma.hotel.findMany({
-        orderBy: { name: 'asc' },
-        select: hotelSelect,
-      }),
-      this.prisma.crawlReviewBatch.findMany({
-        orderBy: { updatedAt: 'desc' },
-        select: {
-          id: true,
-          instagramUsername: true,
-          sourceFilename: true,
-          status: true,
-          processingStatus: true,
-          processingStartedAt: true,
-          processingFinishedAt: true,
-          reviewedAt: true,
-          completedAt: true,
-          createdAt: true,
-          updatedAt: true,
-          _count: { select: { items: true } },
-        },
-      }),
-    ]);
+    const [destinations, hotels, notablePeople, batches] =
+      await this.prisma.$transaction([
+        this.prisma.destination.findMany({
+          orderBy: [{ type: 'desc' }, { displayOrder: 'asc' }, { name: 'asc' }],
+          select: destinationSelect,
+        }),
+        this.prisma.hotel.findMany({
+          orderBy: { name: 'asc' },
+          select: hotelSelect,
+        }),
+        this.prisma.notablePerson.findMany({
+          where: { instagramHandle: { not: null } },
+          orderBy: [{ displayName: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            slug: true,
+            displayName: true,
+            instagramHandle: true,
+            imageUrl: true,
+          },
+        }),
+        this.prisma.crawlReviewBatch.findMany({
+          orderBy: { updatedAt: 'desc' },
+          select: {
+            id: true,
+            instagramUsername: true,
+            sourceFilename: true,
+            status: true,
+            processingStatus: true,
+            processingStartedAt: true,
+            processingFinishedAt: true,
+            reviewedAt: true,
+            completedAt: true,
+            createdAt: true,
+            updatedAt: true,
+            _count: { select: { items: true } },
+          },
+        }),
+      ]);
     const groupedCounts = await this.prisma.crawlReviewItem.groupBy({
       by: ['batchId', 'reviewStatus'],
       orderBy: [{ batchId: 'asc' }, { reviewStatus: 'asc' }],
@@ -124,6 +151,7 @@ export class CrawlReviewsService implements OnModuleInit {
       data: {
         destinations,
         hotels,
+        notablePeople,
         batches: batches.map(({ _count, ...batch }) => ({
           ...batch,
           totalItems: _count.items,
@@ -166,15 +194,6 @@ export class CrawlReviewsService implements OnModuleInit {
     }
 
     const contentHash = createHash('sha256').update(file.buffer).digest('hex');
-    const duplicate = await this.prisma.crawlReviewBatch.findUnique({
-      where: { contentHash },
-      select: { id: true },
-    });
-    if (duplicate) {
-      throw new ConflictException(
-        `این فایل قبلاً بارگذاری شده است (شناسه ${duplicate.id})`,
-      );
-    }
 
     const candidates = parsed as Candidate[];
     const sourceFilename = basename(file.originalname).slice(0, 255);
@@ -276,6 +295,39 @@ export class CrawlReviewsService implements OnModuleInit {
       };
     });
 
+    const existingItems = await this.prisma.crawlReviewItem.findMany({
+      where: {
+        instagramUsername,
+        shortcode: { in: items.map((item) => item.shortcode) },
+      },
+      select: { shortcode: true },
+    });
+    const existingShortcodes = new Set(
+      existingItems.map((item) => item.shortcode),
+    );
+    const freshItems = items.filter(
+      (item) => !existingShortcodes.has(item.shortcode),
+    );
+    if (freshItems.length === 0) {
+      const previous = await this.prisma.crawlReviewBatch.findFirst({
+        where: { instagramUsername },
+        orderBy: { updatedAt: 'desc' },
+        select: { id: true, status: true },
+      });
+      if (!previous) {
+        throw new ConflictException('محتوای تازه‌ای برای بررسی پیدا نشد');
+      }
+      return {
+        data: {
+          id: previous.id,
+          status: previous.status,
+          instagramUsername,
+          totalItems: 0,
+          skippedExisting: items.length,
+        },
+      };
+    }
+
     const batch = await this.prisma.$transaction(async (transaction) => {
       const created = await transaction.crawlReviewBatch.create({
         data: {
@@ -287,7 +339,11 @@ export class CrawlReviewsService implements OnModuleInit {
         select: { id: true },
       });
       await transaction.crawlReviewItem.createMany({
-        data: items.map((item) => ({ ...item, batchId: created.id })),
+        data: freshItems.map((item, index) => ({
+          ...item,
+          displayOrder: index + 1,
+          batchId: created.id,
+        })),
       });
       return created;
     });
@@ -295,8 +351,10 @@ export class CrawlReviewsService implements OnModuleInit {
     return {
       data: {
         id: batch.id,
+        status: CrawlReviewBatchStatus.REVIEWING,
         instagramUsername,
-        totalItems: items.length,
+        totalItems: freshItems.length,
+        skippedExisting: items.length - freshItems.length,
       },
     };
   }
@@ -341,6 +399,7 @@ export class CrawlReviewsService implements OnModuleInit {
           cityIds: true,
           provinceIds: true,
           finalTitle: true,
+          rawPayload: true,
           updatedAt: true,
         },
       }),
@@ -355,7 +414,10 @@ export class CrawlReviewsService implements OnModuleInit {
     return {
       data: {
         ...batch,
-        items,
+        items: items.map(({ rawPayload, ...item }) => ({
+          ...item,
+          preview: previewFromCandidate(rawPayload),
+        })),
         counts: statusCounts(groupedCounts),
         pagination: {
           page: query.page,
@@ -584,6 +646,274 @@ export class CrawlReviewsService implements OnModuleInit {
     };
   }
 
+  async createLocalProcessingTicket(
+    id: string,
+    actorId: string,
+    actorRole: UserRole,
+  ) {
+    if (actorRole !== UserRole.MODERATOR) {
+      throw new ForbiddenException(
+        'دانلود و ورود مستقیم فقط برای ناظر محتوا مجاز است',
+      );
+    }
+    const batch = await this.requireBatch(id);
+    if (batch.status !== CrawlReviewBatchStatus.READY) {
+      throw new BadRequestException('ابتدا بررسی همه ردیف‌ها را کامل کنید');
+    }
+    if (batch.processingStatus === CrawlReviewProcessingStatus.RUNNING) {
+      throw new ConflictException('پردازش این فایل هم‌اکنون در حال اجرا است');
+    }
+
+    const startedAt = new Date();
+    const issuedAt = startedAt.getTime();
+    const expiresAt = issuedAt + 3 * 60 * 60 * 1_000;
+    const token = this.signLocalTicket({
+      batchId: id,
+      actorId,
+      issuedAt,
+      expiresAt,
+      nonce: randomBytes(12).toString('base64url'),
+    });
+    const claimed = await this.prisma.crawlReviewBatch.updateMany({
+      where: {
+        id,
+        status: CrawlReviewBatchStatus.READY,
+        processingStatus: { not: CrawlReviewProcessingStatus.RUNNING },
+      },
+      data: {
+        processingStatus: CrawlReviewProcessingStatus.RUNNING,
+        processingStartedAt: startedAt,
+        processingFinishedAt: null,
+        processingLog:
+          'پردازش روی لپ‌تاپ ناظر شروع شد؛ نشست اینستاگرام از دستگاه خارج نمی‌شود.',
+        processedById: actorId,
+      },
+    });
+    if (claimed.count !== 1) {
+      throw new ConflictException('پردازش این فایل هم‌اکنون در حال اجرا است');
+    }
+    return {
+      data: {
+        batchId: id,
+        token,
+        expiresAt: new Date(expiresAt).toISOString(),
+      },
+    };
+  }
+
+  async assertLocalProcessingTicket(
+    id: string,
+    authorization: string | undefined,
+  ) {
+    const payload = this.verifyLocalTicketSignature(id, authorization);
+    const batch = await this.prisma.crawlReviewBatch.findUnique({
+      where: { id },
+      select: {
+        processingStatus: true,
+        processingStartedAt: true,
+        processedById: true,
+      },
+    });
+    if (
+      !batch ||
+      batch.processingStatus !== CrawlReviewProcessingStatus.RUNNING ||
+      batch.processedById !== payload.actorId ||
+      batch.processingStartedAt?.getTime() !== payload.issuedAt
+    ) {
+      throw new ForbiddenException('مجوز پردازش محلی دیگر معتبر نیست');
+    }
+    return payload;
+  }
+
+  async uploadLocalWorkerMedia(
+    id: string,
+    mediaPath: string | undefined,
+    request: Readable & {
+      headers: Record<string, string | string[] | undefined>;
+    },
+  ) {
+    const normalizedPath = decodeURIComponent(mediaPath ?? '').trim();
+    if (
+      !/^\/(?:travel-videos|hotel-videos)\/[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*\.(?:mp4|webp)$/i.test(
+        normalizedPath,
+      )
+    ) {
+      throw new BadRequestException('مسیر رسانه معتبر نیست');
+    }
+    const declaredLength = Number(request.headers['content-length'] ?? 0);
+    const maxBytes = 300 * 1_024 * 1_024;
+    const maxChunkBytes = 10 * 1_024 * 1_024;
+    if (
+      !Number.isSafeInteger(declaredLength) ||
+      declaredLength <= 0 ||
+      declaredLength > maxChunkBytes
+    ) {
+      throw new BadRequestException(
+        'حجم بخش رسانه معتبر نیست یا بیش از حد مجاز است',
+      );
+    }
+
+    const uploadId = String(request.headers['x-upload-id'] ?? '');
+    const chunkIndex = Number(request.headers['x-chunk-index'] ?? 0);
+    const chunkCount = Number(request.headers['x-chunk-count'] ?? 1);
+    const chunkOffset = Number(request.headers['x-chunk-offset'] ?? 0);
+    const totalSize = Number(request.headers['x-total-size'] ?? declaredLength);
+    if (
+      !/^[a-f0-9]{32}$/i.test(uploadId) ||
+      !Number.isSafeInteger(chunkIndex) ||
+      !Number.isSafeInteger(chunkCount) ||
+      !Number.isSafeInteger(chunkOffset) ||
+      !Number.isSafeInteger(totalSize) ||
+      chunkIndex < 0 ||
+      chunkCount < 1 ||
+      chunkCount > 1_024 ||
+      chunkIndex >= chunkCount ||
+      chunkOffset < 0 ||
+      totalSize <= 0 ||
+      totalSize > maxBytes ||
+      chunkOffset + declaredLength > totalSize
+    ) {
+      throw new BadRequestException('اطلاعات انتقال بخش‌بندی‌شده معتبر نیست');
+    }
+
+    const publicDirectory = await this.resolveWebPublicDirectory();
+    const target = resolve(publicDirectory, normalizedPath.slice(1));
+    if (!target.startsWith(`${publicDirectory}${sep}`)) {
+      throw new BadRequestException('مسیر رسانه خارج از پوشه مجاز است');
+    }
+    await mkdir(dirname(target), { recursive: true });
+    const temporary = `${target}.upload-${id}-${uploadId}`;
+    if (chunkIndex === 0) {
+      await unlink(temporary).catch(() => undefined);
+    } else {
+      const currentSize = await stat(temporary)
+        .then((value) => value.size)
+        .catch(() => -1);
+      if (currentSize !== chunkOffset) {
+        throw new BadRequestException(
+          'ترتیب بخش‌های رسانه معتبر نیست؛ انتقال را دوباره شروع کنید',
+        );
+      }
+    }
+    let received = 0;
+    const limiter = new Transform({
+      transform(chunk: Buffer, _encoding, callback) {
+        received += chunk.length;
+        callback(
+          received > maxBytes
+            ? new Error('حجم رسانه بیش از حد مجاز است')
+            : null,
+          chunk,
+        );
+      },
+    });
+    try {
+      await pipeline(
+        request,
+        limiter,
+        createWriteStream(temporary, { flags: chunkIndex === 0 ? 'wx' : 'a' }),
+      );
+      if (received !== declaredLength) {
+        throw new Error('رسانه به‌صورت ناقص دریافت شد');
+      }
+      const uploadedSize = chunkOffset + received;
+      const isLastChunk = chunkIndex === chunkCount - 1;
+      if (isLastChunk && uploadedSize !== totalSize) {
+        throw new Error('اندازه نهایی رسانه با مقدار اعلام‌شده یکسان نیست');
+      }
+      if (isLastChunk) await rename(temporary, target);
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'ذخیره رسانه انجام نشد',
+      );
+    }
+    return {
+      data: {
+        path: normalizedPath,
+        bytes: chunkOffset + received,
+        complete: chunkIndex === chunkCount - 1,
+      },
+    };
+  }
+
+  async completeLocalProcessing(id: string) {
+    const updated = await this.prisma.crawlReviewBatch.update({
+      where: { id },
+      data: {
+        status: CrawlReviewBatchStatus.COMPLETED,
+        completedAt: new Date(),
+        processingStatus: CrawlReviewProcessingStatus.SUCCEEDED,
+        processingFinishedAt: new Date(),
+        processingLog:
+          'دانلود، انتقال رسانه و ورود اطلاعات با موفقیت انجام شد.',
+      },
+      select: { id: true, status: true, processingStatus: true },
+    });
+    return { data: updated };
+  }
+
+  async assertLocalWorkerVideo(id: string, sourceUrl: string) {
+    const normalizedSourceUrl = normalizeSourceUrl(sourceUrl);
+    const shortcode = shortcodeFromUrl(normalizedSourceUrl);
+    if (!shortcode) {
+      throw new ForbiddenException('محتوا متعلق به این فایل بررسی نیست');
+    }
+    const item = await this.prisma.crawlReviewItem.findFirst({
+      where: {
+        batchId: id,
+        shortcode,
+        reviewStatus: CrawlReviewItemStatus.APPROVED,
+      },
+      select: { id: true },
+    });
+    if (!item) {
+      throw new ForbiddenException('محتوا متعلق به این فایل بررسی نیست');
+    }
+  }
+
+  async failLocalProcessing(id: string, message: string | undefined) {
+    const detail =
+      cleanOptional(message)?.slice(0, 20_000) ?? 'پردازش محلی ناموفق بود.';
+    const updated = await this.prisma.crawlReviewBatch.update({
+      where: { id },
+      data: {
+        processingStatus: CrawlReviewProcessingStatus.FAILED,
+        processingFinishedAt: new Date(),
+        processingLog: detail,
+      },
+      select: { id: true, processingStatus: true },
+    });
+    return { data: updated };
+  }
+
+  async resetLocalProcessing(id: string, actorId: string, actorRole: UserRole) {
+    if (actorRole !== UserRole.MODERATOR) {
+      throw new ForbiddenException(
+        'فقط ناظر اجراکننده می‌تواند پردازش را متوقف کند',
+      );
+    }
+    const changed = await this.prisma.crawlReviewBatch.updateMany({
+      where: {
+        id,
+        status: CrawlReviewBatchStatus.READY,
+        processingStatus: CrawlReviewProcessingStatus.RUNNING,
+        processedById: actorId,
+      },
+      data: {
+        processingStatus: CrawlReviewProcessingStatus.FAILED,
+        processingFinishedAt: new Date(),
+        processingLog:
+          'اتصال برنامه محلی پیش از شروع پردازش قطع شد؛ دوباره تلاش کنید.',
+      },
+    });
+    if (changed.count !== 1) {
+      throw new ForbiddenException('این پردازش به حساب شما تعلق ندارد');
+    }
+    return {
+      data: { id, processingStatus: CrawlReviewProcessingStatus.FAILED },
+    };
+  }
+
   async exportBatch(id: string) {
     const batch = await this.requireBatch(id);
     if (batch.status === CrawlReviewBatchStatus.REVIEWING) {
@@ -775,7 +1105,94 @@ export class CrawlReviewsService implements OnModuleInit {
       data: { processingLog: trimProcessingLog(logs.join('')) },
     });
   }
+
+  private signLocalTicket(payload: LocalTicketPayload): string {
+    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const signature = createHmac(
+      'sha256',
+      this.config.get('AUTH_OTP_SECRET', { infer: true }),
+    )
+      .update(encoded)
+      .digest('base64url');
+    return `${encoded}.${signature}`;
+  }
+
+  private verifyLocalTicketSignature(
+    id: string,
+    authorization: string | undefined,
+  ): LocalTicketPayload {
+    const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1] ?? '';
+    const [encoded, signature, extra] = token.split('.');
+    if (!encoded || !signature || extra) {
+      throw new ForbiddenException('مجوز پردازش محلی معتبر نیست');
+    }
+    const expected = createHmac(
+      'sha256',
+      this.config.get('AUTH_OTP_SECRET', { infer: true }),
+    )
+      .update(encoded)
+      .digest();
+    let provided: Buffer;
+    try {
+      provided = Buffer.from(signature, 'base64url');
+    } catch {
+      throw new ForbiddenException('مجوز پردازش محلی معتبر نیست');
+    }
+    if (
+      provided.length !== expected.length ||
+      !timingSafeEqual(provided, expected)
+    ) {
+      throw new ForbiddenException('مجوز پردازش محلی معتبر نیست');
+    }
+    let payload: LocalTicketPayload;
+    try {
+      payload = JSON.parse(
+        Buffer.from(encoded, 'base64url').toString('utf8'),
+      ) as LocalTicketPayload;
+    } catch {
+      throw new ForbiddenException('مجوز پردازش محلی معتبر نیست');
+    }
+    if (
+      payload.batchId !== id ||
+      typeof payload.actorId !== 'string' ||
+      typeof payload.issuedAt !== 'number' ||
+      typeof payload.expiresAt !== 'number' ||
+      payload.expiresAt <= Date.now()
+    ) {
+      throw new ForbiddenException('مجوز پردازش محلی منقضی یا نامعتبر است');
+    }
+    return payload;
+  }
+
+  private async resolveWebPublicDirectory(): Promise<string> {
+    const configured = this.config.get('CRAWL_PROCESSING_REPO_ROOT', {
+      infer: true,
+    });
+    const candidates = [
+      configured ? resolve(configured, 'apps/web/public') : '',
+      resolve(process.cwd(), '../web/public'),
+      resolve(process.cwd(), 'apps/web/public'),
+      resolve(process.cwd(), '../../apps/web/public'),
+    ].filter(Boolean);
+    for (const candidate of candidates) {
+      try {
+        await access(candidate);
+        return candidate;
+      } catch {
+        // Continue to the next known repository layout.
+      }
+    }
+    throw new ServiceUnavailableException('پوشه رسانه‌های سایت پیدا نشد');
+  }
 }
+
+type LocalTicketPayload = {
+  batchId: string;
+  actorId: string;
+  issuedAt: number;
+  expiresAt: number;
+  nonce: string;
+};
 
 function runCommand(
   executable: string,
@@ -815,6 +1232,48 @@ function trimProcessingLog(value: string): string {
 
 function isCandidate(value: unknown): value is Candidate {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function previewFromCandidate(rawPayload: unknown) {
+  if (!isCandidate(rawPayload)) return null;
+  const mediaItems = Array.isArray(rawPayload.media_items)
+    ? rawPayload.media_items.filter(isCandidate)
+    : [];
+  const first = mediaItems[0];
+  const firstMediaType = stringValue(
+    first?.media_type ?? first?.mediaType,
+  ).toUpperCase();
+  const firstDownloadUrl = stringValue(
+    first?.download_url ?? first?.downloadUrl,
+  );
+  const videoUrl =
+    stringValue(rawPayload.video_download_url) ||
+    mediaItems
+      .filter(
+        (item) =>
+          stringValue(item.media_type ?? item.mediaType).toUpperCase() ===
+          'VIDEO',
+      )
+      .map((item) => stringValue(item.download_url ?? item.downloadUrl))
+      .find(Boolean) ||
+    '';
+  const thumbnailUrl =
+    stringValue(rawPayload.thumbnail_source_url) ||
+    stringValue(first?.thumbnail_source_url ?? first?.thumbnailUrl) ||
+    (firstMediaType === 'IMAGE' ? firstDownloadUrl : '');
+  const mediaType = videoUrl
+    ? 'VIDEO'
+    : firstMediaType === 'VIDEO'
+      ? 'VIDEO'
+      : 'IMAGE';
+  const mediaUrl = videoUrl || firstDownloadUrl || thumbnailUrl;
+  if (!mediaUrl && !thumbnailUrl) return null;
+  return {
+    mediaType,
+    mediaUrl: mediaUrl || null,
+    thumbnailUrl: thumbnailUrl || null,
+    itemCount: Math.max(1, mediaItems.length),
+  };
 }
 
 function stringValue(value: unknown): string {

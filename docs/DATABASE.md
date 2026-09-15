@@ -329,9 +329,10 @@ may permanently delete a comment; deleting a parent cascades to its replies.
 
 ## CrawlReviewBatch and CrawlReviewItem
 
-`CrawlReviewBatch` stores one uploaded Instagram crawler result before it becomes
-public catalog content. `contentHash` prevents uploading the exact same file
-twice. Its lifecycle is `REVIEWING` → `READY` → `COMPLETED`; `READY` means every
+`CrawlReviewBatch` stores one imported Instagram crawler result before it becomes
+public catalog content. `contentHash` identifies the source snapshot, while
+cross-batch `instagramUsername + shortcode` comparison prevents previously seen
+content from producing another review row. Its lifecycle is `REVIEWING` → `READY` → `COMPLETED`; `READY` means every
 row has received an explicit decision, while `COMPLETED` means the exported
 batch has been processed by the local media/import tooling.
 
@@ -339,6 +340,8 @@ Background execution is tracked separately by `processingStatus` (`IDLE`,
 `RUNNING`, `SUCCEEDED`, or `FAILED`), start/finish timestamps, a bounded
 `processingLog`, and the optional `processedById` moderator audit relation. A
 processing failure does not promote canonical content or complete the batch.
+The active local-helper flow uses these same fields and does not persist browser
+cookies, Instagram sessions, or its short-lived signed processing ticket.
 
 `CrawlReviewItem` stores one candidate source URL and its review state
 (`PENDING`, `APPROVED`, or `REJECTED`). Optional `hotelId` points to a known

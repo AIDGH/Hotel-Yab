@@ -35,6 +35,34 @@ type ReviewHotel = {
   city: string;
 };
 
+type ReviewPerson = {
+  id: string;
+  slug: string;
+  displayName: string;
+  instagramHandle: string;
+  imageUrl: string | null;
+};
+
+type WorkerJob = {
+  id: string;
+  kind: "CRAWL" | "PROCESS";
+  username: string;
+  status: "QUEUED" | "RUNNING" | "PAUSED" | "FAILED" | "SUCCEEDED";
+  message: string;
+  current: number;
+  total: number | null;
+  newItems: number;
+  hasResult: boolean;
+  logs: string[];
+  batchId: string | null;
+};
+
+type StoredWorkerJob = {
+  id: string;
+  kind: WorkerJob["kind"];
+  batchId: string | null;
+};
+
 type ReviewBatchSummary = {
   id: string;
   instagramUsername: string;
@@ -64,6 +92,12 @@ type ReviewItem = {
   cityIds: string[];
   provinceIds: string[];
   finalTitle: string | null;
+  preview: {
+    mediaType: "IMAGE" | "VIDEO";
+    mediaUrl: string | null;
+    thumbnailUrl: string | null;
+    itemCount: number;
+  } | null;
   updatedAt: string;
 };
 
@@ -80,10 +114,54 @@ type ReviewBatch = Omit<ReviewBatchSummary, "totalItems"> & {
 type Bootstrap = {
   destinations: ReviewDestination[];
   hotels: ReviewHotel[];
+  notablePeople: ReviewPerson[];
   batches: ReviewBatchSummary[];
 };
 
 type Feedback = { tone: "error" | "success"; text: string } | null;
+
+const LOCAL_WORKER_URL = "http://127.0.0.1:4317";
+const LOCAL_JOB_STORAGE_KEY = "hotel-yab-local-crawl-job";
+
+function readStoredWorkerJob(): StoredWorkerJob | null {
+  const stored = window.localStorage.getItem(LOCAL_JOB_STORAGE_KEY);
+  if (!stored) return null;
+  try {
+    const parsed = JSON.parse(stored) as StoredWorkerJob;
+    return parsed?.id ? parsed : null;
+  } catch {
+    return { id: stored, kind: "CRAWL", batchId: null };
+  }
+}
+
+function storeWorkerJob(job: WorkerJob) {
+  window.localStorage.setItem(
+    LOCAL_JOB_STORAGE_KEY,
+    JSON.stringify({ id: job.id, kind: job.kind, batchId: job.batchId }),
+  );
+}
+
+async function localWorkerApi<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${LOCAL_WORKER_URL}${path}`, {
+    ...init,
+    headers: {
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...init?.headers,
+    },
+  });
+  const payload = (await response.json()) as T & { message?: string };
+  if (!response.ok) {
+    throw new Error(payload.message ?? "ارتباط با برنامه کرالر انجام نشد.");
+  }
+  return payload;
+}
+
+function expectedWorkerEnvironment(): "local" | "production" {
+  if (typeof window === "undefined") return "local";
+  return window.location.hostname === "hotelyab.jaryan.net"
+    ? "production"
+    : "local";
+}
 
 export default function CrawlReviewsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -101,7 +179,15 @@ export default function CrawlReviewsPage() {
   const [dragging, setDragging] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [workerReady, setWorkerReady] = useState(false);
+  const [workerEnvironment, setWorkerEnvironment] = useState<
+    "local" | "production" | null
+  >(null);
+  const [workerJob, setWorkerJob] = useState<WorkerJob | null>(null);
+  const [selectedInstagram, setSelectedInstagram] = useState("");
+  const [selectedBrowser, setSelectedBrowser] = useState("chrome");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importedWorkerJobs = useRef(new Set<string>());
 
   const loadBootstrap = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -179,6 +265,84 @@ export default function CrawlReviewsPage() {
     selectedBatchId,
   ]);
 
+  const checkWorker = useCallback(async () => {
+    try {
+      const response = await localWorkerApi<{
+        data: {
+          ready: boolean;
+          environment: "local" | "production";
+        };
+      }>("/health");
+      setWorkerReady(
+        response.data.ready &&
+          response.data.environment === expectedWorkerEnvironment(),
+      );
+      setWorkerEnvironment(response.data.environment);
+    } catch {
+      setWorkerReady(false);
+      setWorkerEnvironment(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    const initial = window.setTimeout(() => void checkWorker(), 0);
+    const interval = window.setInterval(() => void checkWorker(), 8_000);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(interval);
+    };
+  }, [checkWorker]);
+
+  useEffect(() => {
+    const storedJob = readStoredWorkerJob();
+    const workerJobFinished =
+      workerJob && !["QUEUED", "RUNNING"].includes(workerJob.status);
+    if (!workerReady || workerJobFinished || (!workerJob && !storedJob)) return;
+    const jobId = workerJob?.id ?? storedJob?.id;
+    if (!jobId) return;
+    const activeJobId = jobId;
+    let cancelled = false;
+    async function poll() {
+      try {
+        const response = await localWorkerApi<{ data: WorkerJob }>(
+          `/jobs/${encodeURIComponent(activeJobId)}`,
+        );
+        if (!["QUEUED", "RUNNING"].includes(response.data.status)) {
+          if (
+            response.data.kind === "PROCESS" ||
+            response.data.status !== "SUCCEEDED"
+          ) {
+            window.localStorage.removeItem(LOCAL_JOB_STORAGE_KEY);
+          }
+          if (response.data.kind === "PROCESS") {
+            void Promise.all([
+              loadBootstrap(false),
+              response.data.batchId
+                ? loadBatch(response.data.batchId, page)
+                : Promise.resolve(),
+            ]);
+          }
+        }
+        if (!cancelled) setWorkerJob(response.data);
+      } catch {
+        window.localStorage.removeItem(LOCAL_JOB_STORAGE_KEY);
+        if (storedJob?.kind === "PROCESS" && storedJob.batchId) {
+          void browserApi(
+            `/admin/crawl-reviews/${storedJob.batchId}/local-reset`,
+            { method: "POST" },
+          ).then(() => loadBootstrap(false));
+        }
+        if (!cancelled) setWorkerJob(null);
+      }
+    }
+    void poll();
+    const interval = window.setInterval(() => void poll(), 2_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [loadBatch, loadBootstrap, page, workerJob, workerReady]);
+
   const visibleBatches = useMemo(
     () =>
       (bootstrap?.batches ?? []).filter((item) =>
@@ -189,7 +353,7 @@ export default function CrawlReviewsPage() {
     [activeList, bootstrap],
   );
 
-  async function upload(file: File) {
+  const upload = useCallback(async (file: File) => {
     if (!file.name.toLowerCase().endsWith(".json")) {
       setFeedback({
         tone: "error",
@@ -203,15 +367,26 @@ export default function CrawlReviewsPage() {
     body.append("file", file);
     try {
       const response = await browserApi<{
-        data: { id: string; instagramUsername: string; totalItems: number };
+        data: {
+          id: string;
+          status: BatchStatus;
+          instagramUsername: string;
+          totalItems: number;
+          skippedExisting: number;
+        };
       }>("/admin/crawl-reviews/upload", { method: "POST", body });
       await loadBootstrap(false);
-      setActiveList("REVIEWING");
+      setActiveList(
+        response.data.status === "REVIEWING" ? "REVIEWING" : "REVIEWED",
+      );
       setSelectedBatchId(response.data.id);
       setPage(1);
       setFeedback({
         tone: "success",
-        text: `${response.data.totalItems.toLocaleString("fa-IR")} ردیف برای @${response.data.instagramUsername} وارد صف بررسی شد.`,
+        text:
+          response.data.totalItems > 0
+            ? `${response.data.totalItems.toLocaleString("fa-IR")} محتوای تازه برای @${response.data.instagramUsername} وارد صف بررسی شد.${response.data.skippedExisting ? ` ${response.data.skippedExisting.toLocaleString("fa-IR")} محتوای قبلی تکرار نشد.` : ""}`
+            : `محتوای تازه‌ای برای @${response.data.instagramUsername} پیدا نشد؛ موارد قبلی دوباره وارد صف نشدند.`,
       });
     } catch (caught) {
       setFeedback({
@@ -221,6 +396,120 @@ export default function CrawlReviewsPage() {
       });
     } finally {
       setUploading(false);
+    }
+  }, [loadBootstrap]);
+
+  useEffect(() => {
+    if (
+      !workerJob ||
+      workerJob.status !== "SUCCEEDED" ||
+      importedWorkerJobs.current.has(workerJob.id)
+    ) {
+      return;
+    }
+    importedWorkerJobs.current.add(workerJob.id);
+    if (workerJob.kind === "PROCESS") {
+      window.localStorage.removeItem(LOCAL_JOB_STORAGE_KEY);
+      window.setTimeout(() => {
+        void Promise.all([
+          loadBootstrap(false),
+          selectedBatchId
+            ? loadBatch(selectedBatchId, page)
+            : Promise.resolve(),
+        ]);
+        setFeedback({
+          tone: "success",
+          text: "دانلود، انتقال رسانه‌ها و ورود اطلاعات به سایت کامل شد.",
+        });
+      }, 0);
+      return;
+    }
+    if (!workerJob.hasResult) return;
+    void (async () => {
+      try {
+        const payload = await localWorkerApi<unknown[]>(
+          `/jobs/${encodeURIComponent(workerJob.id)}/result`,
+        );
+        const file = new File(
+          [JSON.stringify(payload)],
+          `${workerJob.username}.json`,
+          { type: "application/json" },
+        );
+        await upload(file);
+        window.localStorage.removeItem(LOCAL_JOB_STORAGE_KEY);
+      } catch (caught) {
+        importedWorkerJobs.current.delete(workerJob.id);
+        setFeedback({
+          tone: "error",
+          text:
+            caught instanceof Error
+              ? caught.message
+              : "ورود نتیجه کرال به صف بررسی انجام نشد.",
+        });
+      }
+    })();
+  }, [loadBatch, loadBootstrap, page, selectedBatchId, upload, workerJob]);
+
+  async function startCrawl() {
+    const username = selectedInstagram.trim().replace(/^@/, "").toLowerCase();
+    const person = bootstrap?.notablePeople.find(
+      (item) => item.instagramHandle.toLowerCase() === username,
+    );
+    if (!person) {
+      setFeedback({
+        tone: "error",
+        text: "ابتدا یکی از چهره‌های دارای آیدی اینستاگرام را انتخاب کنید.",
+      });
+      return;
+    }
+    if (!workerReady) {
+      setFeedback({
+        tone: "error",
+        text:
+          workerEnvironment &&
+          workerEnvironment !== expectedWorkerEnvironment()
+            ? "برنامه کرالر برای محیط دیگری اجرا شده است؛ دستور همین صفحه را اجرا کنید."
+            : "برنامه کرالر روی این لپ‌تاپ اجرا نیست.",
+      });
+      return;
+    }
+    setBusyAction(true);
+    setFeedback(null);
+    try {
+      const response = await localWorkerApi<{ data: WorkerJob }>("/crawl", {
+        method: "POST",
+        body: JSON.stringify({
+          username: person.instagramHandle,
+          browser: selectedBrowser,
+        }),
+      });
+      setWorkerJob(response.data);
+      storeWorkerJob(response.data);
+    } catch (caught) {
+      setFeedback({
+        tone: "error",
+        text:
+          caught instanceof Error ? caught.message : "شروع کرال انجام نشد.",
+      });
+    } finally {
+      setBusyAction(false);
+    }
+  }
+
+  async function pauseWorkerJob() {
+    if (!workerJob) return;
+    try {
+      const response = await localWorkerApi<{ data: WorkerJob }>(
+        `/jobs/${encodeURIComponent(workerJob.id)}/pause`,
+        { method: "POST", body: JSON.stringify({}) },
+      );
+      setWorkerJob(response.data);
+    } catch (caught) {
+      setFeedback({
+        tone: "error",
+        text:
+          caught instanceof Error ? caught.message : "توقف امن انجام نشد.",
+      });
     }
   }
 
@@ -318,18 +607,47 @@ export default function CrawlReviewsPage() {
 
   async function processBatch() {
     if (!batch) return;
+    if (!workerReady) {
+      setFeedback({
+        tone: "error",
+        text: "برای دانلود با نشست Chrome، ابتدا برنامه کرالر این لپ‌تاپ را اجرا کنید.",
+      });
+      return;
+    }
     setBusyAction(true);
     setFeedback(null);
+    let ticketCreated = false;
     try {
-      await browserApi(`/admin/crawl-reviews/${batch.id}/process`, {
+      const ticketResponse = await browserApi<{
+        data: { token: string };
+      }>(`/admin/crawl-reviews/${batch.id}/local-ticket`, {
         method: "POST",
       });
+      ticketCreated = true;
+      const workerResponse = await localWorkerApi<{ data: WorkerJob }>(
+        "/process",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            batchId: batch.id,
+            ticket: ticketResponse.data.token,
+            browser: selectedBrowser,
+          }),
+        },
+      );
+      setWorkerJob(workerResponse.data);
+      storeWorkerJob(workerResponse.data);
       await refreshCurrent();
       setFeedback({
         tone: "success",
-        text: "دانلود رسانه‌ها و ورود داده در پس‌زمینه شروع شد.",
+        text: "دانلود با نشست اینستاگرام همین لپ‌تاپ شروع شد.",
       });
     } catch (caught) {
+      if (ticketCreated) {
+        await browserApi(`/admin/crawl-reviews/${batch.id}/local-reset`, {
+          method: "POST",
+        }).catch(() => undefined);
+      }
       setFeedback({
         tone: "error",
         text:
@@ -394,8 +712,8 @@ export default function CrawlReviewsPage() {
             <span className="section-eyebrow">خط تولید محتوای اینستاگرام</span>
             <h1>بررسی داده‌های کرال‌شده</h1>
             <p>
-              خروجی JSON کرالر را بارگذاری کنید و ردیف‌ها را مستقیماً در پنل
-              بررسی کنید.
+              چهره را انتخاب کنید؛ کرال با اینستاگرام همین لپ‌تاپ انجام و نتیجه
+              مستقیماً وارد صف بررسی می‌شود.
             </p>
           </div>
           <div className="catalog-heading-actions">
@@ -404,34 +722,152 @@ export default function CrawlReviewsPage() {
           </div>
         </header>
 
-        <button
-          type="button"
-          className={`crawl-review-upload${dragging ? " is-dragging" : ""}`}
-          disabled={uploading}
-          onClick={() => fileInputRef.current?.click()}
-          onDragEnter={(event) => {
-            event.preventDefault();
-            setDragging(true);
-          }}
-          onDragOver={(event) => event.preventDefault()}
-          onDragLeave={(event) => {
-            if (
-              !event.currentTarget.contains(event.relatedTarget as Node | null)
-            )
-              setDragging(false);
-          }}
-          onDrop={dropFile}
-        >
-          <SiteIcon name="review-table" />
-          <span>
-            <strong>
-              {uploading
-                ? "در حال ساخت فایل بررسی…"
-                : "افزودن خروجی جدید کرالر"}
-            </strong>
-            <small>فایل JSON را اینجا رها کنید یا از دستگاه انتخاب کنید.</small>
-          </span>
-        </button>
+        <section className="crawl-worker-panel">
+          <header>
+            <div>
+              <span
+                className={`crawl-worker-dot${workerReady ? " is-online" : ""}`}
+              />
+              <strong>
+                {workerReady
+                  ? "اتصال لپ‌تاپ برقرار است"
+                  : "اتصال لپ‌تاپ برقرار نیست"}
+              </strong>
+            </div>
+            <small>
+              نشست اینستاگرام فقط روی همین دستگاه استفاده می‌شود و به سرور
+              فرستاده نمی‌شود.
+            </small>
+          </header>
+          {!workerReady ? (
+            <div className="crawl-worker-command">
+              <span>این دستور را در پوشه پروژه اجرا و پنجره‌اش را باز نگه دارید:</span>
+              <code dir="ltr">
+                python3 tools/instagram-travel-finder/local_crawl_worker.py
+                {expectedWorkerEnvironment() === "production"
+                  ? " --environment production"
+                  : " --environment local"}
+              </code>
+              <button
+                className="button button-secondary button-small"
+                type="button"
+                onClick={() => void checkWorker()}
+              >
+                بررسی دوباره اتصال
+              </button>
+            </div>
+          ) : null}
+          <div className="crawl-worker-controls">
+            <label>
+              چهره
+              <input
+                type="search"
+                dir="ltr"
+                list="crawl-review-people"
+                value={selectedInstagram}
+                placeholder="انتخاب آیدی اینستاگرام"
+                onChange={(event) => setSelectedInstagram(event.target.value)}
+              />
+              <datalist id="crawl-review-people">
+                {(bootstrap?.notablePeople ?? []).map((person) => (
+                  <option
+                    key={person.id}
+                    value={person.instagramHandle}
+                    label={person.displayName}
+                  />
+                ))}
+              </datalist>
+            </label>
+            <label>
+              مرورگر اینستاگرام
+              <select
+                value={selectedBrowser}
+                onChange={(event) => setSelectedBrowser(event.target.value)}
+              >
+                <option value="chrome">Chrome</option>
+                <option value="safari">Safari</option>
+                <option value="firefox">Firefox</option>
+                <option value="brave">Brave</option>
+                <option value="edge">Edge</option>
+              </select>
+            </label>
+            <button
+              className="button"
+              type="button"
+              disabled={busyAction || !workerReady || workerJob?.status === "RUNNING"}
+              onClick={() => void startCrawl()}
+            >
+              {workerJob?.kind === "CRAWL" && workerJob.status === "PAUSED"
+                ? "ادامه کرال"
+                : "شروع کرال"}
+            </button>
+          </div>
+          {workerJob ? (
+            <div
+              className={`crawl-worker-job crawl-worker-job-${workerJob.status.toLowerCase()}`}
+            >
+              <div>
+                <strong>{workerJob.message}</strong>
+                <small>
+                  {workerJob.current.toLocaleString("fa-IR")} مورد بررسی شد
+                  {workerJob.newItems
+                    ? ` · ${workerJob.newItems.toLocaleString("fa-IR")} محتوای تازه`
+                    : ""}
+                </small>
+              </div>
+              {workerJob.total ? (
+                <progress value={workerJob.current} max={workerJob.total} />
+              ) : null}
+              {workerJob.status === "RUNNING" ? (
+                <button
+                  className="button button-secondary button-small"
+                  type="button"
+                  onClick={() => void pauseWorkerJob()}
+                >
+                  توقف امن
+                </button>
+              ) : null}
+              {workerJob.logs.length ? (
+                <details>
+                  <summary>جزئیات اجرا</summary>
+                  <pre dir="ltr">{workerJob.logs.join("\n")}</pre>
+                </details>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+
+        <details className="crawl-review-manual-upload">
+          <summary>بارگذاری دستی خروجی JSON</summary>
+          <button
+            type="button"
+            className={`crawl-review-upload${dragging ? " is-dragging" : ""}`}
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            onDragEnter={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            onDragOver={(event) => event.preventDefault()}
+            onDragLeave={(event) => {
+              if (
+                !event.currentTarget.contains(event.relatedTarget as Node | null)
+              )
+                setDragging(false);
+            }}
+            onDrop={dropFile}
+          >
+            <SiteIcon name="review-table" />
+            <span>
+              <strong>
+                {uploading
+                  ? "در حال ساخت فایل بررسی…"
+                  : "افزودن خروجی قدیمی کرالر"}
+              </strong>
+              <small>فایل JSON را اینجا رها کنید یا از دستگاه انتخاب کنید.</small>
+            </span>
+          </button>
+        </details>
         <input
           ref={fileInputRef}
           className="catalog-upload-file-input"
@@ -767,7 +1203,30 @@ function ReviewItemForm({
         </a>
         <code dir="ltr">{item.shortcode}</code>
       </header>
-      <div className="crawl-review-item-fields">
+      <div className="crawl-review-item-main">
+        {item.preview?.mediaUrl || item.preview?.thumbnailUrl ? (
+          <div className="crawl-review-preview">
+          {item.preview.mediaType === "VIDEO" && item.preview.mediaUrl ? (
+            <video
+              controls
+              playsInline
+              preload="metadata"
+              poster={item.preview.thumbnailUrl ?? undefined}
+              src={item.preview.mediaUrl}
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.preview.thumbnailUrl ?? item.preview.mediaUrl ?? ""}
+              alt={`پیش‌نمایش محتوای ${item.shortcode}`}
+            />
+          )}
+          {item.preview.itemCount > 1 ? (
+            <span>{item.preview.itemCount.toLocaleString("fa-IR")} بخش</span>
+          ) : null}
+          </div>
+        ) : null}
+        <div className="crawl-review-item-fields">
         <label>
           وضعیت بررسی
           <select
@@ -823,6 +1282,7 @@ function ReviewItemForm({
             onChange={(event) => setFinalTitle(event.target.value)}
           />
         </label>
+        </div>
       </div>
       {!disabled ? (
         <footer>

@@ -961,24 +961,28 @@ its explicit review decision in `CrawlReviewBatch`/`CrawlReviewItem`, and export
 a machine-readable reviewed JSON file that the existing approved-media tools can
 consume. Keep XLSX accepted as a legacy/offline review format.
 
-Keep manual reviewed-JSON export available, but also allow only `MODERATOR` to
-trigger the existing downloader and importer as a persisted server-side
-background job. The job must use a pre-provisioned Instaloader session, run one
-batch at a time, execute downloader → preparation → dry-run → apply in order,
-and preserve logs/status in PostgreSQL. It must not hold a long-running browser
-request or construct a shell command from review data.
+Keep manual reviewed-JSON export available, but use a loopback-only helper on
+the Moderator's laptop as the primary crawl/download runner. It reads the
+already-authenticated local browser session, checkpoints crawl progress, and
+never sends cookies to Hotel-Yab. The API issues a short-lived HMAC ticket scoped
+to one reviewed batch; the helper runs one job at a time and may fetch that
+batch/catalog, upload validated final media, create only approved batch content,
+and report completion/failure. Downloader → preparation → dry-run → apply stays
+in the existing Python tooling. The older server-side job remains a fallback,
+not the active production route.
 
 **Reason:** Review benefits from canonical hotel/destination selectors, shared
-progress, and durable status. Reusing the tested Python tools avoids maintaining
-a second importer, while the background boundary keeps Instagram authentication
-and large media work out of the HTTP request lifecycle. Manual processing
-remains the recovery path.
+progress, and durable status. The VPS cannot reach Instagram, while the
+operator's browser already has a valid session. Keeping that session local
+avoids proxy credentials and account-cookie transfer, and reusing the tested
+Python tools avoids maintaining a second importer. Manual processing remains
+the recovery path.
 
 **Status:** Implemented with migrations
 `20260913120000_add_crawl_review_queue` and
 `20260913123000_link_crawl_review_creator` and
-`20260913140000_add_crawl_review_processing`; production deployment and the
-one-time server session/runtime bootstrap are still needed.
+`20260913140000_add_crawl_review_processing`; the loopback helper and restricted
+batch-ticket API require no additional database migration.
 
 ## 50. Poll GitHub from Production and Deploy New Main Revisions
 

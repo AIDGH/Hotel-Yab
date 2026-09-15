@@ -129,7 +129,7 @@ discovery، PostgreSQL، API، Next.js، رسانه‌های provisionشده و 
 - گزارش کامنت، مخفی‌سازی خودکار پس از ۳ گزارش مستقل و محدودیت ۵ کامنت در دقیقه
 - پنل محافظت‌شده مدیر/ناظر برای انتشار، رد، پنهان‌کردن و بازگرداندن Review و Comment؛ همراه رسیدگی به گزارش‌ها و مسدودسازی کاربر توسط مدیر
 - پنل مدیریتی `/admin/catalog` برای `ADMIN` و `MODERATOR` جهت افزودن مقصد، هتل، چهره و محتوای تک‌ویدیو/پست/استوری، مرتب‌سازی آیتم‌های رسانه، اتصال چندمقصدی/چندهتلی و دریافت خروجی JSON سازگار با Import
-- صف مدیریتی `/admin/crawl-reviews` برای بارگذاری مستقیم JSON کرالر، بررسی ردیف‌ها بدون ساخت Excel، انتخاب مقصدهای canonical، ثبت هتل اختیاری، خروجی JSON سازگار با downloader/importer و اجرای مستقیم پس‌زمینه فقط توسط `MODERATOR`
+- صف مدیریتی `/admin/crawl-reviews` برای انتخاب چهره و شروع/ادامهٔ کرال با نشست مرورگر همان لپ‌تاپ، بررسی ردیف‌ها بدون ساخت Excel، پیش‌نمایش رسانه، انتخاب مقصدهای canonical، ثبت هتل اختیاری و دانلود/آماده‌سازی/import مستقیم فقط توسط `MODERATOR`
 - API و فرم ویرایش مقصد/هتل/چهره/محتوا، شامل روابط مقصد و هتل و آیتم‌های مرتب رسانه؛ همراه حذف رکوردهای Catalog و endpoint آپلود رسانه
 - pipeline پژوهشی Instagram برای crawl → checkpoint → candidate detection →
   بررسی داخل پنل یا Excel قدیمی → دانلود خودکار رسانه‌های approved → ساخت مسیرهای نهایی
@@ -333,6 +333,7 @@ NotablePerson ──< FollowerSnapshot
 - `CrawlReviewBatch` یک فایل JSON بارگذاری‌شده را با حساب مدیر سازنده، hash فایل و وضعیت `REVIEWING | READY | COMPLETED` نگه می‌دارد.
 - وضعیت اجرای پس‌زمینه batch با `IDLE | RUNNING | SUCCEEDED | FAILED`، زمان شروع/پایان، لاگ محدود و شناسه Moderator اجراکننده ثبت می‌شود.
 - `CrawlReviewItem` تصمیم `PENDING | APPROVED | REJECTED`، لینک اصلی، عنوان نهایی، هتل اختیاری، شناسه‌های canonical شهر/استان و payload خام همان candidate را نگه می‌دارد.
+- کرال‌های بعدی یک حساب با `instagramUsername + shortcode` رفع تکرار می‌شوند؛ فقط محتوای تازه batch جدید می‌سازد و batchهای بررسی‌شدهٔ قبلی حفظ می‌شوند.
 - این دو مدل staging داخلی‌اند و تا اجرای downloader/importer هیچ `Video` عمومی ایجاد نمی‌کنند. حذف batch نیز محتوای canonical قبلاً importشده را حذف نمی‌کند.
 
 ### دسته‌بندی فعلی افراد
@@ -502,7 +503,7 @@ docs/data-workbook-guide.md
 ```text
 Instagram public timeline
         ↓
-GraphQL crawler + checkpoint/resume
+کرالر GraphQL دستی یا `local_crawl_worker.py` با نشست مرورگر و checkpoint/resume
         ↓
 High-recall detector + HOTEL priority
         ↓
@@ -522,7 +523,7 @@ import_approved.py --prepare-media
         ↓
 approved-row dry-run importer
         ↓
-explicit --apply
+explicit --apply یا اجرای یکپارچهٔ Moderator از helper محلی
         ↓
 Admin API / PostgreSQL
 ```
@@ -535,15 +536,22 @@ Admin API / PostgreSQL
 قدیمی را تولید می‌کند و مستقیماً به `download_approved.py` و
 `import_approved.py` داده می‌شود؛ مرحلهٔ ساخت XLSX دیگر اجباری نیست.
 
-دانلود رسانه هم به‌صورت دستی از خروجی JSON قابل انجام است و هم `MODERATOR`
-می‌تواند آن را از پنل به شکل job پس‌زمینه سرور اجرا کند. حالت سرور به runtime
-پایتون و نشست ازقبل‌ذخیره‌شده Instaloader نیاز دارد، هم‌زمان فقط یک batch را
-اجرا می‌کند و به‌ترتیب `download_approved.py --prepare-media`، dry-run و apply
-را پیش می‌برد. درخواست مرورگر منتظر فرایند طولانی نمی‌ماند و وضعیت/لاگ در
-PostgreSQL ثبت و با polling نمایش داده می‌شود. فایل‌های نهایی همچنان زیر
-`apps/web/public` و خارج از Git قرار می‌گیرند. اگر API وسط پردازش restart شود،
-batch باقی‌مانده در حالت `RUNNING` هنگام startup به `FAILED` و قابل‌تلاش‌مجدد
-تبدیل می‌شود.
+مسیر اصلی کرال و دانلود، helper محلی loopback در
+`tools/instagram-travel-finder/local_crawl_worker.py` است. برنامه فقط روی
+`127.0.0.1:4317` گوش می‌دهد، فقط originهای ثابت لوکال و دامنهٔ Hotel-Yab را
+می‌پذیرد و نشست Chrome/Instagram را از دستگاه خارج نمی‌کند. پنل چهرهٔ موجود را
+انتخاب می‌کند، وضعیت کرال را با polling نشان می‌دهد و خروجی تازه را خودکار وارد
+صف می‌کند. توقف کرال checkpoint را نگه می‌دارد و اجرای بعدی ادامه می‌دهد؛ پس از
+کامل‌شدن قبلی نیز با رسیدن به ۳۰ محتوای شناخته‌شده متوقف می‌شود.
+
+پس از پایان review، فقط `MODERATOR` یک ticket امضاشده، batch-scoped و سه‌ساعته
+می‌گیرد. helper با همان ticket خروجی reviewed را می‌گیرد، رسانه‌های approved را
+با نشست مرورگر محلی دانلود و آماده می‌کند، فقط فایل‌های نهایی را به مسیرهای ثابت
+Hotel-Yab در قطعه‌های ۸ مگابایتی زیر سقف Nginx می‌فرستد و dry-run/apply را اجرا می‌کند. هم‌زمان فقط یک job اجرا
+می‌شود؛ توقف/خطا batch را `FAILED` و قابل تلاش مجدد می‌کند. حالت قدیمی job روی
+VPS باقی مانده ولی به‌دلیل نداشتن دسترسی شبکه‌ای Instagram مسیر عملیاتی نیست.
+ticket تلاش قبلی در اجرای دوباره معتبر نیست و ریست batch فقط برای Moderator
+اجراکننده مجاز است.
 
 لینک‌های مستقیم Highlight خارج از workbook با
 `tools/instagram-travel-finder/download_highlights.py` دریافت می‌شوند. هر
@@ -571,6 +579,7 @@ tools/instagram-travel-finder/download_approved.py
 tools/instagram-travel-finder/download_highlights.py
 tools/instagram-travel-finder/import_highlight.py
 tools/instagram-travel-finder/import_approved.py
+tools/instagram-travel-finder/local_crawl_worker.py
 ```
 
 خروجی‌ها، browser/session state و captureهای محلی در Git قرار نمی‌گیرند.
@@ -732,8 +741,11 @@ Endpointهای فعلی:
 | POST            | `/api/v1/admin/crawl-reviews/:id/finish-review`                            | پایان بررسی پس از تعیین تکلیف همه ردیف‌ها      |
 | GET             | `/api/v1/admin/crawl-reviews/:id/export`                                   | دریافت JSON سازگار با ابزار دانلود و import    |
 | POST            | `/api/v1/admin/crawl-reviews/:id/process`                                  | شروع job مستقیم دانلود و import فقط برای Moderator |
+| POST            | `/api/v1/admin/crawl-reviews/:id/local-ticket`                             | صدور ticket محدود برای helper محلی Moderator    |
+| POST            | `/api/v1/admin/crawl-reviews/:id/local-reset`                              | آزادکردن batch پس از قطع helper پیش از شروع     |
 | POST            | `/api/v1/admin/crawl-reviews/:id/complete`                                 | علامت‌گذاری batch پس از پردازش نهایی            |
 | DELETE          | `/api/v1/admin/crawl-reviews/:id`                                          | حذف batch داخلی صف بررسی                       |
+| GET/POST/PUT     | `/api/v1/crawl-worker/:id/{export\|catalog\|videos\|media\|complete\|failed}` | مسیر محدود ticket برای انتقال و import محلی |
 
 Swagger در development:
 
@@ -886,11 +898,13 @@ Landing Page
 ```
 
 صف داخلی `ADMIN` و `MODERATOR` برای تبدیل خروجی خام crawler به دادهٔ بررسی‌شده.
-JSON هر حساب مستقیم بارگذاری می‌شود؛ batchهای در حال بررسی و آماده/تکمیل‌شده
+در حالت اصلی، چهرهٔ دارای Instagram از Catalog انتخاب و کرال از نشست مرورگر
+همان لپ‌تاپ شروع می‌شود؛ پیشرفت، توقف امن و پیش‌نمایش عکس/ویدیو در پنل دیده
+می‌شود. بارگذاری دستی JSON نیز به‌عنوان fallback باقی است. batchهای در حال بررسی و آماده/تکمیل‌شده
 جدا دیده می‌شوند و هر صفحه ۱۲ ردیف دارد. مدیر وضعیت ردیف، هتل اختیاری، شهرها،
 استان‌ها و عنوان نهایی را ذخیره می‌کند. پس از پایان review، فایل JSON خروجی برای
 اجرای دستی downloader/importer قابل دانلود است. فقط `MODERATOR` دکمهٔ «دانلود
-و ورود مستقیم به سایت» را می‌بیند؛ این دکمه job پس‌زمینه را شروع می‌کند و نتیجه
+و ورود مستقیم به سایت» را می‌بیند؛ این دکمه helper محلی را راه می‌اندازد و نتیجه
 و جزئیات خطا را در همان پنل نشان می‌دهد.
 
 ### قابلیت‌های فعلی UI
@@ -1146,7 +1160,7 @@ GitHub موجود خود VPS استفاده می‌کند و private key ورو�
 migration/build/restart را انجام می‌دهد و در پایان health check retryدار می‌زند.
 این service/timer اکنون روی VPS نصب و enabled است.
 
-برای فعال‌کردن یک‌باره پردازش مستقیم crawler روی VPS، ابتدا
+حالت قدیمی پردازش مستقیم crawler روی VPS با
 `scripts/bootstrap-crawl-processing.sh` محیط `.venv-instagram` را می‌سازد، سپس
 session ذخیره‌شده Instaloader باید برای user سرویس در
 `~/.config/instaloader/` قرار گیرد و متغیرهای `CRAWL_PROCESSING_ENABLED`,
@@ -1157,6 +1171,9 @@ session ذخیره‌شده Instaloader باید برای user سرویس در
 و HTTPS برقرار نمی‌شود. بنابراین `CRAWL_PROCESSING_ENABLED` تا فراهم‌شدن مسیر
 خروجی محدود فقط برای downloader یا انتقال worker به شبکه‌ای با دسترسی Instagram
 خاموش می‌ماند؛ دیپلوی خودکار و سایر سرویس‌های production تحت‌تأثیر نیستند.
+مسیر اصلی جدید به شبکهٔ VPS وابسته نیست: Moderator برنامهٔ loopback را روی
+لپ‌تاپی که در Chrome به Instagram وارد است با `--environment production` اجرا
+می‌کند و پنل production فقط نتیجه و رسانهٔ نهایی را دریافت می‌کند.
 
 Health check:
 

@@ -11,5 +11,6 @@ import { CatalogService } from './catalog.service';
   imports: [PrismaModule, AuthModule],
   controllers: [CatalogController, PublicCatalogController],
   providers: [CatalogService],
+  exports: [CatalogService],
 })
 export class CatalogModule {}

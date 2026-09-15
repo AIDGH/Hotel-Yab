@@ -700,19 +700,23 @@ import shape.
 
 ## GET /admin/crawl-reviews/bootstrap
 
-Returns canonical destination/hotel options plus review batches and their
-pending/approved/rejected counts. Requires `ADMIN` or `MODERATOR`.
+Returns canonical destination/hotel options, catalog people with an Instagram
+handle, plus review batches and their pending/approved/rejected counts. Requires
+`ADMIN` or `MODERATOR`.
 
 ## POST /admin/crawl-reviews/upload
 
 Accepts multipart field `file` containing one crawler JSON array (maximum 25 MB
-and 2,000 candidates). It creates one PostgreSQL review batch, rejects exact
-duplicate uploads by content hash, resolves known destination/hotel hints, and
-keeps the original candidate payload internal.
+and 2,000 candidates). It creates one PostgreSQL review batch for fresh items,
+deduplicates earlier observations by Instagram username and shortcode, resolves
+known destination/hotel hints, and keeps the original candidate payload
+internal. If nothing is new, it returns the latest existing batch instead of
+duplicating rows.
 
 ## GET /admin/crawl-reviews/:id
 
-Returns a paginated batch detail. Query parameters are `page` and `pageSize`;
+Returns a paginated batch detail plus a best-effort image/video preview derived
+from the internal crawler payload. Query parameters are `page` and `pageSize`;
 the admin UI uses 12 rows per page.
 
 ## PATCH /admin/crawl-reviews/items/:id
@@ -748,6 +752,39 @@ and requires the server-side crawl-processing configuration and a saved
 Instaloader session. Progress, terminal output, failure, and completion are
 reported through the normal batch detail endpoint. A successful job marks the
 batch `COMPLETED`; a failed job remains `READY` and can be retried.
+
+This server-side route is retained as a legacy deployment option. The active
+production path uses the local helper endpoints below because the VPS cannot
+reach Instagram.
+
+## POST /admin/crawl-reviews/:id/local-ticket
+
+Only `MODERATOR` may claim a `READY` batch. Returns an HMAC-signed ticket scoped
+to that batch and moderator, valid for three hours, and marks processing
+`RUNNING`. Parallel claims are rejected atomically; an earlier ticket cannot be
+reused after a retry begins. The ticket is intended only
+for the loopback local crawler helper and is not an account session.
+
+## POST /admin/crawl-reviews/:id/local-reset
+
+Moderator-only recovery endpoint used when the browser cannot hand the new
+ticket to the local helper. Only the moderator who claimed the running batch
+may reset it to failed/retryable.
+
+## /crawl-worker/:id/*
+
+Restricted helper API authenticated only by the batch-scoped bearer ticket:
+
+- `GET export`: reviewed batch payload;
+- `GET catalog`: canonical importer bootstrap;
+- `POST videos`: creates content only when its shortcode is approved in the
+  ticket batch;
+- `PUT media`: accepts ordered chunks (maximum 10 MB each) for one MP4/WebP in
+  a validated `travel-videos` or `hotel-videos` path, with a 300 MB total-file
+  limit;
+- `POST complete` / `POST failed`: closes the processing attempt.
+
+These routes never receive browser cookies or an Instagram session.
 
 ## DELETE /admin/crawl-reviews/:id
 

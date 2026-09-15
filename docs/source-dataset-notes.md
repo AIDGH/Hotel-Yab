@@ -94,12 +94,15 @@ daily historical observation.
 ## Current Instagram Travel Research Tooling
 
 Instagram candidate discovery now uses `tools/instagram-travel-finder/` rather
-than relying only on the original workbook. The crawler keeps local
-checkpoint/JSON output, the detector favors high recall and explicitly
-prioritizes HOTEL signals. Crawler JSON can now be uploaded directly to the
-protected `/admin/crawl-reviews` queue, where reviewers select canonical
+than relying only on the original workbook. The primary loopback helper reads
+the operator's already-authenticated browser session locally and keeps
+checkpoint/JSON output; cookies never leave that machine. The detector favors
+high recall and explicitly prioritizes HOTEL signals. The helper imports fresh
+candidates directly into the protected `/admin/crawl-reviews` queue (manual JSON
+upload remains available), where reviewers select canonical
 destinations and explicitly approve or reject every candidate. The resulting
-reviewed JSON export is consumed directly by the existing downloader/importer.
+reviewed JSON is consumed directly by the existing downloader/importer, either
+through the Moderator's one-action local flow or the manual export commands.
 `json_to_excel.py` and human-review XLSX remain available for legacy or offline
 batches. Only rows explicitly marked `approved` are eligible for the importer.
 

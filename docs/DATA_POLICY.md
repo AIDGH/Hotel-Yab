@@ -260,10 +260,25 @@ Uploaded crawler review batches and their raw candidate payloads are internal
 staging data. They are visible only to authenticated `ADMIN`/`MODERATOR` users,
 are not public catalog records, and may be deleted without deleting already
 imported videos. City/province IDs saved during review must resolve to canonical
-`Destination` rows. Exact duplicate JSON uploads are rejected by content hash.
-Instagram media downloading remains local and uses the operator's authenticated
-browser session; browser cookies and temporary CDN URLs are never uploaded as
-application credentials or used as canonical source URLs.
+`Destination` rows. Repeated candidates are skipped by Instagram username and
+shortcode even when a later snapshot uses a different `/p/` or `/reel/` URL.
+Repeated crawl results are deduplicated by Instagram username and shortcode, so
+review decisions in older batches are retained rather than recreated.
+Instagram crawling and media downloading remain local and use the operator's
+authenticated browser session. The loopback helper binds only to
+`127.0.0.1`, accepts a fixed origin list, and can target only local Hotel-Yab or
+`hotelyab.jaryan.net`. Browser cookies and Instaloader sessions are never sent to
+the application. Only detected candidate metadata and approved prepared media
+are transferred; temporary CDN URLs remain staging metadata and never become
+canonical source URLs.
+
+Direct local import uses a short-lived HMAC ticket scoped to one reviewed batch
+and one Moderator. Its issuance time is matched to the active processing attempt,
+so a ticket from a previous retry cannot be reused. It is not a reusable login
+credential. The restricted API
+allows catalog reads, validated MP4/WebP writes, creation of content approved in
+that batch, and completion/failure reporting only. Media is transferred in
+ordered bounded chunks, with a 300 MB total-file ceiling.
 
 Direct Highlight ingestion preserves one Highlight as one `STORY` aggregate.
 For hotel content, final filenames use

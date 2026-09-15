@@ -26,6 +26,16 @@ ADMIN_COOKIE = os.getenv(
     "",
 )
 
+CRAWL_WORKER_TOKEN = os.getenv(
+    "HOTELYAB_CRAWL_WORKER_TOKEN",
+    "",
+)
+
+CRAWL_WORKER_BATCH_ID = os.getenv(
+    "HOTELYAB_CRAWL_WORKER_BATCH_ID",
+    "",
+)
+
 REVIEW_PLACEHOLDERS = {
     "نیاز به بررسی",
     "needs review",
@@ -183,11 +193,13 @@ def split_multi(
 def api_get_json(
     path: str,
 ):
-    if not ADMIN_COOKIE:
+    if not ADMIN_COOKIE and not CRAWL_WORKER_TOKEN:
         raise RuntimeError(
-            "HOTELYAB_ADMIN_COOKIE "
+            "HOTELYAB_ADMIN_COOKIE or HOTELYAB_CRAWL_WORKER_TOKEN "
             "is not set."
         )
+
+    path = worker_api_path(path)
 
     url = (
         f"{API_BASE}"
@@ -200,7 +212,7 @@ def api_get_json(
             "Accept": (
                 "application/json"
             ),
-            "Cookie": ADMIN_COOKIE,
+            **api_auth_headers(),
         },
     )
 
@@ -241,11 +253,13 @@ def api_post_json(
     path: str,
     payload: dict,
 ):
-    if not ADMIN_COOKIE:
+    if not ADMIN_COOKIE and not CRAWL_WORKER_TOKEN:
         raise RuntimeError(
-            "HOTELYAB_ADMIN_COOKIE "
+            "HOTELYAB_ADMIN_COOKIE or HOTELYAB_CRAWL_WORKER_TOKEN "
             "is not set."
         )
+
+    path = worker_api_path(path)
 
     url = (
         f"{API_BASE}"
@@ -274,7 +288,7 @@ def api_post_json(
             "Content-Type": (
                 "application/json"
             ),
-            "Cookie": ADMIN_COOKIE,
+            **api_auth_headers(),
         },
     )
 
@@ -314,6 +328,45 @@ def api_post_json(
             "Could not connect to "
             f"Hotel-Yab API: {exc}"
         ) from exc
+
+
+def api_auth_headers() -> dict[str, str]:
+    if CRAWL_WORKER_TOKEN:
+        return {
+            "Authorization": (
+                f"Bearer {CRAWL_WORKER_TOKEN}"
+            )
+        }
+
+    return {"Cookie": ADMIN_COOKIE}
+
+
+def worker_api_path(path: str) -> str:
+    if not CRAWL_WORKER_TOKEN:
+        return path
+
+    if not CRAWL_WORKER_BATCH_ID:
+        raise RuntimeError(
+            "HOTELYAB_CRAWL_WORKER_BATCH_ID is not set."
+        )
+
+    replacements = {
+        "/admin/catalog/bootstrap": (
+            f"/crawl-worker/{CRAWL_WORKER_BATCH_ID}/catalog"
+        ),
+        "/admin/catalog/videos": (
+            f"/crawl-worker/{CRAWL_WORKER_BATCH_ID}/videos"
+        ),
+    }
+
+    replacement = replacements.get(path)
+
+    if not replacement:
+        raise RuntimeError(
+            f"The crawl worker is not allowed to call {path}."
+        )
+
+    return replacement
 
 
 def get_collection(
