@@ -707,11 +707,19 @@ handle, plus review batches and their pending/approved/rejected counts. Requires
 ## POST /admin/crawl-reviews/upload
 
 Accepts multipart field `file` containing one crawler JSON array (maximum 25 MB
-and 2,000 candidates). It creates one PostgreSQL review batch for fresh items,
+and 2,000 candidates). Mixed-account files are supported: normalized row-level
+`instagram_username` values determine the owner, and one PostgreSQL review batch
+is created per account with fresh items, atomically for the whole upload. A row
+without an owner is rejected in a mixed-account file; legacy single-account
+files still fall back to the only explicit account or the filename. The upload
 deduplicates earlier observations by Instagram username and shortcode, resolves
 known destination/hotel hints, and keeps the original candidate payload
 internal. If nothing is new, it returns the latest existing batch instead of
-duplicating rows.
+duplicating rows for each account. The response `data.batches` lists per-account
+results; `data.totalItems` and `data.skippedExisting` are upload-wide totals.
+Top-level `id`, `status`, and `instagramUsername` select the first batch with new
+rows (otherwise the first existing batch), preserving single-account clients.
+Exports and local processing remain independently scoped to each account.
 
 ## GET /admin/crawl-reviews/:id
 

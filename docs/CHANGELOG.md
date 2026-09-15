@@ -6,6 +6,11 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
+- Allowed crawler JSON uploads containing multiple Instagram accounts. Rows are
+  normalized and grouped into separate per-account review batches in one
+  transaction, preserving correct creator attribution, per-account duplicate
+  detection, and the existing download/import pipeline. The admin upload message
+  now reports multi-account results; legacy single-account files still work.
 - Replaced the starter favicon and CSS brand mark with a shared, original
   destination/play SVG in Hotel-Yab purple. Added generated multi-resolution
   favicons, Apple Touch and Android maskable icons, a Persian web manifest,

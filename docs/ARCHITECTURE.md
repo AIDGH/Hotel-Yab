@@ -623,7 +623,10 @@ The administration layer is split by responsibility:
   extended import schema.
 - `/admin/crawl-reviews` is available to `ADMIN` and `MODERATOR`; it accepts a
   selected catalog person's Instagram handle or a fallback crawler JSON file,
-  stores a paginated review batch, resolves detected catalog
+  accepts mixed-account JSON and atomically groups its rows into independent
+  per-account review batches after normalizing handles. Each row keeps its own
+  creator, deduplication uses account plus shortcode, and missing owners in mixed
+  files are rejected rather than guessed. The queue resolves detected catalog
   hints, supports explicit approved/rejected decisions, exports a reviewed JSON
   file for the local media tools, and records when the batch has been processed.
   The primary crawler is a loopback-only helper bound to `127.0.0.1`: it reads

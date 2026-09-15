@@ -43,6 +43,14 @@ import { UpdateCrawlReviewItemDto } from './dto/update-crawl-review-item.dto';
 
 type Candidate = Record<string, unknown>;
 
+type UploadedReviewBatch = {
+  id: string;
+  status: CrawlReviewBatchStatus;
+  instagramUsername: string;
+  totalItems: number;
+  skippedExisting: number;
+};
+
 const destinationSelect = {
   id: true,
   type: true,
@@ -201,15 +209,8 @@ export class CrawlReviewsService implements OnModuleInit {
     const usernames = new Set(
       candidates
         .map((candidate) => stringValue(candidate.instagram_username))
-        .filter(Boolean),
-    );
-    if (usernames.size > 1) {
-      throw new BadRequestException(
-        'هر فایل باید فقط متعلق به یک حساب اینستاگرام باشد',
-      );
-    }
-    const instagramUsername = normalizeInstagramUsername(
-      [...usernames][0] ?? fallbackUsername,
+        .filter(Boolean)
+        .map(normalizeInstagramUsername),
     );
 
     const [destinations, hotels] = await this.prisma.$transaction([
@@ -228,16 +229,26 @@ export class CrawlReviewsService implements OnModuleInit {
     const seenSourceUrls = new Set<string>();
 
     const items = candidates.map((candidate, index) => {
+      const explicitUsername = stringValue(candidate.instagram_username);
+      if (!explicitUsername && usernames.size > 1) {
+        throw new BadRequestException(
+          `آیدی اینستاگرام ردیف ${index + 1} مشخص نیست؛ در فایل چندحسابی صاحب هر ردیف باید مشخص باشد`,
+        );
+      }
+      const instagramUsername = normalizeInstagramUsername(
+        explicitUsername || [...usernames][0] || fallbackUsername,
+      );
       const sourceUrl = normalizeSourceUrl(candidate.source_url);
       if (!sourceUrl) {
         throw new BadRequestException(`ردیف ${index + 1} لینک محتوا ندارد`);
       }
-      if (seenSourceUrls.has(sourceUrl)) {
+      const sourceKey = `${instagramUsername}:${sourceUrl}`;
+      if (seenSourceUrls.has(sourceKey)) {
         throw new BadRequestException(
           `لینک محتوا در ردیف ${index + 1} تکراری است`,
         );
       }
-      seenSourceUrls.add(sourceUrl);
+      seenSourceUrls.add(sourceKey);
 
       const shortcode =
         stringValue(candidate.shortcode) || shortcodeFromUrl(sourceUrl);
@@ -295,66 +306,99 @@ export class CrawlReviewsService implements OnModuleInit {
       };
     });
 
-    const existingItems = await this.prisma.crawlReviewItem.findMany({
-      where: {
-        instagramUsername,
-        shortcode: { in: items.map((item) => item.shortcode) },
-      },
-      select: { shortcode: true },
-    });
-    const existingShortcodes = new Set(
-      existingItems.map((item) => item.shortcode),
-    );
-    const freshItems = items.filter(
-      (item) => !existingShortcodes.has(item.shortcode),
-    );
-    if (freshItems.length === 0) {
-      const previous = await this.prisma.crawlReviewBatch.findFirst({
-        where: { instagramUsername },
-        orderBy: { updatedAt: 'desc' },
-        select: { id: true, status: true },
-      });
-      if (!previous) {
-        throw new ConflictException('محتوای تازه‌ای برای بررسی پیدا نشد');
-      }
-      return {
-        data: {
-          id: previous.id,
-          status: previous.status,
-          instagramUsername,
-          totalItems: 0,
-          skippedExisting: items.length,
-        },
-      };
+    const itemsByUsername = new Map<string, typeof items>();
+    for (const item of items) {
+      const group = itemsByUsername.get(item.instagramUsername) ?? [];
+      group.push(item);
+      itemsByUsername.set(item.instagramUsername, group);
     }
 
-    const batch = await this.prisma.$transaction(async (transaction) => {
-      const created = await transaction.crawlReviewBatch.create({
-        data: {
+    const existingItems = await this.prisma.crawlReviewItem.findMany({
+      where: {
+        instagramUsername: { in: [...itemsByUsername.keys()] },
+        shortcode: { in: items.map((item) => item.shortcode) },
+      },
+      select: { instagramUsername: true, shortcode: true },
+    });
+    const existingShortcodes = new Set(
+      existingItems.map(
+        (item) => `${item.instagramUsername}:${item.shortcode}`,
+      ),
+    );
+
+    const batches = await this.prisma.$transaction(async (transaction) => {
+      const results: UploadedReviewBatch[] = [];
+      for (const [instagramUsername, accountItems] of itemsByUsername) {
+        const freshItems = accountItems.filter(
+          (item) =>
+            !existingShortcodes.has(`${instagramUsername}:${item.shortcode}`),
+        );
+        if (freshItems.length === 0) {
+          const previous = await transaction.crawlReviewBatch.findFirst({
+            where: { instagramUsername },
+            orderBy: { updatedAt: 'desc' },
+            select: { id: true, status: true },
+          });
+          if (!previous) {
+            throw new ConflictException('محتوای تازه‌ای برای بررسی پیدا نشد');
+          }
+          results.push({
+            ...previous,
+            instagramUsername,
+            totalItems: 0,
+            skippedExisting: accountItems.length,
+          });
+          continue;
+        }
+
+        // Keep each downstream export/import scoped to its actual creator.
+        const batchHash =
+          itemsByUsername.size === 1
+            ? contentHash
+            : createHash('sha256')
+                .update(`${contentHash}:${instagramUsername}`)
+                .digest('hex');
+        const created = await transaction.crawlReviewBatch.create({
+          data: {
+            instagramUsername,
+            sourceFilename,
+            contentHash: batchHash,
+            createdById: userId,
+          },
+          select: { id: true },
+        });
+        await transaction.crawlReviewItem.createMany({
+          data: freshItems.map((item, index) => ({
+            ...item,
+            displayOrder: index + 1,
+            batchId: created.id,
+          })),
+        });
+        results.push({
+          id: created.id,
+          status: CrawlReviewBatchStatus.REVIEWING,
           instagramUsername,
-          sourceFilename,
-          contentHash,
-          createdById: userId,
-        },
-        select: { id: true },
-      });
-      await transaction.crawlReviewItem.createMany({
-        data: freshItems.map((item, index) => ({
-          ...item,
-          displayOrder: index + 1,
-          batchId: created.id,
-        })),
-      });
-      return created;
+          totalItems: freshItems.length,
+          skippedExisting: accountItems.length - freshItems.length,
+        });
+      }
+      return results;
     });
 
+    const selectedBatch =
+      batches.find((batch) => batch.totalItems > 0) ?? batches[0];
     return {
       data: {
-        id: batch.id,
-        status: CrawlReviewBatchStatus.REVIEWING,
-        instagramUsername,
-        totalItems: freshItems.length,
-        skippedExisting: items.length - freshItems.length,
+        ...selectedBatch,
+        totalItems: batches.reduce(
+          (count, batch) => count + batch.totalItems,
+          0,
+        ),
+        skippedExisting: batches.reduce(
+          (count, batch) => count + batch.skippedExisting,
+          0,
+        ),
+        batches,
       },
     };
   }

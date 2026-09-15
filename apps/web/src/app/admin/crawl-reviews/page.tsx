@@ -373,6 +373,7 @@ export default function CrawlReviewsPage() {
           instagramUsername: string;
           totalItems: number;
           skippedExisting: number;
+          batches?: { id: string; instagramUsername: string; totalItems: number }[];
         };
       }>("/admin/crawl-reviews/upload", { method: "POST", body });
       await loadBootstrap(false);
@@ -381,12 +382,16 @@ export default function CrawlReviewsPage() {
       );
       setSelectedBatchId(response.data.id);
       setPage(1);
+      const accountCount = response.data.batches?.length ?? 1;
+      const accountLabel = accountCount > 1
+        ? `${accountCount.toLocaleString("fa-IR")} حساب اینستاگرام، به‌صورت جداگانه،`
+        : `@${response.data.instagramUsername}`;
       setFeedback({
         tone: "success",
         text:
           response.data.totalItems > 0
-            ? `${response.data.totalItems.toLocaleString("fa-IR")} محتوای تازه برای @${response.data.instagramUsername} وارد صف بررسی شد.${response.data.skippedExisting ? ` ${response.data.skippedExisting.toLocaleString("fa-IR")} محتوای قبلی تکرار نشد.` : ""}`
-            : `محتوای تازه‌ای برای @${response.data.instagramUsername} پیدا نشد؛ موارد قبلی دوباره وارد صف نشدند.`,
+            ? `${response.data.totalItems.toLocaleString("fa-IR")} محتوای تازه برای ${accountLabel} وارد صف بررسی شد.${response.data.skippedExisting ? ` ${response.data.skippedExisting.toLocaleString("fa-IR")} محتوای قبلی تکرار نشد.` : ""}`
+            : "محتوای تازه‌ای پیدا نشد؛ موارد قبلی دوباره وارد صف نشدند.",
       });
     } catch (caught) {
       setFeedback({
@@ -865,6 +870,7 @@ export default function CrawlReviewsPage() {
                   : "افزودن خروجی قدیمی کرالر"}
               </strong>
               <small>فایل JSON را اینجا رها کنید یا از دستگاه انتخاب کنید.</small>
+              <small>فایل چندحسابی هم پذیرفته می‌شود؛ ردیف‌های هر حساب جداگانه برای بررسی قرار می‌گیرند.</small>
             </span>
           </button>
         </details>
