@@ -24,6 +24,7 @@
     "api:typecheck": "pnpm --filter @hotel-yab/api typecheck",
     "web:build": "pnpm --filter @hotel-yab/web build",
     "web:dev": "pnpm --filter @hotel-yab/web dev",
+    "web:icons": "node scripts/generate-brand-icons.mjs",
     "web:lint": "pnpm --filter @hotel-yab/web lint",
     "web:start": "pnpm --filter @hotel-yab/web start",
     "web:typecheck": "pnpm --filter @hotel-yab/web typecheck"

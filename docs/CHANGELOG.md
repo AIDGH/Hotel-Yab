@@ -6,6 +6,11 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
+- Replaced the starter favicon and CSS brand mark with a shared, original
+  destination/play SVG in Hotel-Yab purple. Added generated multi-resolution
+  favicons, Apple Touch and Android maskable icons, a Persian web manifest,
+  theme metadata, and a reusable 1024px app-icon export. Added `pnpm web:icons`
+  to regenerate all raster outputs from the canonical SVG.
 - Added a loopback-only Instagram crawler/downloader helper integrated with
   `/admin/crawl-reviews`: staff can select an existing person, start or resume a
   crawl using their local browser session, preview candidate media, and import

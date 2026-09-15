@@ -197,35 +197,16 @@ img {
 }
 
 .brand-symbol {
-  position: relative;
   display: inline-block;
+  flex-shrink: 0;
   width: 34px;
   height: 34px;
-  border-radius: 11px;
-  background: var(--brand);
-  box-shadow: 0 8px 18px rgba(99, 91, 255, 0.25);
-  transform: rotate(9deg);
 }
 
-.brand-symbol > span {
-  position: absolute;
-  background: #fff;
-  border-radius: 3px;
-  transform: rotate(-9deg);
-}
-
-.brand-symbol > span:first-child {
-  width: 7px;
-  height: 20px;
-  right: 9px;
-  top: 7px;
-}
-
-.brand-symbol > span:last-child {
-  width: 15px;
-  height: 7px;
-  right: 9px;
-  top: 14px;
+.brand-symbol > img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .main-nav {
@@ -6702,14 +6683,6 @@ img {
   display: none;
 }
 
-.brand-symbol > span:first-child {
-  top: 6px;
-}
-
-.brand-symbol > span:last-child {
-  top: 13px;
-}
-
 .account-section-nav a > .site-icon,
 .account-section-nav button > .site-icon {
   width: 23px;
@@ -7038,14 +7011,6 @@ img {
   .account-avatar {
     width: 36px;
     height: 36px;
-  }
-
-  .brand-symbol > span:first-child {
-    top: 5px;
-  }
-
-  .brand-symbol > span:last-child {
-    top: 12px;
   }
 
   .auth-form input,

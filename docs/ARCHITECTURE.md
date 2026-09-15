@@ -127,6 +127,26 @@ getNotablePeople(...)
 
 Database logic must not be implemented inside frontend components.
 
+### Brand and application icons
+
+`apps/web/public/brand/hotelyab.svg` is the canonical vector brand asset: a
+destination marker with a play-shaped cutout on the site's purple background.
+The shared `BrandMark` renders it in both the header and footer. Brand assets
+are tracked UI assets, not user/catalog media.
+
+`pnpm web:icons` runs `scripts/generate-brand-icons.mjs` using Next.js's installed
+Sharp dependency. It generates a multi-size ICO (16/32/48/64/256), PNG icons
+(96/192/512), an opaque 180px Apple Touch Icon, a full-bleed 512px maskable icon,
+and a 1024px export for future native-app packaging. Mobile variants avoid
+transparent corners and keep the mark within the maskable safe circle.
+
+The root metadata declares the favicon and Apple icon; Next.js serves the
+`manifest.ts` file at `/manifest.webmanifest` and adds its link automatically.
+The manifest provides Persian/RTL app naming and a standalone home-screen
+launch configuration. It does not add offline support or a native application.
+Icon URLs stay stable and publicly crawlable; Google Search appearance depends
+on Google's recrawl and is not guaranteed immediately after deployment.
+
 ---
 
 ## Backend
