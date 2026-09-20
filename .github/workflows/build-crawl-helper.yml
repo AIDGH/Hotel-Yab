@@ -1,0 +1,45 @@
+name: Build crawl helper
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/build-crawl-helper.yml"
+      - "scripts/build-crawl-helper.py"
+      - "tools/instagram-travel-finder/collector.py"
+      - "tools/instagram-travel-finder/desktop_worker.py"
+      - "tools/instagram-travel-finder/detector.py"
+      - "tools/instagram-travel-finder/download_approved.py"
+      - "tools/instagram-travel-finder/helper-requirements.txt"
+      - "tools/instagram-travel-finder/import_approved.py"
+      - "tools/instagram-travel-finder/iran-locations.json"
+      - "tools/instagram-travel-finder/local_crawl_worker.py"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            artifact: HotelYab-Crawler-macOS-x64
+          - os: windows-latest
+            artifact: HotelYab-Crawler-Windows-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tools/instagram-travel-finder/helper-requirements.txt
+      - name: Install helper dependencies
+        run: python -m pip install -r tools/instagram-travel-finder/helper-requirements.txt
+      - name: Build standalone helper
+        run: python scripts/build-crawl-helper.py --clean
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: output/crawl-helper/*.zip
+          if-no-files-found: error
+          retention-days: 14

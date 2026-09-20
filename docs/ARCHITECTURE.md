@@ -743,11 +743,23 @@ session-refresh issue is also still open and must be fixed before broader launch
 
 The old API-process crawler job remains disabled because the current datacenter
 cannot reach Instagram. Production review/download now uses the operator-side
-`local_crawl_worker.py --environment production`. Its HTTP server is loopback
+standalone `HotelYab-Crawler` desktop helper. The same source remains runnable as
+`local_crawl_worker.py --environment production` for development and recovery.
+Its HTTP server is loopback
 only, accepts only the known local and Hotel-Yab origins, and has fixed local or
 `hotelyab.jaryan.net` API targets. Browser cookies and Instaloader sessions stay
 on the operator machine; only candidate metadata and approved final media are
 sent to Hotel-Yab. API restarts still mark stale `RUNNING` batches retryable.
+
+`scripts/build-crawl-helper.py` uses PyInstaller one-folder bundles so moderators
+do not need the repository, Python, or a terminal. The packaged entry point is
+`desktop_worker.py`; it embeds the crawler/downloader/importer scripts and their
+runtime dependencies, stores checkpoint/media work under the current user's
+application-data directory, and opens only `127.0.0.1:4317`. macOS Apple Silicon
+is built and smoke-tested locally; `.github/workflows/build-crawl-helper.yml`
+builds macOS Intel and Windows artifacts on their native runners. Published ZIPs
+are copied to the Git-ignored `apps/web/public/downloads/` directory on
+production and linked from `/admin/crawl-reviews`.
 
 The intended code-update flow is development/testing on the Mac followed by a
 push to `main`. The production `hotel-yab-deploy.timer` checks `origin/main`

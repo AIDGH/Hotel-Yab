@@ -4,7 +4,11 @@ import sys
 from pathlib import Path
 
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = (
+    Path(sys._MEIPASS) / "tools" / "instagram-travel-finder"
+    if getattr(sys, "frozen", False)
+    else Path(__file__).resolve().parent
+)
 LOCATIONS_FILE = BASE_DIR / "iran-locations.json"
 
 FOREIGN_LOCATION_TERMS = [

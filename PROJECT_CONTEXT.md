@@ -545,6 +545,16 @@ Admin API / PostgreSQL
 صف می‌کند. توقف کرال checkpoint را نگه می‌دارد و اجرای بعدی ادامه می‌دهد؛ پس از
 کامل‌شدن قبلی نیز با رسیدن به ۳۰ محتوای شناخته‌شده متوقف می‌شود.
 
+برای اپراتوری که repository یا Python ندارد، همین helper با
+`scripts/build-crawl-helper.py` به برنامهٔ مستقل `HotelYab-Crawler` بسته‌بندی
+می‌شود. برنامه کد Python، وابستگی‌ها و دادهٔ تشخیص مقصد را همراه دارد، در
+production اجرا می‌شود و فایل‌های موقت را در پوشهٔ خصوصی کاربر نگه می‌دارد.
+پنل در حالت قطع اتصال لینک دانلود macOS Apple Silicon، macOS Intel و Windows را
+نشان می‌دهد؛ کاربر برنامه را باز نگه می‌دارد و تمام شروع/توقف/دانلود/import از
+همان پنل انجام می‌شود. خروجی‌های باینری generated و خارج از Git در
+`/apps/web/public/downloads/` قرار می‌گیرند؛ workflow مستقل GitHub نسخه‌های
+macOS Intel و Windows را برای انتشار تولید می‌کند.
+
 پس از پایان review، فقط `MODERATOR` یک ticket امضاشده، batch-scoped و سه‌ساعته
 می‌گیرد. helper با همان ticket خروجی reviewed را می‌گیرد، رسانه‌های approved را
 با نشست مرورگر محلی دانلود و آماده می‌کند، فقط فایل‌های نهایی را به مسیرهای ثابت
@@ -581,6 +591,8 @@ tools/instagram-travel-finder/download_highlights.py
 tools/instagram-travel-finder/import_highlight.py
 tools/instagram-travel-finder/import_approved.py
 tools/instagram-travel-finder/local_crawl_worker.py
+tools/instagram-travel-finder/desktop_worker.py
+scripts/build-crawl-helper.py
 ```
 
 خروجی‌ها، browser/session state و captureهای محلی در Git قرار نمی‌گیرند.

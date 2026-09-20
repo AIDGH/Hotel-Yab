@@ -41,8 +41,8 @@ REVIEW_PLACEHOLDERS = {
     "needs review",
 }
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-PUBLIC_DIR = REPO_ROOT / "apps" / "web" / "public"
+REPO_ROOT = Path(os.environ.get("HOTELYAB_REPO_ROOT", Path(__file__).resolve().parents[2]))
+PUBLIC_DIR = Path(os.environ.get("HOTELYAB_PUBLIC_DIR", REPO_ROOT / "apps" / "web" / "public"))
 
 CONTENT_TYPE_OPTIONS = {
     "POST",

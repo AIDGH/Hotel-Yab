@@ -27,9 +27,13 @@ from detector import detect_locations
 from import_approved import media_plan_path, public_url_to_path
 
 
-BASE_DIR = Path(__file__).resolve().parent
-REPO_ROOT = BASE_DIR.parents[1]
-OUTPUT_DIR = BASE_DIR / "output"
+BASE_DIR = (
+    Path(sys._MEIPASS) / "tools" / "instagram-travel-finder"
+    if getattr(sys, "frozen", False)
+    else Path(__file__).resolve().parent
+)
+REPO_ROOT = Path(os.environ.get("HOTELYAB_REPO_ROOT", BASE_DIR.parents[1]))
+OUTPUT_DIR = Path(os.environ.get("HOTELYAB_WORKER_OUTPUT_DIR", BASE_DIR / "output"))
 WORKER_DIR = OUTPUT_DIR / "local-worker"
 WORKER_ORIGINS = {
     "http://localhost:3000",
@@ -461,7 +465,8 @@ def process_batch(job: WorkerJob, browser: str):
         job,
         [
             sys.executable,
-            str(BASE_DIR / "download_approved.py"),
+            *(["--worker-child", "download_approved.py"] if getattr(sys, "frozen", False)
+              else [str(BASE_DIR / "download_approved.py")]),
             str(reviewed_file),
             "--download",
             "--prepare-media",
@@ -500,7 +505,8 @@ def process_batch(job: WorkerJob, browser: str):
             job,
             [
                 sys.executable,
-                str(BASE_DIR / "import_approved.py"),
+                *(["--worker-child", "import_approved.py"] if getattr(sys, "frozen", False)
+                  else [str(BASE_DIR / "import_approved.py")]),
                 str(reviewed_file),
                 mode,
             ],
@@ -685,8 +691,16 @@ class WorkerHandler(BaseHTTPRequestHandler):
         self.send_json(404, {"message": "Not found"})
 
 
-def main():
+def create_server(environment: str = "local", browser: str = "chrome", port: int = 4317):
     global API_BASE, ENVIRONMENT, DEFAULT_BROWSER
+    ENVIRONMENT = environment
+    API_BASE = API_BASES[ENVIRONMENT]
+    DEFAULT_BROWSER = browser
+    WORKER_DIR.mkdir(parents=True, exist_ok=True)
+    return ThreadingHTTPServer(("127.0.0.1", port), WorkerHandler)
+
+
+def main():
     parser = argparse.ArgumentParser(
         description="Run the Hotel-Yab local Instagram crawler bridge."
     )
@@ -703,11 +717,7 @@ def main():
     )
     parser.add_argument("--port", type=int, default=4317)
     args = parser.parse_args()
-    ENVIRONMENT = args.environment
-    API_BASE = API_BASES[ENVIRONMENT]
-    DEFAULT_BROWSER = args.browser
-    WORKER_DIR.mkdir(parents=True, exist_ok=True)
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), WorkerHandler)
+    server = create_server(args.environment, args.browser, args.port)
     print(f"Hotel-Yab local crawler is ready at http://127.0.0.1:{args.port}")
     print(f"Hotel-Yab environment: {ENVIRONMENT}")
     print("Instagram cookies stay on this computer.")

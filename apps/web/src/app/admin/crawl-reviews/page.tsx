@@ -746,13 +746,34 @@ export default function CrawlReviewsPage() {
           </header>
           {!workerReady ? (
             <div className="crawl-worker-command">
-              <span>این دستور را در پوشه پروژه اجرا و پنجره‌اش را باز نگه دارید:</span>
-              <code dir="ltr">
-                python3 tools/instagram-travel-finder/local_crawl_worker.py
-                {expectedWorkerEnvironment() === "production"
-                  ? " --environment production"
-                  : " --environment local"}
-              </code>
+              <span>
+                دستیار هتل‌یاب را یک‌بار نصب و باز کنید؛ به ترمینال یا پوشه پروژه
+                نیازی نیست.
+              </span>
+              <div className="crawl-worker-downloads">
+                <a
+                  className="button"
+                  href="/downloads/HotelYab-Crawler-macOS-arm64.zip"
+                >
+                  دانلود برای مک جدید
+                </a>
+                <a
+                  className="button button-secondary"
+                  href="/downloads/HotelYab-Crawler-macOS-x64.zip"
+                >
+                  دانلود برای مک اینتل
+                </a>
+                <a
+                  className="button button-secondary"
+                  href="/downloads/HotelYab-Crawler-Windows-x64.zip"
+                >
+                  دانلود برای ویندوز
+                </a>
+              </div>
+              <small>
+                بعد از بازکردن برنامه، وضعیت همین بخش سبز می‌شود و می‌توانید کرال
+                را با دکمه شروع کنید. برنامه را هنگام کار باز نگه دارید.
+              </small>
               <button
                 className="button button-secondary button-small"
                 type="button"

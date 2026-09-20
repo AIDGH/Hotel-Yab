@@ -1353,6 +1353,18 @@ img {
   grid-column: 1 / -1;
 }
 
+.crawl-worker-command > small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.crawl-worker-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .crawl-worker-command code {
   overflow-x: auto;
   padding: 10px 12px;
@@ -1995,12 +2007,15 @@ img {
 
   .crawl-worker-command > span,
   .crawl-worker-command > code,
+  .crawl-worker-command > small,
+  .crawl-worker-downloads,
   .crawl-worker-command > .button,
   .crawl-worker-job > details {
     grid-column: auto;
   }
 
   .crawl-worker-command > .button,
+  .crawl-worker-downloads > .button,
   .crawl-worker-controls > .button,
   .crawl-worker-job > .button {
     width: 100%;

@@ -1000,3 +1000,27 @@ script remains reusable manually, while media and secrets stay outside Git.
 **Status:** Active in production through `hotel-yab-deploy.service` and
 `hotel-yab-deploy.timer`; the timer is enabled and its first GitHub check was
 verified successfully.
+
+## 51. Package the Local Crawler as a Desktop Helper
+
+**Decision:** Distribute the operator-side crawler/downloader/importer as a
+self-contained `HotelYab-Crawler` desktop application. The admin page provides
+platform-specific downloads and communicates with the helper through the same
+restricted loopback protocol. Keep the Python command as a development and
+recovery path.
+
+The bundle stores checkpoints and prepared media in the user's application-data
+directory. It embeds the location catalog and Python tooling, targets production
+by default, binds only to `127.0.0.1:4317`, accepts only Hotel-Yab/local origins,
+and never uploads browser cookies. Generated application archives remain outside
+Git and are published separately under the site's `/downloads/` path.
+
+**Reason:** Moderators should be able to install one application and use buttons
+in the web panel without cloning the repository, installing Python packages, or
+running terminal commands. Native builds also let browser-cookie access happen
+on the operator's own logged-in computer.
+
+**Status:** Implemented for macOS Apple Silicon with native CI builds defined for
+macOS Intel and Windows. Apple Developer notarization/code signing remains an
+optional distribution improvement; the current macOS bundle uses an ad-hoc
+signature and may require right-click → Open on first launch.

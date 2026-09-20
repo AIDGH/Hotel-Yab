@@ -151,7 +151,15 @@ Moderator starts local download/import (or uses the manual commands below)
 Admin API / PostgreSQL
 ```
 
-Run the local helper from the repository root, then leave that terminal open:
+For normal production use, download the helper shown in
+`/admin/crawl-reviews`, unzip it, and open `HotelYab-Crawler`. Leave the small
+helper window open while working. The operator does not need a repository,
+Python, or a terminal. On the first unsigned macOS launch, use right-click →
+Open if Gatekeeper asks for confirmation. Log in to `instagram.com` in the
+browser selected in the panel first.
+
+Repository commands remain available only for development and recovery. Run
+the local helper from the repository root, then leave that terminal open:
 
 ```bash
 python3 tools/instagram-travel-finder/local_crawl_worker.py \
@@ -165,7 +173,7 @@ python3 tools/instagram-travel-finder/local_crawl_worker.py \
   --environment production --browser chrome
 ```
 
-Log in to `instagram.com` in Chrome first. In `/admin/crawl-reviews`, choose an
+In `/admin/crawl-reviews`, choose an
 existing person, start the crawl, review the newly found rows, finish review,
 then let a Moderator select «دانلود و ورود مستقیم به سایت». Stopping the local
 job preserves its checkpoint; rerunning the same person continues safely.
@@ -360,9 +368,10 @@ restore files that are missing from its ready manifest.
 
 #### 1. Crawl and checkpoint
 
-- If the panel says the local crawler is unavailable, run
-  `local_crawl_worker.py` with the environment matching the open site and keep
-  its terminal open. The helper listens only on `127.0.0.1:4317`.
+- If the panel says the local crawler is unavailable, download/open the desktop
+  helper offered on that page and select «بررسی دوباره اتصال». For development,
+  run `local_crawl_worker.py` with the environment matching the open site. Both
+  variants listen only on `127.0.0.1:4317`.
 - If Instagram requests login or a checkpoint, complete it in Chrome first and
   rerun the crawl from the panel. Do not repeatedly submit a password in the
   terminal; the helper imports the existing browser session locally.

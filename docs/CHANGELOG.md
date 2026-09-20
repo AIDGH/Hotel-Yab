@@ -6,6 +6,11 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
+- Added a self-contained `HotelYab-Crawler` desktop helper so moderators can run
+  the local Instagram crawl/download/import flow without a repository, Python,
+  or terminal. The admin panel now offers platform-specific downloads; runtime
+  checkpoints and media stay in private per-user application storage. Added a
+  local Apple Silicon builder plus native CI builds for macOS Intel and Windows.
 - Allowed crawler JSON uploads containing multiple Instagram accounts. Rows are
   normalized and grouped into separate per-account review batches in one
   transaction, preserving correct creator attribution, per-account duplicate
