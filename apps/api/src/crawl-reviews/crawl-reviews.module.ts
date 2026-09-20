@@ -3,6 +3,7 @@ import { AuthModule } from '../auth/auth.module';
 import { CatalogModule } from '../catalog/catalog.module';
 import { PrismaModule } from '../database/prisma.module';
 import {
+  CrawlHelperDownloadsController,
   CrawlReviewsController,
   CrawlWorkerController,
 } from './crawl-reviews.controller';
@@ -10,7 +11,11 @@ import { CrawlReviewsService } from './crawl-reviews.service';
 
 @Module({
   imports: [PrismaModule, AuthModule, CatalogModule],
-  controllers: [CrawlReviewsController, CrawlWorkerController],
+  controllers: [
+    CrawlHelperDownloadsController,
+    CrawlReviewsController,
+    CrawlWorkerController,
+  ],
   providers: [CrawlReviewsService],
 })
 export class CrawlReviewsModule {}

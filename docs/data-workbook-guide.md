@@ -154,9 +154,10 @@ Admin API / PostgreSQL
 For normal production use, download the helper shown in
 `/admin/crawl-reviews`, unzip it, and open `HotelYab-Crawler`. Leave the small
 helper window open while working. The operator does not need a repository,
-Python, or a terminal. On the first unsigned macOS launch, use right-click →
-Open if Gatekeeper asks for confirmation. Log in to `instagram.com` in the
-browser selected in the panel first.
+Python, or a terminal. Download buttons are available only to an authenticated
+Admin account. On the first unsigned macOS launch, use right-click → Open if
+Gatekeeper asks for confirmation. Log in to `instagram.com` in the browser
+selected in the panel first.
 
 Repository commands remain available only for development and recovery. Run
 the local helper from the repository root, then leave that terminal open:

@@ -3,9 +3,11 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Headers,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -13,12 +15,17 @@ import {
   Put,
   Query,
   Req,
+  StreamableFile,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { AdminGuard } from '../auth/admin.guard';
 import { ModeratorGuard } from '../auth/moderator.guard';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import type { AuthenticatedRequest } from '../auth/auth.types';
@@ -27,6 +34,69 @@ import { CreateVideoDto } from '../catalog/dto/create-video.dto';
 import { CrawlReviewsService } from './crawl-reviews.service';
 import { CrawlReviewQueryDto } from './dto/crawl-review-query.dto';
 import { UpdateCrawlReviewItemDto } from './dto/update-crawl-review-item.dto';
+
+const CRAWL_HELPER_ARCHIVES = {
+  'macos-arm64': 'HotelYab-Crawler-macOS-arm64.zip',
+  'macos-x64': 'HotelYab-Crawler-macOS-x64.zip',
+  'windows-x64': 'HotelYab-Crawler-Windows-x64.zip',
+} as const;
+
+@Controller('admin/crawl-helper-downloads')
+@ApiTags('Admin Crawl Helper Downloads')
+@UseGuards(SessionAuthGuard, AdminGuard)
+export class CrawlHelperDownloadsController {
+  @Get(':platform')
+  @Header('Cache-Control', 'private, no-store')
+  @Header('X-Content-Type-Options', 'nosniff')
+  @ApiOperation({ summary: 'Download a crawler helper archive as an admin' })
+  async download(@Param('platform') platform: string): Promise<StreamableFile> {
+    const filename =
+      CRAWL_HELPER_ARCHIVES[platform as keyof typeof CRAWL_HELPER_ARCHIVES];
+    if (!filename) {
+      throw new NotFoundException('Crawler helper download was not found');
+    }
+
+    const file = await findCrawlerHelperArchive(filename);
+    if (!file) {
+      throw new NotFoundException('Crawler helper download is not available');
+    }
+
+    return new StreamableFile(createReadStream(file.path), {
+      type: 'application/zip',
+      disposition: `attachment; filename="${filename}"`,
+      length: file.size,
+    });
+  }
+}
+
+async function findCrawlerHelperArchive(
+  filename: string,
+): Promise<{ path: string; size: number } | null> {
+  const configuredRoot = process.env.CRAWL_HELPER_DOWNLOAD_DIR?.trim();
+  const repositoryRoot = process.env.CRAWL_PROCESSING_REPO_ROOT?.trim();
+  const directories = [
+    configuredRoot,
+    repositoryRoot
+      ? resolve(repositoryRoot, 'output/crawl-helper-downloads')
+      : undefined,
+    resolve(process.cwd(), 'output/crawl-helper-downloads'),
+    resolve(process.cwd(), '../../output/crawl-helper-downloads'),
+  ].filter((value): value is string => Boolean(value));
+
+  for (const directory of new Set(directories)) {
+    const path = resolve(directory, filename);
+    try {
+      const metadata = await stat(path);
+      if (metadata.isFile() && metadata.size > 0) {
+        return { path, size: metadata.size };
+      }
+    } catch {
+      // Try the next known private download directory.
+    }
+  }
+
+  return null;
+}
 
 @Controller('admin/crawl-reviews')
 @ApiTags('Admin Crawl Reviews')

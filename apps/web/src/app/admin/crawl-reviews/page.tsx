@@ -13,7 +13,7 @@ import {
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SiteIcon } from "@/components/site-icon";
 import { useAuth } from "@/components/auth-provider";
-import { browserApi } from "@/lib/browser-api";
+import { BROWSER_API_BASE_URL, browserApi } from "@/lib/browser-api";
 
 type BatchStatus = "REVIEWING" | "READY" | "COMPLETED";
 type ItemStatus = "PENDING" | "APPROVED" | "REJECTED";
@@ -750,26 +750,30 @@ export default function CrawlReviewsPage() {
                 دستیار هتل‌یاب را یک‌بار نصب و باز کنید؛ به ترمینال یا پوشه پروژه
                 نیازی نیست.
               </span>
-              <div className="crawl-worker-downloads">
-                <a
-                  className="button"
-                  href="/downloads/HotelYab-Crawler-macOS-arm64.zip"
-                >
-                  دانلود برای مک جدید
-                </a>
-                <a
-                  className="button button-secondary"
-                  href="/downloads/HotelYab-Crawler-macOS-x64.zip"
-                >
-                  دانلود برای مک اینتل
-                </a>
-                <a
-                  className="button button-secondary"
-                  href="/downloads/HotelYab-Crawler-Windows-x64.zip"
-                >
-                  دانلود برای ویندوز
-                </a>
-              </div>
+              {user.role === "ADMIN" ? (
+                <div className="crawl-worker-downloads">
+                  <a
+                    className="button"
+                    href={`${BROWSER_API_BASE_URL}/admin/crawl-helper-downloads/macos-arm64`}
+                  >
+                    دانلود برای مک جدید
+                  </a>
+                  <a
+                    className="button button-secondary"
+                    href={`${BROWSER_API_BASE_URL}/admin/crawl-helper-downloads/macos-x64`}
+                  >
+                    دانلود برای مک اینتل
+                  </a>
+                  <a
+                    className="button button-secondary"
+                    href={`${BROWSER_API_BASE_URL}/admin/crawl-helper-downloads/windows-x64`}
+                  >
+                    دانلود برای ویندوز
+                  </a>
+                </div>
+              ) : (
+                <small>دریافت برنامه فقط برای حساب ادمین فعال است.</small>
+              )}
               <small>
                 بعد از بازکردن برنامه، وضعیت همین بخش سبز می‌شود و می‌توانید کرال
                 را با دکمه شروع کنید. برنامه را هنگام کار باز نگه دارید.

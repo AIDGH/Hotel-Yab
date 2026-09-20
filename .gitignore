@@ -71,4 +71,3 @@ tools/instagram-travel-finder/*.backup
 # Local generated artifacts
 output/
 tmp/
-/apps/web/public/downloads/

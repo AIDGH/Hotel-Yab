@@ -552,14 +552,13 @@ production اجرا می‌شود و فایل‌های موقت را در پوش
 پنل در حالت قطع اتصال لینک دانلود macOS Apple Silicon، macOS Intel و Windows را
 نشان می‌دهد؛ کاربر برنامه را باز نگه می‌دارد و تمام شروع/توقف/دانلود/import از
 همان پنل انجام می‌شود. خروجی‌های باینری generated و خارج از Git در
-`/apps/web/public/downloads/` قرار می‌گیرند؛ workflow مستقل GitHub نسخه‌های
-macOS Apple Silicon، macOS Intel و Windows را روی runner بومی هر معماری تولید
-می‌کند و با یک کلید SSH محدودشده به دستور دریافت artifact، مستقیماً در همین
-پوشهٔ production منتشر می‌کند.
-کلید عمومی upload-only در `scripts/crawl-helper-actions.pub` نسخه‌بندی شده و
-`scripts/deploy-production.sh` آن را با forced command محدود در
-`authorized_keys` کاربر production همگام نگه می‌دارد؛ private key فقط secret
-رمزشدهٔ GitHub Actions است.
+`/output/crawl-helper-downloads/` نگهداری می‌شوند؛ این مسیر public نیست و فقط
+endpoint محافظت‌شدهٔ `GET /admin/crawl-helper-downloads/:platform` پس از بررسی
+session و نقش `ADMIN` فایل را تحویل می‌دهد. workflow مستقل GitHub نسخه‌های
+macOS Apple Silicon، macOS Intel و Windows را روی runner بومی هر معماری به‌صورت
+Artifact تولید می‌کند؛ انتشار production عمداً دستی است تا محدودیت SSH دیتاسنتر
+باعث fail شدن build نشود. اسکریپت deploy سه فایل legacy را از مسیر public به
+همین فضای خصوصی منتقل می‌کند.
 
 پس از پایان review، فقط `MODERATOR` یک ticket امضاشده، batch-scoped و سه‌ساعته
 می‌گیرد. helper با همان ticket خروجی reviewed را می‌گیرد، رسانه‌های approved را
@@ -599,8 +598,6 @@ tools/instagram-travel-finder/import_approved.py
 tools/instagram-travel-finder/local_crawl_worker.py
 tools/instagram-travel-finder/desktop_worker.py
 scripts/build-crawl-helper.py
-scripts/receive-crawl-helper-artifacts.sh
-scripts/crawl-helper-actions.pub
 ```
 
 خروجی‌ها، browser/session state و captureهای محلی در Git قرار نمی‌گیرند.

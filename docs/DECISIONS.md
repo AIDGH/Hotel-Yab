@@ -1013,7 +1013,8 @@ The bundle stores checkpoints and prepared media in the user's application-data
 directory. It embeds the location catalog and Python tooling, targets production
 by default, binds only to `127.0.0.1:4317`, accepts only Hotel-Yab/local origins,
 and never uploads browser cookies. Generated application archives remain outside
-Git and are published separately under the site's `/downloads/` path.
+Git and the public web tree. They are streamed from private production storage
+only after session authentication and an `ADMIN` role check.
 
 **Reason:** Moderators should be able to install one application and use buttons
 in the web panel without cloning the repository, installing Python packages, or
@@ -1025,8 +1026,8 @@ Intel, and Windows. Apple Developer notarization/code signing remains an
 optional distribution improvement; the current macOS bundle uses an ad-hoc
 signature and may require right-click → Open on first launch.
 
-Native CI artifacts are published with a dedicated SSH key whose server-side
-forced command accepts only SCP receive mode for the crawler-download directory.
-The key cannot start a shell, forward ports, or write elsewhere on production.
-Its public half is reviewed in the repository and installed idempotently by the
-production deploy script; only the encrypted private half is stored in Actions.
+Native CI artifacts are retained in GitHub Actions and copied manually to the
+private production download directory. Direct CI publication was rejected
+because GitHub-hosted runners cannot reach the datacenter SSH port; keeping that
+step would make otherwise valid builds fail. Deployment migrates any legacy
+public archive before building the website.

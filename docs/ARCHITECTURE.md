@@ -758,15 +758,15 @@ runtime dependencies, stores checkpoint/media work under the current user's
 application-data directory, and opens only `127.0.0.1:4317`. macOS Apple Silicon
 is also smoke-tested locally; `.github/workflows/build-crawl-helper.yml` builds
 macOS Apple Silicon, macOS Intel, and Windows artifacts on native runners.
-Published ZIPs
-are copied by the workflow to the Git-ignored
-`apps/web/public/downloads/` directory on production and linked from
-`/admin/crawl-reviews`. The dedicated SSH key is forced through
-`scripts/receive-crawl-helper-artifacts.sh`; it accepts only SCP receive mode
-for that exact directory and cannot open a shell or write elsewhere.
-The deploy script synchronizes the reviewed public key from
-`scripts/crawl-helper-actions.pub` into the production user's authorized keys;
-the matching private key exists only as an encrypted GitHub Actions secret.
+The workflow retains the native bundles as GitHub Artifacts. Approved archives
+are placed manually in the Git-ignored `output/crawl-helper-downloads/`
+directory on production because the datacenter does not accept SSH connections
+from GitHub-hosted runners. The directory is outside the web public tree. Only
+the session-protected Admin API download controller can stream these files, and
+it requires the `ADMIN` role. Production deployment migrates the three known
+legacy archives out of `apps/web/public/downloads/` before the web build.
+The same deployment removes the retired CI uploader key entry without touching
+any unrelated SSH authorization.
 
 The intended code-update flow is development/testing on the Mac followed by a
 push to `main`. The production `hotel-yab-deploy.timer` checks `origin/main`

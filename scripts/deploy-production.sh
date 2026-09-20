@@ -27,42 +27,61 @@ git fetch origin main
 git checkout main
 git merge --ff-only origin/main
 
-install_crawl_helper_artifact_key() {
-  local ssh_dir="$HOME/.ssh"
-  local authorized_keys="$ssh_dir/authorized_keys"
-  local public_key_file="$repository_root/scripts/crawl-helper-actions.pub"
-  local public_key
-  local forced_entry
+remove_retired_crawl_helper_artifact_key() {
+  local authorized_keys="$HOME/.ssh/authorized_keys"
   local temporary
 
-  if [[ ! -f "$public_key_file" || -L "$public_key_file" ]]; then
-    echo "Deployment stopped: crawler artifact public key is missing or unsafe." >&2
+  if [[ ! -e "$authorized_keys" ]]; then
+    return
+  fi
+  if [[ ! -f "$authorized_keys" || -L "$authorized_keys" ]]; then
+    echo "Deployment stopped: SSH authorization file is unsafe." >&2
     exit 1
   fi
-  public_key="$(<"$public_key_file")"
-  if [[ "$public_key" != ssh-ed25519\ *github-actions-hotel-yab-crawl-helper ]]; then
-    echo "Deployment stopped: crawler artifact public key is invalid." >&2
-    exit 1
-  fi
-  if [[ -L "$ssh_dir" || ( -e "$authorized_keys" && -L "$authorized_keys" ) ]]; then
-    echo "Deployment stopped: SSH authorization path must not be a symbolic link." >&2
-    exit 1
+  if ! grep -q 'github-actions-hotel-yab-crawl-helper' "$authorized_keys"; then
+    return
   fi
 
   umask 077
-  mkdir -p "$ssh_dir"
-  chmod 700 "$ssh_dir"
-  temporary="$(mktemp "$ssh_dir/authorized_keys.hotelyab.XXXXXX")"
-  if [[ -f "$authorized_keys" ]]; then
-    awk '!/github-actions-hotel-yab-crawl-helper/' "$authorized_keys" > "$temporary"
-  fi
-  forced_entry="restrict,command=\"$repository_root/scripts/receive-crawl-helper-artifacts.sh\" $public_key"
-  printf '%s\n' "$forced_entry" >> "$temporary"
+  temporary="$(mktemp "$HOME/.ssh/authorized_keys.hotelyab.XXXXXX")"
+  awk '!/github-actions-hotel-yab-crawl-helper/' "$authorized_keys" > "$temporary"
   chmod 600 "$temporary"
   mv "$temporary" "$authorized_keys"
 }
 
-install_crawl_helper_artifact_key
+migrate_crawl_helper_archives() {
+  local public_directory="$repository_root/apps/web/public/downloads"
+  local private_directory="$repository_root/output/crawl-helper-downloads"
+  local filename
+  local source
+  local target
+
+  if [[ -L "$public_directory" || -L "$private_directory" ]]; then
+    echo "Deployment stopped: crawler helper directories must not be symbolic links." >&2
+    exit 1
+  fi
+  mkdir -p "$private_directory"
+  chmod 700 "$private_directory"
+  for filename in \
+    HotelYab-Crawler-macOS-arm64.zip \
+    HotelYab-Crawler-macOS-x64.zip \
+    HotelYab-Crawler-Windows-x64.zip; do
+    source="$public_directory/$filename"
+    target="$private_directory/$filename"
+    if [[ ! -e "$source" ]]; then
+      continue
+    fi
+    if [[ ! -f "$source" || -L "$source" || -e "$target" ]]; then
+      echo "Deployment stopped: crawler helper archive migration is unsafe for $filename." >&2
+      exit 1
+    fi
+    mv "$source" "$target"
+    chmod 600 "$target"
+  done
+}
+
+remove_retired_crawl_helper_artifact_key
+migrate_crawl_helper_archives
 
 pnpm install --frozen-lockfile
 pnpm api:prisma:generate

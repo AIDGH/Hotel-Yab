@@ -11,10 +11,11 @@ All notable changes to Hotel-Yab are recorded in this file.
   or terminal. The admin panel now offers platform-specific downloads; runtime
   checkpoints and media stay in private per-user application storage. Added a
   local Apple Silicon builder plus native CI builds for macOS Apple Silicon,
-  macOS Intel, and Windows;
-  native build artifacts are published automatically through a restricted
-  upload-only server key, whose public half is synchronized during production
-  deployment while its private half remains an encrypted Actions secret.
+  macOS Intel, and Windows. Helper downloads now live outside the public web
+  tree and are streamed only through an authenticated `ADMIN` endpoint; legacy
+  public archives are migrated during deployment. CI retains native artifacts
+  for manual production placement instead of failing on datacenter SSH rules.
+  The retired upload-only SSH authorization is removed during deployment.
 - Allowed crawler JSON uploads containing multiple Instagram accounts. Rows are
   normalized and grouped into separate per-account review batches in one
   transaction, preserving correct creator attribution, per-account duplicate
