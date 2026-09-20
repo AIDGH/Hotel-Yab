@@ -553,8 +553,9 @@ production اجرا می‌شود و فایل‌های موقت را در پوش
 نشان می‌دهد؛ کاربر برنامه را باز نگه می‌دارد و تمام شروع/توقف/دانلود/import از
 همان پنل انجام می‌شود. خروجی‌های باینری generated و خارج از Git در
 `/output/crawl-helper-downloads/` نگهداری می‌شوند؛ این مسیر public نیست و فقط
-endpoint محافظت‌شدهٔ `GET /admin/crawl-helper-downloads/:platform` پس از بررسی
-session و نقش `ADMIN` فایل را تحویل می‌دهد. workflow مستقل GitHub نسخه‌های
+endpoint محافظت‌شدهٔ `GET /admin/crawl-helper-downloads/:platform` برای نقش‌های
+`ADMIN` و `MODERATOR` پس از بررسی session و نقش کاربر فایل را تحویل می‌دهد.
+workflow مستقل GitHub نسخه‌های
 macOS Apple Silicon، macOS Intel و Windows را روی runner بومی هر معماری به‌صورت
 Artifact تولید می‌کند؛ انتشار production عمداً دستی است تا محدودیت SSH دیتاسنتر
 باعث fail شدن build نشود. اسکریپت deploy سه فایل legacy را از مسیر public به

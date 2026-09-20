@@ -750,6 +750,12 @@ Persian logical headers expected by `download_approved.py` and
 
 Marks a `READY` batch as `COMPLETED` after local download/import processing.
 
+## GET /admin/crawl-helper-downloads/:platform
+
+Streams a private crawler-helper archive for `macos-arm64`, `macos-x64`, or
+`windows-x64`. Requires an authenticated `ADMIN` or `MODERATOR`; archives never
+live under the public web tree and responses disable caching.
+
 ## POST /admin/crawl-reviews/:id/process
 
 Starts the approved-media downloader, media preparation, import dry-run, and

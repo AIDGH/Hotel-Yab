@@ -12,7 +12,7 @@ All notable changes to Hotel-Yab are recorded in this file.
   checkpoints and media stay in private per-user application storage. Added a
   local Apple Silicon builder plus native CI builds for macOS Apple Silicon,
   macOS Intel, and Windows. Helper downloads now live outside the public web
-  tree and are streamed only through an authenticated `ADMIN` endpoint; legacy
+  tree and are streamed only through an authenticated `ADMIN`/`MODERATOR` endpoint; legacy
   public archives are migrated during deployment. CI retains native artifacts
   for manual production placement instead of failing on datacenter SSH rules.
   The retired upload-only SSH authorization is removed during deployment.

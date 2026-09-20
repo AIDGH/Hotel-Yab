@@ -25,7 +25,6 @@ import { stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AdminGuard } from '../auth/admin.guard';
 import { ModeratorGuard } from '../auth/moderator.guard';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import type { AuthenticatedRequest } from '../auth/auth.types';
@@ -43,12 +42,12 @@ const CRAWL_HELPER_ARCHIVES = {
 
 @Controller('admin/crawl-helper-downloads')
 @ApiTags('Admin Crawl Helper Downloads')
-@UseGuards(SessionAuthGuard, AdminGuard)
+@UseGuards(SessionAuthGuard, ModeratorGuard)
 export class CrawlHelperDownloadsController {
   @Get(':platform')
   @Header('Cache-Control', 'private, no-store')
   @Header('X-Content-Type-Options', 'nosniff')
-  @ApiOperation({ summary: 'Download a crawler helper archive as an admin' })
+  @ApiOperation({ summary: 'Download a crawler helper archive as staff' })
   async download(@Param('platform') platform: string): Promise<StreamableFile> {
     const filename =
       CRAWL_HELPER_ARCHIVES[platform as keyof typeof CRAWL_HELPER_ARCHIVES];

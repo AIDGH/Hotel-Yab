@@ -762,8 +762,8 @@ The workflow retains the native bundles as GitHub Artifacts. Approved archives
 are placed manually in the Git-ignored `output/crawl-helper-downloads/`
 directory on production because the datacenter does not accept SSH connections
 from GitHub-hosted runners. The directory is outside the web public tree. Only
-the session-protected Admin API download controller can stream these files, and
-it requires the `ADMIN` role. Production deployment migrates the three known
+the session-protected staff API download controller can stream these files, and
+it requires an `ADMIN` or `MODERATOR` role. Production deployment migrates the three known
 legacy archives out of `apps/web/public/downloads/` before the web build.
 The same deployment removes the retired CI uploader key entry without touching
 any unrelated SSH authorization.

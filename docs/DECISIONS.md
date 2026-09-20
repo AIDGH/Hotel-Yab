@@ -1014,7 +1014,7 @@ directory. It embeds the location catalog and Python tooling, targets production
 by default, binds only to `127.0.0.1:4317`, accepts only Hotel-Yab/local origins,
 and never uploads browser cookies. Generated application archives remain outside
 Git and the public web tree. They are streamed from private production storage
-only after session authentication and an `ADMIN` role check.
+only after session authentication and an `ADMIN`/`MODERATOR` role check.
 
 **Reason:** Moderators should be able to install one application and use buttons
 in the web panel without cloning the repository, installing Python packages, or

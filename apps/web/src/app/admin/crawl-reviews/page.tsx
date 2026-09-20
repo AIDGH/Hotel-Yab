@@ -750,7 +750,7 @@ export default function CrawlReviewsPage() {
                 دستیار هتل‌یاب را یک‌بار نصب و باز کنید؛ به ترمینال یا پوشه پروژه
                 نیازی نیست.
               </span>
-              {user.role === "ADMIN" ? (
+              {user.role === "ADMIN" || user.role === "MODERATOR" ? (
                 <div className="crawl-worker-downloads">
                   <a
                     className="button"
@@ -771,9 +771,7 @@ export default function CrawlReviewsPage() {
                     دانلود برای ویندوز
                   </a>
                 </div>
-              ) : (
-                <small>دریافت برنامه فقط برای حساب ادمین فعال است.</small>
-              )}
+              ) : null}
               <small>
                 بعد از بازکردن برنامه، وضعیت همین بخش سبز می‌شود و می‌توانید کرال
                 را با دکمه شروع کنید. برنامه را هنگام کار باز نگه دارید.
