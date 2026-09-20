@@ -278,21 +278,25 @@ export class ModerationService {
     if (!target) throw new NotFoundException('کاربر پیدا نشد');
     this.assertCanManageUser(actorId, actorRole, target);
 
-    if (target.role === UserRole.ADMIN && dto.role !== undefined) {
-      throw new ForbiddenException('نقش حساب‌های مدیر از پنل قابل تغییر نیست');
-    }
-
     if (actorRole === UserRole.MODERATOR && dto.role !== undefined) {
-      throw new ForbiddenException(
-        'ناظر محتوا نمی‌تواند نقش مدیر را تغییر دهد',
-      );
+      const isAllowedAdminTransition =
+        (target.role === UserRole.USER && dto.role === UserRole.ADMIN) ||
+        (target.role === UserRole.ADMIN && dto.role === UserRole.USER);
+      if (!isAllowedAdminTransition) {
+        throw new ForbiddenException(
+          'ناظر محتوا فقط می‌تواند کاربر عادی و مدیر را به یکدیگر تبدیل کند',
+        );
+      }
     }
     if (actorRole === UserRole.ADMIN && dto.role === UserRole.ADMIN) {
       throw new ForbiddenException(
         'ایجاد یا تغییر نقش مدیر از این پنل مجاز نیست',
       );
     }
-    if (dto.status === UserStatus.BLOCKED && target.role === UserRole.ADMIN) {
+    if (
+      target.role === UserRole.ADMIN &&
+      (dto.status === UserStatus.BLOCKED || dto.role === UserRole.USER)
+    ) {
       const otherActiveAdmins = await this.prisma.user.count({
         where: {
           id: { not: id },
@@ -301,7 +305,9 @@ export class ModerationService {
         },
       });
       if (otherActiveAdmins === 0) {
-        throw new BadRequestException('آخرین مدیر فعال را نمی‌توان مسدود کرد');
+        throw new BadRequestException(
+          'آخرین مدیر فعال را نمی‌توان مسدود یا به کاربر عادی تبدیل کرد',
+        );
       }
     }
 

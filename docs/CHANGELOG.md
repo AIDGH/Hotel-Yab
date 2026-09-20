@@ -6,6 +6,9 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
+- Allowed moderators to promote normal users to administrators from user
+  management and demote administrators back to normal users from the separate
+  administrator-review page, while preserving self-edit and last-admin guards.
 - Added a self-contained `HotelYab-Crawler` desktop helper so moderators can run
   the local Instagram crawl/download/import flow without a repository, Python,
   or terminal. The admin panel now offers platform-specific downloads; runtime

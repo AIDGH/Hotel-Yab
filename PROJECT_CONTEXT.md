@@ -901,8 +901,10 @@ Landing Page
 /admin/administrators
 ```
 
-صفحه مستقل «بررسی مدیران» فقط برای `MODERATOR`. self-edit، تغییر ادمین توسط
-ادمین و مسدودکردن آخرین ادمین فعال ممنوع است.
+صفحه مستقل «بررسی مدیران» فقط برای `MODERATOR`. ناظر می‌تواند حساب `USER` را
+از مدیریت کاربران به `ADMIN` ارتقا دهد و حساب `ADMIN` را از بررسی مدیران به
+`USER` برگرداند؛ self-edit، تغییر ادمین توسط ادمین و مسدود یا تنزل‌دادن آخرین
+ادمین فعال ممنوع است.
 
 ```text
 /admin/catalog
@@ -1520,7 +1522,7 @@ docs/TODO.md
 ### Product
 
 - پنل Moderation برای Review/Comment/Report، پنل Users برای مدیریت role-aware حساب‌ها و پنل Catalog برای مقصد/هتل/چهره/ویدیو وجود دارند؛ review association/source هنوز اضافه نشده است.
-- نقش USER/MODERATOR از پنل Users قابل مدیریت است؛ نقش هر حساب `ADMIN` در پنل برای همه staffها تغییرناپذیر است و bootstrap نقش ADMIN همچنان با `pnpm --filter @hotel-yab/api user:set-role -- <mobile-or-username> ADMIN` انجام می‌شود.
+- ادمین نقش‌های `USER`/`MODERATOR` را مدیریت می‌کند و Moderator می‌تواند تبدیل مستقیم `USER ↔ ADMIN` را از پنل‌های کاربران/مدیران انجام دهد؛ آخرین ادمین فعال قابل تنزل نیست و bootstrap همچنان با `pnpm --filter @hotel-yab/api user:set-role -- <mobile-or-username> ADMIN` ممکن است.
 - اتصال فنی OTP به endpoint قالبی v1 نجوا با قالب تأییدشده
   `HotelYabOTPTemplate` فعال است؛ `NAJVA_API_KEY`، `NAJVA_SENDER` و
   `SMS_OTP_ORIGIN_HOST` روی VPS تنظیم شده‌اند و IP سرور whitelist شده است.

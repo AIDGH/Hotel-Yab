@@ -151,6 +151,7 @@ function ManagedUserCard({ managedUser, actorRole, onSaved }: { managedUser: Man
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const value = (key: string) => String(data.get(key) ?? "").trim();
+    const selectedRole = value("role");
     setSaving(true);
     setFeedback(null);
     try {
@@ -163,7 +164,9 @@ function ManagedUserCard({ managedUser, actorRole, onSaved }: { managedUser: Man
           email: value("email"),
           instagramHandle: value("instagramHandle"),
           status: value("status"),
-          ...(actorRole === "ADMIN" ? { role: value("role") } : {}),
+          ...(data.has("role") && (actorRole === "ADMIN" || selectedRole !== managedUser.role)
+            ? { role: selectedRole }
+            : {}),
         }),
       });
       setFeedback({ tone: "success", text: "اطلاعات کاربر ذخیره شد." });
@@ -196,6 +199,10 @@ function ManagedUserCard({ managedUser, actorRole, onSaved }: { managedUser: Man
         <label>آیدی اینستاگرام<input name="instagramHandle" dir="ltr" defaultValue={managedUser.instagramHandle ?? ""} /></label>
         {actorRole === "ADMIN" ? (
           <label>نقش<select name="role" defaultValue={managedUser.role}><option value="USER">کاربر</option><option value="MODERATOR">ناظر محتوا</option></select></label>
+        ) : managedUser.role === "USER" ? (
+          <label>نقش<select name="role" defaultValue="USER"><option value="USER">کاربر</option><option value="ADMIN">مدیر</option></select></label>
+        ) : managedUser.role === "ADMIN" ? (
+          <label>نقش<select name="role" defaultValue="ADMIN"><option value="ADMIN">مدیر</option><option value="USER">کاربر</option></select></label>
         ) : null}
         <label>وضعیت<select name="status" defaultValue={managedUser.status}><option value="ACTIVE">فعال</option><option value="BLOCKED">مسدود</option></select></label>
         <div className="managed-user-submit">

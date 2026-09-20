@@ -858,9 +858,11 @@ large association card made the page harder to scan and hid useful videos.
 two-approved-comment threshold; link, repetition, and risky-term signals still
 queue a comment. `ADMIN` and `MODERATOR` reviews/comments bypass premoderation.
 `ADMIN` and `MODERATOR` manage non-admin accounts, while `MODERATOR` receives a
-separate administrator-review page and can access catalog management. Staff
-cannot manage themselves, admins cannot manage admin peers, and the last active
-admin cannot be blocked.
+separate administrator-review page, can promote `USER` accounts to `ADMIN`,
+demote `ADMIN` accounts to `USER`, and can access catalog management. Staff
+cannot manage themselves, admins cannot manage admin peers, moderator roles are
+not altered by this transition, and the last active admin cannot be blocked or
+demoted.
 
 **Reason:** The old threshold created unnecessary queue volume. Risk signals and
 reports still cover common abuse, while explicit role scoping prevents ordinary

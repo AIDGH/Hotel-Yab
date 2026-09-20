@@ -561,11 +561,11 @@ endpoint; the final active administrator still cannot be blocked.
 
 Updates username, first/last name, email, Instagram handle, and status. An
 `ADMIN` managing a non-admin account may also switch between `USER` and
-`MODERATOR`. A moderator may update administrator profile/status fields but
-cannot change the administrator role. The role field of every existing
-`ADMIN` account is immutable through this endpoint, regardless of the caller's
-staff role. Staff cannot change their own account here, and the final active
-administrator cannot be blocked. Blocking revokes active sessions.
+`MODERATOR`. A `MODERATOR` may promote a `USER` to `ADMIN` from user management
+or demote an `ADMIN` to `USER` from administrator review; moderator accounts are
+not changed through this transition. Staff cannot change their own account
+here, and the final active administrator cannot be blocked or demoted. Blocking
+revokes active sessions.
 
 ---
 
