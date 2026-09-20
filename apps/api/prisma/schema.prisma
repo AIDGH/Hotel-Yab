@@ -143,25 +143,27 @@ model Hotel {
 }
 
 model NotablePerson {
-  id                 String                   @id @default(uuid()) @db.Uuid
-  slug               String                   @unique @db.VarChar(160)
-  displayName        String                   @db.VarChar(200)
-  instagramHandle    String?                  @db.VarChar(30)
-  primaryCategory    NotablePersonCategory
-  occupation         String?                  @db.VarChar(200)
-  followerCount      Int?
-  followersUpdatedAt DateTime?                @db.Timestamptz(3)
-  biography          String?                  @db.Text
-  countryCode        String?                  @db.Char(2)
-  imageUrl           String?                  @db.Text
-  publicationStatus  PublicationStatus        @default(DRAFT)
-  associations       HotelAssociation[]
-  followerSnapshots  FollowerSnapshot[]
-  linkedUser         User?                    @relation("UserNotablePerson")
-  likes              UserNotablePersonLike[]
-  savedBy            UserSavedNotablePerson[]
-  createdAt          DateTime                 @default(now()) @db.Timestamptz(3)
-  updatedAt          DateTime                 @updatedAt @db.Timestamptz(3)
+  id                             String                   @id @default(uuid()) @db.Uuid
+  slug                           String                   @unique @db.VarChar(160)
+  displayName                    String                   @db.VarChar(200)
+  instagramHandle                String?                  @db.VarChar(30)
+  primaryCategory                NotablePersonCategory
+  occupation                     String?                  @db.VarChar(200)
+  followerCount                  Int?
+  followersUpdatedAt             DateTime?                @db.Timestamptz(3)
+  biography                      String?                  @db.Text
+  countryCode                    String?                  @db.Char(2)
+  imageUrl                       String?                  @db.Text
+  instagramCrawlRequest          Json?
+  instagramCrawlRequestUpdatedAt DateTime?                @db.Timestamptz(3)
+  publicationStatus              PublicationStatus        @default(DRAFT)
+  associations                   HotelAssociation[]
+  followerSnapshots              FollowerSnapshot[]
+  linkedUser                     User?                    @relation("UserNotablePerson")
+  likes                          UserNotablePersonLike[]
+  savedBy                        UserSavedNotablePerson[]
+  createdAt                      DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt                      DateTime                 @updatedAt @db.Timestamptz(3)
 
   @@index([primaryCategory])
   @@index([publicationStatus])

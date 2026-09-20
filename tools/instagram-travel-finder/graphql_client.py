@@ -12,6 +12,21 @@ from urllib.request import Request, urlopen
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_CURL_FILE = BASE_DIR / "query.curl"
 GRAPHQL_URL = "https://www.instagram.com/graphql/query"
+REQUEST_OVERRIDE: tuple[str, dict[str, str], str] | None = None
+
+
+def configure_request(
+    url: str,
+    headers: dict[str, str],
+    body: str,
+) -> None:
+    global REQUEST_OVERRIDE
+    REQUEST_OVERRIDE = (url, headers, body)
+
+
+def clear_request() -> None:
+    global REQUEST_OVERRIDE
+    REQUEST_OVERRIDE = None
 
 
 def resolve_curl_file() -> Path:
@@ -224,17 +239,13 @@ def update_request_body(
 def build_request(
     after: str | None,
 ) -> Request:
-    curl_file = resolve_curl_file()
-
-    curl_text = curl_file.read_text(
-        encoding="utf-8",
-    )
-
-    url, headers, raw_body = (
-        parse_curl_capture(
-            curl_text
-        )
-    )
+    if REQUEST_OVERRIDE is not None:
+        url, configured_headers, raw_body = REQUEST_OVERRIDE
+        headers = dict(configured_headers)
+    else:
+        curl_file = resolve_curl_file()
+        curl_text = curl_file.read_text(encoding="utf-8")
+        url, headers, raw_body = parse_curl_capture(curl_text)
 
     cookie_override = os.environ.get(
         "IG_COOKIE",
@@ -470,4 +481,3 @@ def fetch_profile_page(
     raise RuntimeError(
         "Instagram request failed after 3 attempts."
     ) from last_error
-

@@ -53,6 +53,8 @@ def self_check() -> None:
     root = configure_runtime()
     for name in (
         "local_crawl_worker.py",
+        "crawl_graphql.py",
+        "graphql_client.py",
         "download_approved.py",
         "import_approved.py",
         "iran-locations.json",

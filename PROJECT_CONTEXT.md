@@ -311,6 +311,8 @@ NotablePerson ──< FollowerSnapshot
 - biography
 - country
 - imageUrl
+- instagramCrawlRequest (نسخهٔ پاک‌سازی‌شدهٔ درخواست GraphQL، بدون Cookie/Authorization/CSRF)
+- instagramCrawlRequestUpdatedAt
 - publicationStatus
 
 `instagramHandle` بدون `@` ذخیره می‌شود و نباید از slug حدس زده شود.
@@ -502,9 +504,9 @@ docs/data-workbook-guide.md
 برای Travel/Instagram یک pipeline پژوهشی قابل استفاده ساخته شده است:
 
 ```text
-Instagram public timeline
+Instagram GraphQL timeline با recipe ذخیره‌شدهٔ همان چهره + نشست محلی مرورگر
         ↓
-کرالر GraphQL دستی یا `local_crawl_worker.py` با نشست مرورگر و checkpoint/resume
+`local_crawl_worker.py` با درخواست GraphQL پاک‌سازی‌شده، نشست مرورگر و checkpoint/resume
         ↓
 High-recall detector + HOTEL priority
         ↓
@@ -540,10 +542,15 @@ Admin API / PostgreSQL
 مسیر اصلی کرال و دانلود، helper محلی loopback در
 `tools/instagram-travel-finder/local_crawl_worker.py` است. برنامه فقط روی
 `127.0.0.1:4317` گوش می‌دهد، فقط originهای ثابت لوکال و دامنهٔ Hotel-Yab را
-می‌پذیرد و نشست Chrome/Instagram را از دستگاه خارج نمی‌کند. پنل چهرهٔ موجود را
-انتخاب می‌کند، وضعیت کرال را با polling نشان می‌دهد و خروجی تازه را خودکار وارد
-صف می‌کند. توقف کرال checkpoint را نگه می‌دارد و اجرای بعدی ادامه می‌دهد؛ پس از
-کامل‌شدن قبلی نیز با رسیدن به ۳۰ محتوای شناخته‌شده متوقف می‌شود.
+می‌پذیرد و نشست Chrome/Instagram را از دستگاه خارج نمی‌کند. Moderator در فرم
+ویرایش چهره cURL مربوط به GraphQL timeline همان چهره را ثبت می‌کند؛ API پیش از
+ذخیره Cookie، Authorization و CSRF را حذف می‌کند و فقط recipe غیرمحرمانه و زمان
+به‌روزرسانی را نگه می‌دارد. پنل چهرهٔ موجود را انتخاب می‌کند، recipe را به helper
+محلی می‌دهد و helper کوکی تازهٔ مرورگر همان اپراتور را فقط روی دستگاه تزریق
+می‌کند. نبودن recipe یا پاسخ منقضی Instagram با پیام درخواست cURL تازه متوقف
+می‌شود؛ `429` به‌عنوان محدودیت موقت نمایش داده می‌شود. وضعیت کرال با polling
+دیده می‌شود و خروجی تازه خودکار وارد صف می‌شود. توقف کرال checkpoint را نگه
+می‌دارد و اجرای بعدی ادامه می‌دهد.
 
 برای اپراتوری که repository یا Python ندارد، همین helper با
 `scripts/build-crawl-helper.py` به برنامهٔ مستقل `HotelYab-Crawler` بسته‌بندی
@@ -927,8 +934,8 @@ Landing Page
 ```
 
 صف داخلی `ADMIN` و `MODERATOR` برای تبدیل خروجی خام crawler به دادهٔ بررسی‌شده.
-در حالت اصلی، چهرهٔ دارای Instagram از Catalog انتخاب و کرال از نشست مرورگر
-همان لپ‌تاپ شروع می‌شود؛ پیشرفت، توقف امن و پیش‌نمایش عکس/ویدیو در پنل دیده
+در حالت اصلی، چهرهٔ دارای Instagram و recipe معتبر از Catalog انتخاب و کرال با
+نشست مرورگر همان لپ‌تاپ شروع می‌شود؛ پیشرفت، توقف امن و پیش‌نمایش عکس/ویدیو در پنل دیده
 می‌شود. بارگذاری دستی JSON نیز به‌عنوان fallback باقی است. batchهای در حال بررسی و آماده/تکمیل‌شده
 جدا دیده می‌شوند و هر صفحه ۱۲ ردیف دارد. مدیر وضعیت ردیف، هتل اختیاری، شهرها،
 استان‌ها و عنوان نهایی را ذخیره می‌کند. پس از پایان review، فایل JSON خروجی برای

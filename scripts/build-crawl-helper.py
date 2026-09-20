@@ -19,9 +19,11 @@ WORK_DIR = ROOT / "tmp" / "crawl-helper"
 APP_NAME = "HotelYab-Crawler"
 RESOURCE_FILES = (
     "collector.py",
+    "crawl_graphql.py",
     "detector.py",
     "download_approved.py",
     "import_approved.py",
+    "graphql_client.py",
     "iran-locations.json",
     "local_crawl_worker.py",
 )

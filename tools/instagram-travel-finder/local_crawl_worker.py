@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import http.client
 import json
+import math
 import os
 import subprocess
 import sys
@@ -17,13 +18,15 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qsl, unquote, urlencode, urlparse
 from urllib.request import Request, urlopen
 
 import instaloader
 
+import crawl_graphql
 from collector import create_loader, extract_username
 from detector import detect_locations
+from graphql_client import clear_request, configure_request
 from import_approved import media_plan_path, public_url_to_path
 
 
@@ -320,6 +323,129 @@ def crawl_with_browser(job: WorkerJob, browser: str, max_posts: int | None):
         raise
 
 
+def crawl_with_saved_request(
+    job: WorkerJob,
+    browser: str,
+    max_posts: int | None,
+    crawl_request: dict,
+):
+    username = extract_username(job.username)
+    if (
+        crawl_request.get("version") != 1
+        or not isinstance(crawl_request.get("url"), str)
+        or not isinstance(crawl_request.get("headers"), dict)
+        or not isinstance(crawl_request.get("body"), str)
+    ):
+        raise RuntimeError(
+            "درخواست کرال این چهره معتبر نیست؛ از مدیر بخواهید cURL تازه ثبت کند."
+        )
+
+    job.update(status="RUNNING", message="در حال کرال با درخواست ذخیره‌شده")
+    cookies = read_browser_cookies(browser)
+    headers = {
+        str(name): str(value)
+        for name, value in crawl_request["headers"].items()
+    }
+    headers["Cookie"] = "; ".join(
+        f"{name}={value}" for name, value in cookies.items()
+    )
+    csrf_token = cookies.get("csrftoken")
+    if csrf_token:
+        headers["X-CSRFToken"] = csrf_token
+
+    form = dict(parse_qsl(crawl_request["body"], keep_blank_values=True))
+    viewer_id = cookies.get("ds_user_id")
+    if viewer_id:
+        form["av"] = viewer_id
+        form["__user"] = viewer_id
+    body = urlencode(form)
+
+    existing_rows = read_json(output_path(username), [])
+    existing_shortcodes = {
+        str(item.get("shortcode", ""))
+        for item in existing_rows
+        if isinstance(item, dict) and item.get("shortcode")
+    }
+    crawl_graphql.OUTPUT_DIR = OUTPUT_DIR
+    max_pages = math.ceil(max_posts / 12) if max_posts else 10000
+    configure_request(crawl_request["url"], headers, body)
+    try:
+        crawl_graphql.crawl_profile(
+            username,
+            max_pages=max_pages,
+            should_stop=job.stop_event.is_set,
+            on_progress=lambda page, processed: job.update(
+                current=processed,
+                message=f"بررسی صفحه {page}؛ {processed} محتوا",
+            ),
+        )
+    except RuntimeError as exc:
+        detail = str(exc)
+        if "HTTP 429" in detail:
+            raise RuntimeError(
+                "Instagram موقتاً درخواست‌ها را محدود کرده است؛ چند ساعت بعد دوباره تلاش کنید."
+            ) from exc
+        if "Instagram" in detail:
+            raise RuntimeError(
+                "درخواست کرال این چهره قدیمی یا نامعتبر شده است؛ از مدیر بخواهید cURL تازه ثبت کند."
+            ) from exc
+        raise
+    finally:
+        clear_request()
+
+    rows = read_json(output_path(username), [])
+    current_shortcodes = {
+        str(item.get("shortcode", ""))
+        for item in rows
+        if isinstance(item, dict) and item.get("shortcode")
+    }
+    job.new_items = len(current_shortcodes - existing_shortcodes)
+    job.result_path = output_path(username)
+    job.update(
+        status="SUCCEEDED",
+        message=f"کرال تمام شد؛ {job.new_items} محتوای تازه پیدا شد",
+    )
+
+
+def read_browser_cookies(browser: str) -> dict[str, str]:
+    try:
+        import browser_cookie3
+    except ImportError as exc:
+        raise RuntimeError("امکان خواندن نشست مرورگر در برنامه وجود ندارد.") from exc
+
+    readers = {
+        "brave": browser_cookie3.brave,
+        "chrome": browser_cookie3.chrome,
+        "chromium": browser_cookie3.chromium,
+        "edge": browser_cookie3.edge,
+        "firefox": browser_cookie3.firefox,
+        "librewolf": browser_cookie3.librewolf,
+        "opera": browser_cookie3.opera,
+        "opera_gx": browser_cookie3.opera_gx,
+        "safari": browser_cookie3.safari,
+        "vivaldi": browser_cookie3.vivaldi,
+    }
+    reader = readers.get(browser.lower())
+    if not reader:
+        raise RuntimeError("مرورگر انتخاب‌شده پشتیبانی نمی‌شود.")
+    try:
+        jar = reader()
+    except Exception as exc:
+        raise RuntimeError(
+            "خواندن نشست مرورگر انجام نشد؛ وارد Instagram شوید و دسترسی سیستم را تأیید کنید."
+        ) from exc
+    cookies = {
+        cookie.name: cookie.value
+        for cookie in jar
+        if "instagram.com" in cookie.domain
+    }
+    if not cookies.get("sessionid"):
+        raise RuntimeError(
+            "نشست Instagram در مرورگر پیدا نشد؛ ابتدا در همان مرورگر وارد شوید."
+        )
+    return cookies
+
+
 def save_crawl_progress(
     username: str,
     by_shortcode: dict[str, dict],
@@ -552,7 +678,7 @@ def run_job(job: WorkerJob, target, *args):
 
 
 class WorkerHandler(BaseHTTPRequestHandler):
-    server_version = "HotelYabLocalWorker/1.0"
+    server_version = "HotelYabLocalWorker/2.0"
 
     def log_message(self, format_string, *args):
         print(f"[{self.log_date_time_string()}] {format_string % args}")
@@ -605,7 +731,7 @@ class WorkerHandler(BaseHTTPRequestHandler):
         if path == "/health":
             self.send_json(
                 200,
-                {"data": {"ready": True, "version": 1, "environment": ENVIRONMENT}},
+                {"data": {"ready": True, "version": 2, "environment": ENVIRONMENT}},
             )
             return
         parts = [unquote(item) for item in path.strip("/").split("/")]
@@ -641,10 +767,21 @@ class WorkerHandler(BaseHTTPRequestHandler):
                 username = extract_username(str(payload.get("username", "")))
                 browser = str(payload.get("browser", DEFAULT_BROWSER) or DEFAULT_BROWSER)
                 max_posts = int(payload["maxPosts"]) if payload.get("maxPosts") else None
+                crawl_request = payload.get("crawlRequest")
+                if not isinstance(crawl_request, dict):
+                    raise ValueError(
+                        "درخواست کرال این چهره ثبت نشده است؛ از مدیر بخواهید cURL تازه ثبت کند."
+                    )
                 job = register_job(WorkerJob("CRAWL", username))
                 threading.Thread(
                     target=run_job,
-                    args=(job, crawl_with_browser, browser, max_posts),
+                    args=(
+                        job,
+                        crawl_with_saved_request,
+                        browser,
+                        max_posts,
+                        crawl_request,
+                    ),
                     daemon=True,
                 ).start()
                 self.send_json(202, {"data": job.payload()})

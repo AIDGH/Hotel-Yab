@@ -41,6 +41,13 @@ type ReviewPerson = {
   displayName: string;
   instagramHandle: string;
   imageUrl: string | null;
+  instagramCrawlRequest: {
+    version: 1;
+    url: string;
+    headers: Record<string, string>;
+    body: string;
+  } | null;
+  instagramCrawlRequestUpdatedAt: string | null;
 };
 
 type WorkerJob = {
@@ -183,6 +190,7 @@ export default function CrawlReviewsPage() {
   const [workerEnvironment, setWorkerEnvironment] = useState<
     "local" | "production" | null
   >(null);
+  const [workerVersion, setWorkerVersion] = useState<number | null>(null);
   const [workerJob, setWorkerJob] = useState<WorkerJob | null>(null);
   const [selectedInstagram, setSelectedInstagram] = useState("");
   const [selectedBrowser, setSelectedBrowser] = useState("chrome");
@@ -270,17 +278,21 @@ export default function CrawlReviewsPage() {
       const response = await localWorkerApi<{
         data: {
           ready: boolean;
+          version: number;
           environment: "local" | "production";
         };
       }>("/health");
       setWorkerReady(
         response.data.ready &&
+          response.data.version >= 2 &&
           response.data.environment === expectedWorkerEnvironment(),
       );
       setWorkerEnvironment(response.data.environment);
+      setWorkerVersion(response.data.version);
     } catch {
       setWorkerReady(false);
       setWorkerEnvironment(null);
+      setWorkerVersion(null);
     }
   }, []);
 
@@ -467,11 +479,20 @@ export default function CrawlReviewsPage() {
       });
       return;
     }
+    if (!person.instagramCrawlRequest) {
+      setFeedback({
+        tone: "error",
+        text: "برای این چهره درخواست کرال ثبت نشده است؛ از مدیر بخواهید cURL تازه را در ویرایش چهره ثبت کند.",
+      });
+      return;
+    }
     if (!workerReady) {
       setFeedback({
         tone: "error",
         text:
-          workerEnvironment &&
+          workerVersion !== null && workerVersion < 2
+            ? "نسخه برنامه کرالر قدیمی است؛ نسخه تازه را از همین صفحه دانلود و جایگزین کنید."
+            : workerEnvironment &&
           workerEnvironment !== expectedWorkerEnvironment()
             ? "برنامه کرالر برای محیط دیگری اجرا شده است؛ دستور همین صفحه را اجرا کنید."
             : "برنامه کرالر روی این لپ‌تاپ اجرا نیست.",
@@ -486,6 +507,7 @@ export default function CrawlReviewsPage() {
         body: JSON.stringify({
           username: person.instagramHandle,
           browser: selectedBrowser,
+          crawlRequest: person.instagramCrawlRequest,
         }),
       });
       setWorkerJob(response.data);

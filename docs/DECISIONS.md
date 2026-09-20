@@ -1033,3 +1033,21 @@ private production download directory. Direct CI publication was rejected
 because GitHub-hosted runners cannot reach the datacenter SSH port; keeping that
 step would make otherwise valid builds fail. Deployment migrates any legacy
 public archive before building the website.
+
+## 52. Store Sanitized Per-Person Crawl Recipes, Never Instagram Sessions
+
+**Decision:** Staff may paste a profile timeline cURL while editing a notable
+person. Hotel-Yab validates the Instagram GraphQL target and stores only a
+sanitized recipe; Cookie, Authorization, and CSRF headers are discarded. The
+loopback helper injects the current operator's browser session locally. Missing
+or rejected recipes request a fresh capture, while HTTP 429 remains a temporary
+rate-limit error rather than an expiry signal.
+
+**Reason:** Instagram's generic profile endpoint rate-limits the standalone
+helper, while the proven timeline crawler needs request variables tied to the
+selected profile. Persisting a complete cURL would expose an Instagram account
+session. Separating the non-secret profile recipe from local browser credentials
+keeps the usable GraphQL flow without sending cookies to Hotel-Yab.
+
+**Status:** Active; introduced with migration
+`20260920140000_add_notable_person_crawl_request` and helper protocol version 2.

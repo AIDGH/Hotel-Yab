@@ -40,4 +40,5 @@ export class CreateNotablePersonDto {
   @IsOptional() @EmptyToNull() @Matches(mediaPathPattern) imageUrl?:
     string | null;
   @IsEnum(PublicationStatus) publicationStatus!: PublicationStatus;
+  @IsOptional() @IsString() @MaxLength(250000) crawlCurl?: string;
 }

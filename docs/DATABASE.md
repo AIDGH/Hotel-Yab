@@ -153,6 +153,12 @@ The latest value remains denormalized on `NotablePerson.followerCount` for
 public list sorting and display; history stays in `FollowerSnapshot`. There is
 currently no public follower-history API.
 
+`NotablePerson.instagramCrawlRequest` stores a sanitized JSON GraphQL recipe
+for that person's timeline, and `instagramCrawlRequestUpdatedAt` records when
+it was replaced. Session cookies, authorization values, and CSRF tokens are
+never stored in PostgreSQL; the local helper injects current browser cookies at
+execution time.
+
 The schema was introduced in migration
 `20260816135826_add_follower_snapshots`.
 

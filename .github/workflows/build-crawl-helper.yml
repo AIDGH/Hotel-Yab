@@ -7,11 +7,13 @@ on:
       - ".github/workflows/build-crawl-helper.yml"
       - "scripts/build-crawl-helper.py"
       - "tools/instagram-travel-finder/collector.py"
+      - "tools/instagram-travel-finder/crawl_graphql.py"
       - "tools/instagram-travel-finder/desktop_worker.py"
       - "tools/instagram-travel-finder/detector.py"
       - "tools/instagram-travel-finder/download_approved.py"
       - "tools/instagram-travel-finder/helper-requirements.txt"
       - "tools/instagram-travel-finder/import_approved.py"
+      - "tools/instagram-travel-finder/graphql_client.py"
       - "tools/instagram-travel-finder/iran-locations.json"
       - "tools/instagram-travel-finder/local_crawl_worker.py"
 

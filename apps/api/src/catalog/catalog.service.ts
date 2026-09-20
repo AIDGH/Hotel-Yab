@@ -29,6 +29,7 @@ import { PrismaService } from '../database/prisma.service';
 import { CreateDestinationDto } from './dto/create-destination.dto';
 import { CreateHotelDto } from './dto/create-hotel.dto';
 import { CreateNotablePersonDto } from './dto/create-notable-person.dto';
+import { sanitizeInstagramCrawlCurl } from './instagram-crawl-request';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { ApplyFollowerUpdatesDto } from './dto/apply-follower-updates.dto';
 
@@ -115,6 +116,7 @@ const notablePersonAdminSelect = {
   biography: true,
   countryCode: true,
   imageUrl: true,
+  instagramCrawlRequestUpdatedAt: true,
   publicationStatus: true,
 } satisfies Prisma.NotablePersonSelect;
 
@@ -236,9 +238,10 @@ export class CatalogService {
       if (duplicate) throw new ConflictException('آیدی اینستاگرام تکراری است');
     }
     try {
+      const { crawlCurl, ...personData } = dto;
       const person = await this.prisma.notablePerson.create({
         data: {
-          ...dto,
+          ...personData,
           displayName: dto.displayName.trim(),
           instagramHandle: dto.instagramHandle ?? null,
           occupation: dto.occupation ?? null,
@@ -246,6 +249,10 @@ export class CatalogService {
           biography: dto.biography ?? null,
           countryCode: dto.countryCode ?? null,
           imageUrl: dto.imageUrl ?? null,
+          instagramCrawlRequest: crawlCurl
+            ? sanitizeInstagramCrawlCurl(crawlCurl)
+            : undefined,
+          instagramCrawlRequestUpdatedAt: crawlCurl ? new Date() : undefined,
         },
         select: { id: true, slug: true, displayName: true },
       });
@@ -473,10 +480,11 @@ export class CatalogService {
     }
 
     try {
+      const { crawlCurl, ...personData } = dto;
       const person = await this.prisma.notablePerson.update({
         where: { id },
         data: {
-          ...dto,
+          ...personData,
           displayName: dto.displayName.trim(),
           instagramHandle: dto.instagramHandle ?? null,
           occupation: dto.occupation ?? null,
@@ -484,6 +492,10 @@ export class CatalogService {
           biography: dto.biography ?? null,
           countryCode: dto.countryCode ?? null,
           imageUrl: dto.imageUrl ?? null,
+          instagramCrawlRequest: crawlCurl
+            ? sanitizeInstagramCrawlCurl(crawlCurl)
+            : undefined,
+          instagramCrawlRequestUpdatedAt: crawlCurl ? new Date() : undefined,
         },
         select: notablePersonAdminSelect,
       });

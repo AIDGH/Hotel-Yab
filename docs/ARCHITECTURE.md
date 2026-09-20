@@ -629,9 +629,12 @@ The administration layer is split by responsibility:
   files are rejected rather than guessed. The queue resolves detected catalog
   hints, supports explicit approved/rejected decisions, exports a reviewed JSON
   file for the local media tools, and records when the batch has been processed.
-  The primary crawler is a loopback-only helper bound to `127.0.0.1`: it reads
-  the operator's authenticated browser session locally, checkpoints interrupted
-  crawls, and uploads candidate JSON without exporting Instagram cookies.
+  The primary crawler is a loopback-only helper bound to `127.0.0.1`. Each
+  catalog person may hold a server-side sanitized GraphQL recipe captured from
+  cURL; credential headers are stripped before persistence. The helper combines
+  that recipe with the operator's current browser cookies locally, checkpoints
+  interrupted crawls, and uploads candidate JSON without exporting Instagram
+  cookies.
   A `MODERATOR` can additionally start downloader → preparation → dry-run →
   apply through that helper. The API issues a short-lived HMAC-signed ticket
   scoped to one reviewed batch; the helper may fetch that batch/catalog, upload

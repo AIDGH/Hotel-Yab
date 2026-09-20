@@ -112,6 +112,8 @@ export class CrawlReviewsService implements OnModuleInit {
             displayName: true,
             instagramHandle: true,
             imageUrl: true,
+            instagramCrawlRequest: true,
+            instagramCrawlRequestUpdatedAt: true,
           },
         }),
         this.prisma.crawlReviewBatch.findMany({

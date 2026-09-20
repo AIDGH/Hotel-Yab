@@ -628,6 +628,10 @@ optional local or remote image/logo paths.
 ## POST /admin/catalog/notable-people
 
 Creates a NotablePerson after slug and normalized Instagram duplicate checks.
+On create/update, staff may submit `crawlCurl`. The API validates an Instagram
+GraphQL timeline request and persists only its sanitized URL, allowed headers,
+form body, and update timestamp. Cookie, authorization, and CSRF values are
+discarded and the original cURL is never returned.
 
 ## POST /admin/catalog/videos
 

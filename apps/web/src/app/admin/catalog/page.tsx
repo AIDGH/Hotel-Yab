@@ -27,6 +27,7 @@ type CatalogPerson = {
   id: string; slug: string; displayName: string; instagramHandle: string | null;
   primaryCategory: string; occupation: string | null; followerCount: number | null;
   biography: string | null; countryCode: string | null; imageUrl: string | null;
+  instagramCrawlRequestUpdatedAt: string | null;
   publicationStatus: string;
 };
 
@@ -334,6 +335,7 @@ function PersonForm({ disabled, onSubmit, mode, initial }: { disabled: boolean; 
       slug: text(data, "slug"), displayName: text(data, "displayName"), instagramHandle: optional(data, "instagramHandle"), primaryCategory: text(data, "primaryCategory"),
       occupation: optional(data, "occupation"), followerCount: optionalNumber(data, "followerCount"), biography: optional(data, "biography"), countryCode: optional(data, "countryCode")?.toUpperCase() ?? null,
       imageUrl: optional(data, "imageUrl"), publicationStatus: text(data, "publicationStatus"),
+      ...(text(data, "crawlCurl") ? { crawlCurl: text(data, "crawlCurl") } : {}),
     }, event.currentTarget, mode === "edit" ? "PATCH" : "POST")}>
       <label>نام نمایشی<input name="displayName" required defaultValue={initial?.displayName} /></label><label>Slug<input name="slug" dir="ltr" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={slug} onChange={(event) => setSlug(event.target.value)} /></label>
       <label>آیدی اینستاگرام<input name="instagramHandle" dir="ltr" pattern="[A-Za-z0-9._]+" defaultValue={initial?.instagramHandle ?? ""} /></label>
@@ -342,6 +344,17 @@ function PersonForm({ disabled, onSubmit, mode, initial }: { disabled: boolean; 
       <label>کد کشور<input name="countryCode" defaultValue={initial?.countryCode ?? "IR"} maxLength={2} dir="ltr" /></label><label>وضعیت انتشار<PublicationSelect value={initial?.publicationStatus} /></label>
       <CatalogMediaField name="imageUrl" label="عکس چهره" slug={slug} kind="PERSON_IMAGE" value={imageUrlOverride ?? suggestedImageUrl} suggestedValue={suggestedImageUrl} onChange={setImageUrlOverride} />
       <label className="catalog-field-wide">زندگی‌نامه<textarea name="biography" rows={4} defaultValue={initial?.biography ?? ""} /></label>
+      {mode === "edit" ? (
+        <label className="catalog-field-wide">
+          درخواست cURL کرال
+          <small>
+            {initial?.instagramCrawlRequestUpdatedAt
+              ? `ثبت شده؛ آخرین به‌روزرسانی ${new Date(initial.instagramCrawlRequestUpdatedAt).toLocaleString("fa-IR")}. برای جایگزینی، cURL تازه را وارد کنید.`
+              : "هنوز درخواست کرال ثبت نشده است."}
+          </small>
+          <textarea name="crawlCurl" rows={5} dir="ltr" placeholder="curl 'https://www.instagram.com/graphql/query' ..." />
+        </label>
+      ) : null}
     </CatalogForm>
   );
 }

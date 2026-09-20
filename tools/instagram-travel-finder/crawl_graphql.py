@@ -244,6 +244,8 @@ def crawl_profile(
     username: str,
     max_pages: int = 10000,
     delay_seconds: int = 5,
+    should_stop=None,
+    on_progress=None,
 ):
     all_posts = []
 
@@ -268,6 +270,8 @@ def crawl_profile(
         start_page,
         max_pages + 1,
     ):
+        if should_stop and should_stop():
+            raise InterruptedError("کرال متوقف شد؛ قابل ادامه است")
         print(f"Fetching page {page_number}...")
 
         payload = fetch_page_safely(
@@ -290,6 +294,9 @@ def crawl_profile(
         all_posts.extend(posts)
 
         processed_posts += len(posts)
+
+        if on_progress:
+            on_progress(page_number, processed_posts)
 
         save_matches(
             username,
@@ -348,18 +355,13 @@ def crawl_profile(
 
 
 def checkpoint_file(username: str) -> Path:
-    output_dir = (
-        Path(__file__).resolve().parent
-        / "output"
-    )
-
-    output_dir.mkdir(
+    OUTPUT_DIR.mkdir(
         parents=True,
         exist_ok=True,
     )
 
     return (
-        output_dir
+        OUTPUT_DIR
         / f"{username}.checkpoint.json"
     )
 
