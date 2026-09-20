@@ -1020,8 +1020,8 @@ in the web panel without cloning the repository, installing Python packages, or
 running terminal commands. Native builds also let browser-cookie access happen
 on the operator's own logged-in computer.
 
-**Status:** Implemented for macOS Apple Silicon with native CI builds defined for
-macOS Intel and Windows. Apple Developer notarization/code signing remains an
+**Status:** Implemented with native CI builds for macOS Apple Silicon, macOS
+Intel, and Windows. Apple Developer notarization/code signing remains an
 optional distribution improvement; the current macOS bundle uses an ad-hoc
 signature and may require right-click → Open on first launch.
 

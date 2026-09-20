@@ -22,6 +22,8 @@ jobs:
       matrix:
         include:
           - os: macos-14
+            artifact: HotelYab-Crawler-macOS-arm64
+          - os: macos-15-intel
             artifact: HotelYab-Crawler-macOS-x64
           - os: windows-latest
             artifact: HotelYab-Crawler-Windows-x64

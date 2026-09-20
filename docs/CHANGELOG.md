@@ -10,7 +10,8 @@ All notable changes to Hotel-Yab are recorded in this file.
   the local Instagram crawl/download/import flow without a repository, Python,
   or terminal. The admin panel now offers platform-specific downloads; runtime
   checkpoints and media stay in private per-user application storage. Added a
-  local Apple Silicon builder plus native CI builds for macOS Intel and Windows;
+  local Apple Silicon builder plus native CI builds for macOS Apple Silicon,
+  macOS Intel, and Windows;
   native build artifacts are published automatically through a restricted
   upload-only server key, whose public half is synchronized during production
   deployment while its private half remains an encrypted Actions secret.

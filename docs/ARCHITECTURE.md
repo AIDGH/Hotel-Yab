@@ -756,8 +756,9 @@ do not need the repository, Python, or a terminal. The packaged entry point is
 `desktop_worker.py`; it embeds the crawler/downloader/importer scripts and their
 runtime dependencies, stores checkpoint/media work under the current user's
 application-data directory, and opens only `127.0.0.1:4317`. macOS Apple Silicon
-is built and smoke-tested locally; `.github/workflows/build-crawl-helper.yml`
-builds macOS Intel and Windows artifacts on their native runners. Published ZIPs
+is also smoke-tested locally; `.github/workflows/build-crawl-helper.yml` builds
+macOS Apple Silicon, macOS Intel, and Windows artifacts on native runners.
+Published ZIPs
 are copied by the workflow to the Git-ignored
 `apps/web/public/downloads/` directory on production and linked from
 `/admin/crawl-reviews`. The dedicated SSH key is forced through
