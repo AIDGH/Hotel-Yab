@@ -44,6 +44,7 @@ This file tracks open product and technical work for Hotel-Yab.
 - [x] Provision the crawler Python environment and private Instaloader session on production and deploy the crawl-review migrations/routes.
 - [x] Add a loopback-only crawler helper that uses the moderator's local Chrome session, supports checkpoint/resume, and transfers no Instagram cookies to Hotel-Yab.
 - [x] Package the local crawler as a standalone desktop helper with panel download buttons, private per-user work storage, and native macOS/Windows build automation.
+- [x] Publish native helper builds automatically to the production downloads directory through a restricted upload-only SSH key.
 - [ ] Sign and notarize the macOS helper with an Apple Developer identity before broad public distribution.
 - [ ] Run the first real production crawl → review → local approved-media download → restricted upload/import batch end-to-end and record recovery findings.
 - [ ] Continue collecting more reviewed travel and hotel videos.

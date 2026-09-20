@@ -1024,3 +1024,9 @@ on the operator's own logged-in computer.
 macOS Intel and Windows. Apple Developer notarization/code signing remains an
 optional distribution improvement; the current macOS bundle uses an ad-hoc
 signature and may require right-click → Open on first launch.
+
+Native CI artifacts are published with a dedicated SSH key whose server-side
+forced command accepts only SCP receive mode for the crawler-download directory.
+The key cannot start a shell, forward ports, or write elsewhere on production.
+Its public half is reviewed in the repository and installed idempotently by the
+production deploy script; only the encrypted private half is stored in Actions.

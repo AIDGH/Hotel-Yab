@@ -43,3 +43,24 @@ jobs:
           path: output/crawl-helper/*.zip
           if-no-files-found: error
           retention-days: 14
+      - name: Publish helper download
+        shell: bash
+        env:
+          CRAWL_HELPER_SSH_KEY: ${{ secrets.CRAWL_HELPER_SSH_KEY }}
+        run: |
+          test -n "$CRAWL_HELPER_SSH_KEY"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$CRAWL_HELPER_SSH_KEY" > ~/.ssh/hotelyab-crawl-helper
+          chmod 600 ~/.ssh/hotelyab-crawl-helper
+          for attempt in {1..30}; do
+            if scp \
+              -i ~/.ssh/hotelyab-crawl-helper \
+              -o BatchMode=yes \
+              -o StrictHostKeyChecking=accept-new \
+              output/crawl-helper/*.zip \
+              jaryan@87.247.170.136:/home/jaryan/Hotel-Yab/apps/web/public/downloads/; then
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1

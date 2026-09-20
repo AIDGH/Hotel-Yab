@@ -27,6 +27,43 @@ git fetch origin main
 git checkout main
 git merge --ff-only origin/main
 
+install_crawl_helper_artifact_key() {
+  local ssh_dir="$HOME/.ssh"
+  local authorized_keys="$ssh_dir/authorized_keys"
+  local public_key_file="$repository_root/scripts/crawl-helper-actions.pub"
+  local public_key
+  local forced_entry
+  local temporary
+
+  if [[ ! -f "$public_key_file" || -L "$public_key_file" ]]; then
+    echo "Deployment stopped: crawler artifact public key is missing or unsafe." >&2
+    exit 1
+  fi
+  public_key="$(<"$public_key_file")"
+  if [[ "$public_key" != ssh-ed25519\ *github-actions-hotel-yab-crawl-helper ]]; then
+    echo "Deployment stopped: crawler artifact public key is invalid." >&2
+    exit 1
+  fi
+  if [[ -L "$ssh_dir" || ( -e "$authorized_keys" && -L "$authorized_keys" ) ]]; then
+    echo "Deployment stopped: SSH authorization path must not be a symbolic link." >&2
+    exit 1
+  fi
+
+  umask 077
+  mkdir -p "$ssh_dir"
+  chmod 700 "$ssh_dir"
+  temporary="$(mktemp "$ssh_dir/authorized_keys.hotelyab.XXXXXX")"
+  if [[ -f "$authorized_keys" ]]; then
+    awk '!/github-actions-hotel-yab-crawl-helper/' "$authorized_keys" > "$temporary"
+  fi
+  forced_entry="restrict,command=\"$repository_root/scripts/receive-crawl-helper-artifacts.sh\" $public_key"
+  printf '%s\n' "$forced_entry" >> "$temporary"
+  chmod 600 "$temporary"
+  mv "$temporary" "$authorized_keys"
+}
+
+install_crawl_helper_artifact_key
+
 pnpm install --frozen-lockfile
 pnpm api:prisma:generate
 pnpm api:prisma:migrate:deploy
