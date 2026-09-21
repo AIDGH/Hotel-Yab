@@ -176,12 +176,17 @@ GET /notable-people?query=morteza.kowsari&pageSize=100
 
 ## GET /destinations
 
-Returns all published city/province records from PostgreSQL, including parent
-province metadata, display order, and media paths.
+Returns published city/province records from PostgreSQL only when they have
+public activity. A city qualifies through a published hotel with the same
+normalized city name or a published content relation. A province qualifies
+through its own published content relation or through an active child city.
+The response includes parent-province metadata, display order, and media paths.
 
 ## GET /destinations/:type/:slug
 
-Returns one published destination. `type` is `cities` or `provinces`.
+Returns one published, active destination. `type` is `cities` or `provinces`.
+Published destinations without a qualifying hotel/content relation return 404
+until their first public relation is available.
 
 ## GET /travel-videos
 

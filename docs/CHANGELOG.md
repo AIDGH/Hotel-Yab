@@ -6,6 +6,12 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
+- Expanded the canonical destination catalog to all 31 Iranian provinces and
+  178 important cities. Existing destination records and their ordering remain
+  untouched; missing records append in tourism-priority order. Public
+  destination list/detail APIs now hide empty destinations until a published
+  hotel or content relation exists, with province activity inherited from child
+  cities.
 - Added per-person Instagram crawl requests to catalog editing. Full pasted
   cURLs are validated and stripped of cookies, authorization, and CSRF before a
   safe GraphQL recipe reaches PostgreSQL; helper protocol v2 combines the recipe

@@ -38,7 +38,8 @@ Deployment-time production counts after the reviewed Instagram batch were:
 
 - 18 `Hotel` records;
 - 157 `NotablePerson` records;
-- 35 `Destination` records;
+- 35 `Destination` records in the initial production snapshot; the expanded
+  canonical catalog migration targets 31 provinces and 178 important cities;
 - 38 `Video` records.
 
 These counts are a deployment snapshot, not schema constraints.
@@ -404,6 +405,12 @@ Public Website
 ```
 
 A record may exist in PostgreSQL while still being hidden from the public website.
+
+Destination visibility has an additional activity gate. A published city needs
+at least one published hotel matched by normalized city name or one published
+`VideoDestination`. A published province needs a direct published content
+relation or an active child city. This allows the complete Iranian destination
+catalog to remain available to admin linking without publishing empty pages.
 
 Publication rules are documented in:
 

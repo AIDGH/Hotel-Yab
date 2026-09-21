@@ -315,6 +315,12 @@ in the canonical hotel record and must not be duplicated in destination data.
 Province pages can only include reviewed city records already represented in
 the canonical destination table.
 
+The complete canonical Iran catalog may contain destinations with no media or
+hotel yet. Those records remain available in the admin selectors but must not
+appear in public discovery or resolve as public detail pages until they have at
+least one published hotel/content relation. Province activity may be inherited
+from an active canonical child city.
+
 ---
 
 ## Biography and Occupation

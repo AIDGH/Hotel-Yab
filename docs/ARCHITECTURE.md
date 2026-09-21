@@ -383,6 +383,12 @@ notable-person API, while destination labels and links come from `Destination`.
 One content aggregate may resolve to multiple destinations. City/province
 display-order values remain scoped independently.
 
+The canonical destination catalog contains all 31 Iranian provinces and 178
+important cities. Public reads apply an activity gate after PostgreSQL lookup:
+a city must have a published hotel or content relation, while a province may
+also inherit activity from a child city. Admin catalog reads remain unfiltered
+so staff can connect the first hotel/content item to an otherwise hidden place.
+
 Destination detail pages also resolve hotels through the existing hotel API:
 
 ```text

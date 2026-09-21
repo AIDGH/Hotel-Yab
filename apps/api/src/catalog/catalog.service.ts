@@ -26,6 +26,7 @@ import {
   VideoCategory,
 } from '../generated/prisma/enums';
 import { PrismaService } from '../database/prisma.service';
+import { normalizePersianSearchText } from '../common/search-text';
 import { CreateDestinationDto } from './dto/create-destination.dto';
 import { CreateHotelDto } from './dto/create-hotel.dto';
 import { CreateNotablePersonDto } from './dto/create-notable-person.dto';
@@ -920,19 +921,15 @@ export class CatalogService {
   }
 
   async listPublicDestinations() {
-    const destinations = await this.prisma.destination.findMany({
-      where: { publicationStatus: PublicationStatus.PUBLISHED },
-      orderBy: [{ type: 'desc' }, { displayOrder: 'asc' }, { name: 'asc' }],
-      select: destinationSelect,
-    });
+    const destinations = await this.listVisiblePublicDestinations();
     return { data: destinations };
   }
 
   async getPublicDestination(type: DestinationType, slug: string) {
-    const destination = await this.prisma.destination.findFirst({
-      where: { type, slug, publicationStatus: PublicationStatus.PUBLISHED },
-      select: destinationSelect,
-    });
+    const destinations = await this.listVisiblePublicDestinations();
+    const destination = destinations.find(
+      (item) => item.type === type && item.slug === slug,
+    );
     if (!destination) throw new NotFoundException('مقصد پیدا نشد');
     return { data: destination };
   }
@@ -1124,6 +1121,53 @@ export class CatalogService {
     }
   }
 
+  private async listVisiblePublicDestinations() {
+    const [destinations, hotelCities, videoDestinations] =
+      await this.prisma.$transaction([
+        this.prisma.destination.findMany({
+          where: { publicationStatus: PublicationStatus.PUBLISHED },
+          orderBy: [{ type: 'desc' }, { displayOrder: 'asc' }, { name: 'asc' }],
+          select: {
+            ...destinationSelect,
+            cities: {
+              where: { publicationStatus: PublicationStatus.PUBLISHED },
+              select: { id: true, name: true },
+            },
+          },
+        }),
+        this.prisma.hotel.findMany({
+          where: { publicationStatus: PublicationStatus.PUBLISHED },
+          select: { city: true },
+        }),
+        this.prisma.videoDestination.findMany({
+          where: {
+            video: { publicationStatus: PublicationStatus.PUBLISHED },
+          },
+          select: { destinationId: true },
+        }),
+      ]);
+
+    const activeHotelCities = new Set(
+      hotelCities.map(({ city }) => normalizeDestinationName(city)),
+    );
+    const activeVideoDestinationIds = new Set(
+      videoDestinations.map(({ destinationId }) => destinationId),
+    );
+
+    return destinations.flatMap(({ cities, ...destination }) => {
+      const directlyActive =
+        activeVideoDestinationIds.has(destination.id) ||
+        (destination.type === DestinationType.CITY &&
+          activeHotelCities.has(normalizeDestinationName(destination.name)));
+      const childActive = cities.some(
+        (city) =>
+          activeVideoDestinationIds.has(city.id) ||
+          activeHotelCities.has(normalizeDestinationName(city.name)),
+      );
+      return directlyActive || childActive ? [destination] : [];
+    });
+  }
+
   private destinationPosition(
     requested: number | undefined,
     itemCount: number,
@@ -1180,6 +1224,10 @@ function flattenVideo<
     destinations: destinations.map(({ destination }) => destination),
     hotels: hotels.map(({ hotel }) => hotel),
   };
+}
+
+function normalizeDestinationName(value: string): string {
+  return normalizePersianSearchText(value).toLocaleLowerCase('fa-IR');
 }
 
 function associationReferenceKey(

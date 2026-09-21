@@ -1051,3 +1051,23 @@ keeps the usable GraphQL flow without sending cookies to Hotel-Yab.
 
 **Status:** Active; introduced with migration
 `20260920140000_add_notable_person_crawl_request` and helper protocol version 2.
+
+## 53. Keep a Complete Destination Catalog but Publish Only Active Places
+
+**Decision:** Keep all 31 Iranian provinces and 178 important cities as
+canonical `Destination` rows available to staff. Public list and detail reads
+show a city only after it has a published hotel or content relation. A province
+may qualify through a direct content relation or through one of its active child
+cities.
+
+New catalog rows append after the current type-scoped order, ranked by tourism
+priority among the newly added records. Existing descriptions, publication
+states, images, and display positions are never rewritten by the expansion
+migration.
+
+**Reason:** Staff need destinations to exist before the first hotel or crawler
+content can be linked, while visitors should not encounter empty destination
+pages. Preserving existing positions also respects the manually curated order.
+
+**Status:** Active through migration
+`20260921120000_expand_iran_destinations` and the public catalog activity gate.

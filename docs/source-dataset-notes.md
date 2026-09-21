@@ -128,8 +128,9 @@ reviewed production batch successfully applied 32 approved travel/hotel videos.
 
 The first VPS production bootstrap restored the current canonical application
 data after Prisma migrations were deployed. The deployment snapshot contained
-18 hotels, 157 notable people, 35 destinations, and 38 videos. These are runtime
-counts for that production snapshot and should not overwrite the historical
+18 hotels, 157 notable people, 35 destinations, and 38 videos. This is the
+initial production snapshot before the 31-province/178-city expansion; these
+are runtime counts for that production snapshot and should not overwrite the historical
 preview/import counts documented above.
 
 Content media was provisioned separately from Git. Production records that still

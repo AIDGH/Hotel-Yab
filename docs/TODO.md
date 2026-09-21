@@ -103,6 +103,8 @@ This file tracks open product and technical work for Hotel-Yab.
 # Data Pipeline
 
 - [x] Keep Destination/Video/PostgreSQL as the canonical runtime source.
+- [x] Add all 31 provinces and 178 important cities without overwriting existing
+  destination ordering, and hide destinations that have no published hotel or content.
 - [x] Support one-video, multi-image post, and multi-video story/highlight formats through ordered media items without breaking canonical video IDs or comments.
 - [x] Add checkpoint/resume Instagram travel crawling and high-recall candidate detection.
 - [x] Add JSON -> XLSX human review.
