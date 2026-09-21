@@ -16,6 +16,36 @@ Source and license details were reviewed on 2026-08-09. Existing hotel logo
 files supplied with the project are not third-party additions made in this
 change.
 
+## Destination Images
+
+The following destination photographs were downloaded from Wikimedia Commons,
+cropped to a consistent `1200×750` frame, resized, and converted to WebP. The
+binary files are provisioned separately and remain excluded from Git.
+
+| Local file | Subject | Author | License | Source |
+| --- | --- | --- | --- | --- |
+| `apps/web/public/images/provinces/east-azerbaijan.webp` | East Azerbaijan Province | saeed.asadi.koroliya | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0) | [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Landscape_and_village_in_East_Azerbaijan_Province,_Iran_-_panoramio_(1668).jpg>) |
+| `apps/web/public/images/provinces/kermanshah.webp` | Kermanshah Province | Vahidarbab | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:KermanshahNature1.jpg) |
+| `apps/web/public/images/provinces/qom.webp` | Qom Province | Amir Pashaei | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Qom_panorama.jpg) |
+| `apps/web/public/images/provinces/golestan.webp` | Golestan Province | Alireza Javaheri | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Iran_-_Golestan_-_Turkaman_Sahra_-_panoramio.jpg) |
+| `apps/web/public/images/provinces/hamadan.webp` | Hamadan Province | Amir Pashaei | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Ekbatan_dam.jpg) |
+| `apps/web/public/images/provinces/chaharmahal-and-bakhtiari.webp` | Chaharmahal and Bakhtiari Province | Farid Atar | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:%D8%AF%D8%B1_%D9%85%D8%AC%D8%A7%D9%88%D8%B1%D8%AA_%D8%AA%D8%A7%D9%84%D8%A7%D8%A8_%D8%B3%D9%88%D9%84%DA%AF%D8%A7%D9%86Near_the_Solgan_lake_-_panoramio.jpg) |
+| `apps/web/public/images/provinces/kohgiluyeh-and-boyer-ahmad.webp` | Kohgiluyeh and Boyer-Ahmad Province | Hadi Karimi | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Green_Landscape_-_panoramio.jpg) |
+| `apps/web/public/images/provinces/alborz.webp` | Alborz Province | Amir Pashaei | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Taleqan,_iran.jpg>) |
+| `apps/web/public/images/provinces/markazi.webp` | Markazi Province | Fabienkhan | [CC BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Landscape_Mahallat-Iran.jpg) |
+| `apps/web/public/images/provinces/ilam.webp` | Ilam Province | Katiapic | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Ilam_iran.jpg) |
+| `apps/web/public/images/cities/yazd.webp` | Yazd | s1ingshot | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Yazd_Historic_City.jpg) |
+| `apps/web/public/images/cities/tabriz.webp` | Tabriz | Toni Afshar | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Shahgoli_pool_night_panorama.jpg) |
+| `apps/web/public/images/cities/kerman.webp` | Kerman | Foadkr | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Ganjalikhan_square.jpg) |
+| `apps/web/public/images/cities/bandar-abbas.webp` | Bandar Abbas | Hasanbardal | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:BandarAbbas-Geno.jpg) |
+| `apps/web/public/images/cities/ramsar.webp` | Ramsar | Yasaman khayati | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0) | [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:A_photo_of_Ramsar_city,Iran-Yasaman_khayati_01.jpg>) |
+| `apps/web/public/images/cities/chalous.webp` | Chalous | Alireza Javaheri | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Iran_-_Mazandaran_-_Chaloos_Road_-_panoramio.jpg) |
+| `apps/web/public/images/cities/hamadan.webp` | Hamadan | Shams948 | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Hamadan_in_Iran.jpg) |
+| `apps/web/public/images/cities/kermanshah.webp` | Kermanshah | dynamosquito from France | [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0) | [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:Ardashir_II_investiture_at_Taq-e_Bustan_(4684091211).jpg>) |
+| `apps/web/public/images/cities/sanandaj.webp` | Sanandaj | Γεωργός | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Sanandaj_city_center.jpg) |
+
+Source and license details were reviewed on 2026-09-21.
+
 ## Notable-Person Images
 
 The following portraits were copied from the official Hotel Abbasi guest

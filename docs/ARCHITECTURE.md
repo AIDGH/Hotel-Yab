@@ -349,9 +349,16 @@ those JSON files directly.
 
 Hotel-Yab currently supports images for:
 
+- city and province destinations;
 - hotels;
 - optional hotel logos;
 - notable people.
+
+Destination binaries use the normalized
+`/images/{cities|provinces}/<slug>.webp` convention. The catalog stores these
+paths only when a corresponding asset has been provisioned; missing images keep
+using the frontend fallback. Third-party destination sources and licenses are
+recorded in `docs/MEDIA_ATTRIBUTIONS.md`.
 
 The frontend handles media rendering and fallback states. Hotel logos are
 stored separately from the main image through `logoUrl`, so the same logo can

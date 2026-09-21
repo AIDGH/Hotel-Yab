@@ -6,6 +6,10 @@ All notable changes to Hotel-Yab are recorded in this file.
 
 ## Unreleased
 
+- Added licensed Wikimedia Commons photography for 10 previously unillustrated
+  provinces and 9 high-priority cities. The optimized `1200×750` WebP binaries
+  stay outside Git and are provisioned separately; PostgreSQL image paths are
+  filled only when the destination has no administrator-configured image.
 - Expanded the canonical destination catalog to all 31 Iranian provinces and
   178 important cities. Existing destination records and their ordering remain
   untouched; missing records append in tourism-priority order. Public
