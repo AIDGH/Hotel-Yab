@@ -385,9 +385,19 @@ def crawl_with_saved_request(
             raise RuntimeError(
                 "Instagram موقتاً درخواست‌ها را محدود کرده است؛ چند ساعت بعد دوباره تلاش کنید."
             ) from exc
-        if "Instagram" in detail:
+        if detail.startswith("Instagram HTTP "):
+            status = detail.split(":", 1)[0].removeprefix("Instagram HTTP ")
             raise RuntimeError(
-                "درخواست کرال این چهره قدیمی یا نامعتبر شده است؛ از مدیر بخواهید cURL تازه ثبت کند."
+                f"Instagram درخواست کرال را با خطای HTTP {status} رد کرد؛ "
+                "cURL تازه از همان صفحه بگیرید و دوباره امتحان کنید."
+            ) from exc
+        if detail.startswith("Instagram GraphQL error"):
+            raise RuntimeError(
+                "پاسخ GraphQL اینستاگرام خطا داشت؛ cURL تازه از همان صفحه بگیرید."
+            ) from exc
+        if detail.startswith("Instagram returned"):
+            raise RuntimeError(
+                "پاسخ اینستاگرام برای کرال معتبر نبود؛ وضعیت ورود و cURL را بررسی کنید."
             ) from exc
         raise
     finally:

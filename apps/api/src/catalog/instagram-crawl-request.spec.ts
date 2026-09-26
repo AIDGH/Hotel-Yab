@@ -12,11 +12,14 @@ describe('sanitizeInstagramCrawlCurl', () => {
         -H 'x-ig-app-id: 936619743392459' \\
         -H 'x-csrftoken: secret-csrf' \\
         -H 'cookie: sessionid=secret-session' \\
-        --data-raw 'variables=${variables}&doc_id=987&fb_dtsg=secret-form-token'`,
+        --data-raw 'variables=${variables}&doc_id=987&__hs=web-client&__dyn=modules&fb_dtsg=secret-form-token'`,
     ) as InstagramCrawlRequest;
 
     expect(result.url).toBe('https://www.instagram.com/graphql/query');
     expect(result.headers['x-ig-app-id']).toBe('936619743392459');
+    const savedForm = new URLSearchParams(result.body);
+    expect(savedForm.get('__hs')).toBe('web-client');
+    expect(savedForm.get('__dyn')).toBe('modules');
     expect(JSON.stringify(result)).not.toContain('secret-session');
     expect(JSON.stringify(result)).not.toContain('secret-csrf');
     expect(JSON.stringify(result)).not.toContain('secret-form-token');
@@ -28,5 +31,19 @@ describe('sanitizeInstagramCrawlCurl', () => {
         `curl 'https://example.com/graphql/query' --data-raw 'variables=%7B%7D&doc_id=1'`,
       ),
     ).toThrow(BadRequestException);
+  });
+
+  it('accepts a browser cURL export using --url', () => {
+    const result = sanitizeInstagramCrawlCurl(
+      `curl --url 'https://www.instagram.com/graphql/query' \\
+        -H 'x-ig-app-id: 936619743392459' \\
+        -b 'sessionid=secret-session' \\
+        --data-raw 'variables=%7B%22username%22%3A%22example%22%7D&doc_id=987&fb_dtsg=secret-token'`,
+    ) as InstagramCrawlRequest;
+
+    expect(result.url).toBe('https://www.instagram.com/graphql/query');
+    expect(new URLSearchParams(result.body).get('doc_id')).toBe('987');
+    expect(JSON.stringify(result)).not.toContain('secret-session');
+    expect(JSON.stringify(result)).not.toContain('secret-token');
   });
 });

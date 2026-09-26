@@ -22,7 +22,23 @@ const allowedHeaders = new Set([
 ]);
 const allowedFormFields = new Set([
   '__a',
+  '__ccg',
   '__comet_req',
+  '__crn',
+  '__csr',
+  '__d',
+  '__dyn',
+  '__hblp',
+  '__hs',
+  '__hsdp',
+  '__hsi',
+  '__req',
+  '__rev',
+  '__s',
+  '__sjsp',
+  '__spin_b',
+  '__spin_r',
+  '__spin_t',
   'doc_id',
   'dpr',
   'fb_api_caller_class',
@@ -41,7 +57,9 @@ export function sanitizeInstagramCrawlCurl(
     throw new BadRequestException('متن واردشده باید با curl شروع شود');
   }
 
-  const url = extractFirstArgument(value, /\bcurl\s+/);
+  const url =
+    extractFlagArgument(value, ['--url']) ||
+    extractFirstArgument(value, /\bcurl\s+/);
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(url);
