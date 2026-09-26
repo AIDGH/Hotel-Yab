@@ -517,9 +517,18 @@ def instagram_post_url(
 def resolve_graphql_connection(
     payload: dict,
 ) -> dict:
-    data = payload.get(
-        "data"
-    ) or {}
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        status = payload.get("status")
+        label = (
+            status
+            if isinstance(status, str) and status in {"ok", "fail"}
+            else "unknown"
+        )
+        raise RuntimeError(
+            "Instagram returned no GraphQL data "
+            f"(status: {label}). Capture a fresh profile-posts cURL."
+        )
 
     connection_keys = [
         (
@@ -537,15 +546,33 @@ def resolve_graphql_connection(
             key
         )
 
-        if isinstance(
-            connection,
-            dict,
+        if isinstance(connection, dict) and isinstance(
+            connection.get("edges"), list
         ):
             return connection
 
+    for key, connection in data.items():
+        if (
+            key.startswith("xdt_api__v1__")
+            and ("user_timeline" in key or "clips__user" in key)
+            and isinstance(connection, dict)
+            and isinstance(connection.get("edges"), list)
+            and isinstance(connection.get("page_info"), dict)
+        ):
+            return connection
+
+    keys = ", ".join(sorted(str(key)[:80] for key in data)[:6]) or "none"
+    status = payload.get("status")
+    label = (
+        status
+        if isinstance(status, str) and status in {"ok", "fail"}
+        else "unknown"
+    )
+
     raise RuntimeError(
         "Unsupported Instagram GraphQL response. "
-        "No supported profile media connection was found."
+        "No supported profile media connection was found "
+        f"(status: {label}; data keys: {keys})."
     )
 
 def classify_content(
