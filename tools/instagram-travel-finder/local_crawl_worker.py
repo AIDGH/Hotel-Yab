@@ -354,10 +354,8 @@ def crawl_with_saved_request(
         headers["X-CSRFToken"] = csrf_token
 
     form = dict(parse_qsl(crawl_request["body"], keep_blank_values=True))
-    viewer_id = cookies.get("ds_user_id")
-    if viewer_id:
-        form["av"] = viewer_id
-        form["__user"] = viewer_id
+    # Instagram's web request uses __user=0, not the ds_user_id cookie.
+    form.setdefault("__user", "0")
     body = urlencode(form)
 
     existing_rows = read_json(output_path(username), [])
@@ -397,7 +395,7 @@ def crawl_with_saved_request(
             ) from exc
         if detail.startswith("Instagram returned"):
             raise RuntimeError(
-                "پاسخ اینستاگرام برای کرال معتبر نبود؛ وضعیت ورود و cURL را بررسی کنید."
+                f"پاسخ اینستاگرام برای کرال معتبر نبود؛ جزئیات: {detail}"
             ) from exc
         raise
     finally:

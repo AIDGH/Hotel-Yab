@@ -307,23 +307,10 @@ def decode_json_response(
             text
         )
     except json.JSONDecodeError as exc:
-        preview = (
-            text[:300]
-            .replace(
-                "\n",
-                " ",
-            )
-            .replace(
-                "\r",
-                " ",
-            )
-        )
-
         raise RuntimeError(
             "Instagram returned a non-JSON response "
             f"(HTTP {status}, Content-Type: {content_type or 'unknown'}, "
-            f"length: {len(response_body)}). "
-            f"Preview: {preview}"
+            f"length: {len(response_body)})."
         ) from exc
 
     if not isinstance(
