@@ -321,15 +321,49 @@ def decode_json_response(
             "Instagram GraphQL response root is not an object."
         )
 
-    if payload.get(
-        "errors"
-    ):
+    errors = payload.get("errors")
+    if errors and not only_unused_location_image_errors(payload):
         raise RuntimeError(
             "Instagram GraphQL error: "
-            f"{payload['errors']}"
+            f"{errors}"
         )
 
     return payload
+
+
+def only_unused_location_image_errors(payload: dict) -> bool:
+    errors = payload.get("errors")
+    data = payload.get("data")
+    if not isinstance(errors, list) or not errors or not isinstance(data, dict):
+        return False
+    for error in errors:
+        path = error.get("path") if isinstance(error, dict) else None
+        if (
+            not isinstance(path, list)
+            or len(path) != 6
+            or path[0] not in (
+                "xdt_api__v1__feed__user_timeline_graphql_connection",
+                "xdt_api__v1__clips__user__connection_v2",
+            )
+            or path[1] != "edges"
+            or type(path[2]) is not int
+            or path[3:] != ["node", "location", "profile_pic_url"]
+        ):
+            return False
+        connection = data.get(path[0])
+        if not isinstance(connection, dict):
+            return False
+        edges = connection.get("edges")
+        if (
+            not isinstance(edges, list)
+            or not 0 <= path[2] < len(edges)
+            or not isinstance(connection.get("page_info"), dict)
+        ):
+            return False
+        edge = edges[path[2]]
+        if not isinstance(edge, dict) or not isinstance(edge.get("node"), dict):
+            return False
+    return True
 
 
 def fetch_profile_page(

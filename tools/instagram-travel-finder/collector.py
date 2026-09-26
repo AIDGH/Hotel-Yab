@@ -525,9 +525,12 @@ def resolve_graphql_connection(
             if isinstance(status, str) and status in {"ok", "fail"}
             else "unknown"
         )
+        keys = ", ".join(sorted(str(key)[:80] for key in payload)[:8])
+        error_code = payload.get("error")
+        code = str(error_code) if type(error_code) is int else "unknown"
         raise RuntimeError(
             "Instagram returned no GraphQL data "
-            f"(status: {label}). Capture a fresh profile-posts cURL."
+            f"(status: {label}; error code: {code}; root keys: {keys})."
         )
 
     connection_keys = [
