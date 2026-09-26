@@ -17,7 +17,6 @@ const allowedHeaders = new Set([
   'user-agent',
   'x-asbd-id',
   'x-fb-friendly-name',
-  'x-fb-lsd',
   'x-ig-app-id',
 ]);
 const allowedFormFields = new Set([
@@ -43,7 +42,6 @@ const allowedFormFields = new Set([
   'dpr',
   'fb_api_caller_class',
   'fb_api_req_friendly_name',
-  'lsd',
   'query_hash',
   'server_timestamps',
   'variables',
@@ -51,6 +49,7 @@ const allowedFormFields = new Set([
 
 export function sanitizeInstagramCrawlCurl(
   curl: string,
+  expectedUsername?: string | null,
 ): Prisma.InputJsonValue {
   const value = curl.trim();
   if (!value.startsWith('curl ')) {
@@ -68,6 +67,7 @@ export function sanitizeInstagramCrawlCurl(
   }
   if (
     parsedUrl.protocol !== 'https:' ||
+    parsedUrl.username !== '' || parsedUrl.password !== '' || parsedUrl.port !== '' ||
     !['instagram.com', 'www.instagram.com'].includes(parsedUrl.hostname) ||
     parsedUrl.pathname !== '/graphql/query'
   ) {
@@ -85,9 +85,13 @@ export function sanitizeInstagramCrawlCurl(
   if (!variables || (!form.get('doc_id') && !form.get('query_hash'))) {
     throw new BadRequestException('درخواست GraphQL کامل نیست');
   }
+  let parsedVariables: Record<string, unknown>;
   try {
     const parsed = JSON.parse(variables) as unknown;
-    if (!parsed || typeof parsed !== 'object') throw new Error('invalid');
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('invalid');
+    }
+    parsedVariables = parsed as Record<string, unknown>;
   } catch {
     throw new BadRequestException('متغیرهای درخواست GraphQL معتبر نیستند');
   }
@@ -104,9 +108,23 @@ export function sanitizeInstagramCrawlCurl(
     const headerValue = header.slice(separator + 1).trim();
     if (allowedHeaders.has(name) && headerValue) headers[name] = headerValue;
   }
+  const operation = 'PolarisProfilePostsTabContentQuery_connection';
+  const names = [form.get('fb_api_req_friendly_name'), headers['x-fb-friendly-name']].filter(Boolean);
+  const username = typeof parsedVariables.username === 'string'
+    ? parsedVariables.username.trim().toLowerCase() : '';
+  if (!names.length || names.some((name) => name !== operation) || !/^[a-z0-9._]{1,30}$/.test(username)) {
+    throw new BadRequestException(
+      'این cURL مربوط به پست‌های یک چهره نیست؛ درخواست فید، تبلیغات یا ثبت فعالیت قابل استفاده نیست. درخواست PolarisProfilePostsTabContentQuery_connection را از صفحه پست‌های همان چهره کپی کنید.',
+    );
+  }
+  if (expectedUsername !== undefined && username !== (expectedUsername ?? '').trim().replace(/^@/, '').toLowerCase()) {
+    throw new BadRequestException('یوزرنیم داخل cURL با حساب اینستاگرام این چهره مطابقت ندارد');
+  }
+  sanitizedForm.set('fb_api_req_friendly_name', operation);
+  headers['x-fb-friendly-name'] = operation;
   headers['content-type'] = 'application/x-www-form-urlencoded';
   headers.origin = 'https://www.instagram.com';
-  headers.referer = 'https://www.instagram.com/';
+  headers.referer = `https://www.instagram.com/${username}/`;
 
   return {
     version: 1,

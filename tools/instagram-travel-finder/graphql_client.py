@@ -252,7 +252,7 @@ def build_request(
         "",
     ).strip()
 
-    if cookie_override:
+    if cookie_override and REQUEST_OVERRIDE is None:
         headers[
             "Cookie"
         ] = cookie_override

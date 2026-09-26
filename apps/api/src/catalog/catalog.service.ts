@@ -251,7 +251,7 @@ export class CatalogService {
           countryCode: dto.countryCode ?? null,
           imageUrl: dto.imageUrl ?? null,
           instagramCrawlRequest: crawlCurl
-            ? sanitizeInstagramCrawlCurl(crawlCurl)
+            ? sanitizeInstagramCrawlCurl(crawlCurl, dto.instagramHandle ?? null)
             : undefined,
           instagramCrawlRequestUpdatedAt: crawlCurl ? new Date() : undefined,
         },
@@ -494,7 +494,7 @@ export class CatalogService {
           countryCode: dto.countryCode ?? null,
           imageUrl: dto.imageUrl ?? null,
           instagramCrawlRequest: crawlCurl
-            ? sanitizeInstagramCrawlCurl(crawlCurl)
+            ? sanitizeInstagramCrawlCurl(crawlCurl, dto.instagramHandle ?? null)
             : undefined,
           instagramCrawlRequestUpdatedAt: crawlCurl ? new Date() : undefined,
         },

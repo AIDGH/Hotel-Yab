@@ -9,6 +9,7 @@ import http.client
 import json
 import math
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -19,7 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qsl, unquote, urlencode, urlparse
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 
 import instaloader
 
@@ -323,6 +324,68 @@ def crawl_with_browser(job: WorkerJob, browser: str, max_posts: int | None):
         raise
 
 
+class InstagramSessionRedirectHandler(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # Do not forward browser credentials through redirects.
+        raise RuntimeError(
+            "Instagram ورود یا تأیید مجدد می‌خواهد؛ صفحه چهره را در همان مرورگر باز کنید."
+        )
+
+
+def instagram_bootstrap_module(html: str, name: str) -> dict:
+    decoder = json.JSONDecoder()
+    pattern = rf'"{re.escape(name)}"\s*,\s*\[\s*\]\s*,\s*'
+    for match in re.finditer(pattern, html):
+        try:
+            value, _ = decoder.raw_decode(html, match.end())
+        except ValueError:
+            continue
+        if isinstance(value, dict):
+            return value
+    return {}
+
+
+def complete_local_instagram_session(username: str, headers: dict, form: dict):
+    request = Request(
+        f"https://www.instagram.com/{username}/",
+        headers={
+            "Cookie": headers["Cookie"],
+            "User-Agent": headers.get("user-agent", "Mozilla/5.0"),
+            "Accept": "text/html",
+            "Accept-Encoding": "identity",
+        },
+    )
+    try:
+        with build_opener(InstagramSessionRedirectHandler()).open(request, timeout=30) as response:
+            html = response.read(16 * 1024 * 1024).decode("utf-8", errors="replace")
+    except HTTPError as exc:
+        raise RuntimeError(
+            f"خواندن نشست محلی Instagram با HTTP {exc.code} انجام نشد؛ "
+            "وضعیت ورود و محدودیت درخواست‌ها را در مرورگر بررسی کنید."
+        ) from None
+    except URLError:
+        raise RuntimeError("اتصال لپ‌تاپ به Instagram برقرار نشد؛ اتصال اینترنت را بررسی کنید.") from None
+    dtsg = instagram_bootstrap_module(html, "DTSGInitialData").get("token")
+    lsd = instagram_bootstrap_module(html, "LSD").get("token")
+    user = instagram_bootstrap_module(html, "CurrentUserInitialData")
+    if not isinstance(dtsg, str) or not dtsg or not isinstance(lsd, str) or not lsd:
+        raise RuntimeError(
+            "توکن نشست از صفحه Instagram دریافت نشد؛ وارد همان مرورگر شوید و هر پیام تأیید ورود را تکمیل کنید. "
+            "اگر صفحه عادی باز می‌شود، قالب نشست Instagram نیاز به پشتیبانی تازه دارد."
+        )
+    # These values are refreshed locally and never persisted or sent to Hotel-Yab.
+    form["fb_dtsg"] = dtsg
+    form["jazoest"] = "2" + str(sum(ord(char) for char in dtsg))
+    form["lsd"] = lsd
+    form["__user"] = "0"
+    form.pop("av", None)
+    actor = str(user.get("USER_ID", ""))
+    if actor.isdigit() and actor != "0":
+        form["av"] = actor
+    headers["x-fb-lsd"] = lsd
+    headers["referer"] = f"https://www.instagram.com/{username}/"
+
+
 def crawl_with_saved_request(
     job: WorkerJob,
     browser: str,
@@ -340,12 +403,30 @@ def crawl_with_saved_request(
             "درخواست کرال این چهره معتبر نیست؛ از مدیر بخواهید cURL تازه ثبت کند."
         )
 
-    job.update(status="RUNNING", message="در حال کرال با درخواست ذخیره‌شده")
+    parsed_url = urlparse(crawl_request["url"])
+    if (parsed_url.scheme != "https" or parsed_url.netloc not in ("www.instagram.com", "instagram.com")
+            or parsed_url.path != "/graphql/query"):
+        raise RuntimeError("آدرس درخواست کرال معتبر نیست؛ cURL تازه ثبت کنید.")
+    form = dict(parse_qsl(crawl_request["body"], keep_blank_values=True))
+    headers = {str(name).lower(): str(value) for name, value in crawl_request["headers"].items()}
+    try:
+        variables = json.loads(form.get("variables", "{}"))
+    except ValueError:
+        variables = None
+    operation = "PolarisProfilePostsTabContentQuery_connection"
+    names = [name for name in (form.get("fb_api_req_friendly_name"), headers.get("x-fb-friendly-name")) if name]
+    if (not names or any(name != operation for name in names)
+            or not isinstance(variables, dict)
+            or not isinstance(variables.get("username"), str)
+            or variables["username"].lower() != username.lower()):
+        raise RuntimeError(
+            "cURL ذخیره‌شده مربوط به پست‌های این چهره نیست؛ درخواست فید یا تبلیغات قابل استفاده نیست. "
+            "از مدیر بخواهید درخواست PolarisProfilePostsTabContentQuery_connection همان چهره را ثبت کند."
+        )
+    job.update(status="RUNNING", message="در حال تکمیل نشست Instagram روی لپ‌تاپ")
     cookies = read_browser_cookies(browser)
-    headers = {
-        str(name): str(value)
-        for name, value in crawl_request["headers"].items()
-    }
+    for name in ("cookie", "x-csrftoken", "x-fb-lsd", "content-length", "authorization"):
+        headers.pop(name, None)
     headers["Cookie"] = "; ".join(
         f"{name}={value}" for name, value in cookies.items()
     )
@@ -353,9 +434,7 @@ def crawl_with_saved_request(
     if csrf_token:
         headers["X-CSRFToken"] = csrf_token
 
-    form = dict(parse_qsl(crawl_request["body"], keep_blank_values=True))
-    # Instagram's web request uses __user=0, not the ds_user_id cookie.
-    form.setdefault("__user", "0")
+    complete_local_instagram_session(username, headers, form)
     body = urlencode(form)
 
     existing_rows = read_json(output_path(username), [])
@@ -445,7 +524,7 @@ def read_browser_cookies(browser: str) -> dict[str, str]:
     cookies = {
         cookie.name: cookie.value
         for cookie in jar
-        if "instagram.com" in cookie.domain
+        if cookie.domain.lstrip(".") == "instagram.com" or cookie.domain.endswith(".instagram.com")
     }
     if not cookies.get("sessionid"):
         raise RuntimeError(
