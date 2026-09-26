@@ -191,6 +191,10 @@ export default function CrawlReviewsPage() {
     "local" | "production" | null
   >(null);
   const [workerVersion, setWorkerVersion] = useState<number | null>(null);
+  const workerOutdated = workerVersion !== null && workerVersion < 2;
+  const workerInWrongEnvironment =
+    workerEnvironment !== null &&
+    workerEnvironment !== expectedWorkerEnvironment();
   const [workerJob, setWorkerJob] = useState<WorkerJob | null>(null);
   const [selectedInstagram, setSelectedInstagram] = useState("");
   const [selectedBrowser, setSelectedBrowser] = useState("chrome");
@@ -720,7 +724,7 @@ export default function CrawlReviewsPage() {
     return (
       <main className="section container admin-page">
         <section className="admin-empty">
-          <span className="section-eyebrow">بررسی داده‌های کرال‌شده</span>
+          <span className="section-eyebrow">کرال داده</span>
           <h1>دسترسی مدیریت لازم است</h1>
           <p>این بخش فقط برای مدیر و ناظر محتوا در دسترس است.</p>
           <Link className="button" href="/">
@@ -737,7 +741,7 @@ export default function CrawlReviewsPage() {
         <header className="admin-heading crawl-review-heading">
           <div>
             <span className="section-eyebrow">خط تولید محتوای اینستاگرام</span>
-            <h1>بررسی داده‌های کرال‌شده</h1>
+            <h1>کرال داده</h1>
             <p>
               چهره را انتخاب کنید؛ کرال با اینستاگرام همین لپ‌تاپ انجام و نتیجه
               مستقیماً وارد صف بررسی می‌شود.
@@ -758,7 +762,11 @@ export default function CrawlReviewsPage() {
               <strong>
                 {workerReady
                   ? "اتصال لپ‌تاپ برقرار است"
-                  : "اتصال لپ‌تاپ برقرار نیست"}
+                  : workerOutdated
+                    ? "نسخهٔ برنامهٔ کرالر قدیمی است"
+                    : workerInWrongEnvironment
+                      ? "برنامهٔ کرالر به سایت دیگری متصل است"
+                      : "اتصال لپ‌تاپ برقرار نیست"}
               </strong>
             </div>
             <small>
@@ -769,8 +777,11 @@ export default function CrawlReviewsPage() {
           {!workerReady ? (
             <div className="crawl-worker-command">
               <span>
-                دستیار هتل‌یاب را یک‌بار نصب و باز کنید؛ به ترمینال یا پوشه پروژه
-                نیازی نیست.
+                {workerOutdated
+                  ? "برنامهٔ قدیمی را کامل ببندید، نسخهٔ جدید را دانلود و از فایل فشرده خارج کنید، سپس همان نسخه را باز کنید."
+                  : workerInWrongEnvironment
+                    ? "برنامهٔ کرالر را در حالت سایت اصلی باز کنید."
+                    : "دستیار هتل‌یاب را یک‌بار نصب و باز کنید؛ به ترمینال یا پوشه پروژه نیازی نیست."}
               </span>
               {user.role === "ADMIN" || user.role === "MODERATOR" ? (
                 <div className="crawl-worker-downloads">
@@ -778,16 +789,16 @@ export default function CrawlReviewsPage() {
                     className="button"
                     href={`${BROWSER_API_BASE_URL}/admin/crawl-helper-downloads/macos-arm64`}
                   >
-                    دانلود برای مک جدید
+                    دانلود برای مک جدید (Silicon)
                   </a>
                   <a
-                    className="button button-secondary"
+                    className="button"
                     href={`${BROWSER_API_BASE_URL}/admin/crawl-helper-downloads/macos-x64`}
                   >
                     دانلود برای مک اینتل
                   </a>
                   <a
-                    className="button button-secondary"
+                    className="button"
                     href={`${BROWSER_API_BASE_URL}/admin/crawl-helper-downloads/windows-x64`}
                   >
                     دانلود برای ویندوز

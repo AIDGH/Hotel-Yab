@@ -366,7 +366,7 @@ export function AccountShell({
           {user.role === "ADMIN" || user.role === "MODERATOR" ? (
             <Link href="/admin/crawl-reviews">
               <SiteIcon name="review-table" />
-              بررسی داده‌های کرال‌شده
+              کرال داده
             </Link>
           ) : null}
           {user.notablePerson ? (

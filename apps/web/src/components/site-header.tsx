@@ -298,7 +298,7 @@ function HeaderAccount({
                   icon="review-table"
                   onClose={onClose}
                 >
-                  بررسی داده‌های کرال‌شده
+                  کرال داده
                 </AccountMenuLink>
               ) : null}
               {user.notablePerson ? (
