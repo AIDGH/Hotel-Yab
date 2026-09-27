@@ -407,9 +407,14 @@ def complete_local_instagram_session(username: str, headers: dict, form: dict):
     form["lsd"] = lsd
     form["__user"] = "0"
     form.pop("av", None)
-    actor = str(user.get("USER_ID", ""))
-    if actor.isdigit() and actor != "0":
-        form["av"] = actor
+    relay = instagram_bootstrap_module(html, "RelayAPIConfigDefaults")
+    for candidate in (relay.get("actorID"), user.get("NON_FACEBOOK_USER_ID"), user.get("USER_ID")):
+        actor = str(candidate or "")
+        if actor.isdigit() and actor != "0":
+            form["av"] = actor
+            break
+    if "av" not in form:
+        raise RuntimeError("شناسه حساب Instagram از نشست محلی دریافت نشد؛ ورود مرورگر را بررسی کنید.")
     headers["x-fb-lsd"] = lsd
     headers["referer"] = f"https://www.instagram.com/{username}/"
 

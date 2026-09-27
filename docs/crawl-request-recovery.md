@@ -9,8 +9,10 @@ previously stored recipes too, before reading browser cookies or making requests
 The API does not persist cookies, CSRF, `fb_dtsg`, `jazoest`, or LSD tokens.
 The helper uses the selected local browser's cookies to read the profile page,
 extract `DTSGInitialData` and `LSD`, and complete the GraphQL form in memory.
-An actor ID is used only when supplied by `CurrentUserInitialData`, never inferred
-from the `ds_user_id` cookie. Redirects are rejected to avoid forwarding cookies.
+The actor ID comes from `RelayAPIConfigDefaults.actorID`, falling back to
+`CurrentUserInitialData.NON_FACEBOOK_USER_ID` and then `USER_ID`. It is never
+inferred from the `ds_user_id` cookie. A missing actor stops the crawl before the
+GraphQL request. Redirects are rejected to avoid forwarding cookies.
 Missing bootstrap tokens stop the crawl with a session/re-authentication message;
 changes to Instagram's bootstrap format may require a helper update.
 Interrupted HTML downloads retain received chunks and are usable only when both
