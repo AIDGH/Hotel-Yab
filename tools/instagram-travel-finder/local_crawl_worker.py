@@ -355,16 +355,44 @@ def complete_local_instagram_session(username: str, headers: dict, form: dict):
             "Accept-Encoding": "identity",
         },
     )
-    try:
-        with build_opener(InstagramSessionRedirectHandler()).open(request, timeout=30) as response:
-            html = response.read(16 * 1024 * 1024).decode("utf-8", errors="replace")
-    except HTTPError as exc:
-        raise RuntimeError(
-            f"خواندن نشست محلی Instagram با HTTP {exc.code} انجام نشد؛ "
-            "وضعیت ورود و محدودیت درخواست‌ها را در مرورگر بررسی کنید."
-        ) from None
-    except URLError:
-        raise RuntimeError("اتصال لپ‌تاپ به Instagram برقرار نشد؛ اتصال اینترنت را بررسی کنید.") from None
+    for attempt in range(3):
+        chunks = []
+        remaining = 16 * 1024 * 1024
+        interrupted = False
+        try:
+            with build_opener(InstagramSessionRedirectHandler()).open(request, timeout=30) as response:
+                while remaining:
+                    try:
+                        chunk = response.read(min(65536, remaining))
+                    except http.client.IncompleteRead as exc:
+                        chunks.append(exc.partial[:remaining])
+                        interrupted = True
+                        break
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                    remaining -= len(chunk)
+        except HTTPError as exc:
+            raise RuntimeError(
+                f"خواندن نشست محلی Instagram با HTTP {exc.code} انجام نشد؛ "
+                "وضعیت ورود و محدودیت درخواست‌ها را در مرورگر بررسی کنید."
+            ) from None
+        except (URLError, TimeoutError, ConnectionError, http.client.HTTPException):
+            interrupted = True
+        html = b"".join(chunks).decode("utf-8", errors="replace")
+        # A truncated document is usable only if both bootstrap modules are complete.
+        has_tokens = all(
+            isinstance(instagram_bootstrap_module(html, name).get("token"), str)
+            and bool(instagram_bootstrap_module(html, name).get("token"))
+            for name in ("DTSGInitialData", "LSD")
+        )
+        if has_tokens or not interrupted:
+            break
+        if attempt == 2:
+            raise RuntimeError(
+                "دریافت صفحه نشست Instagram پس از سه تلاش ناقص ماند؛ اتصال اینترنت یا VPN را بررسی کنید."
+            )
+        time.sleep(attempt + 1)
     dtsg = instagram_bootstrap_module(html, "DTSGInitialData").get("token")
     lsd = instagram_bootstrap_module(html, "LSD").get("token")
     user = instagram_bootstrap_module(html, "CurrentUserInitialData")

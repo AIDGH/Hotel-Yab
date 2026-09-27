@@ -13,6 +13,10 @@ An actor ID is used only when supplied by `CurrentUserInitialData`, never inferr
 from the `ds_user_id` cookie. Redirects are rejected to avoid forwarding cookies.
 Missing bootstrap tokens stop the crawl with a session/re-authentication message;
 changes to Instagram's bootstrap format may require a helper update.
+Interrupted HTML downloads retain received chunks and are usable only when both
+session-token modules can be decoded completely. Otherwise the helper retries
+up to three times with bounded delays; it never treats partial GraphQL media
+data as a successful crawl.
 `IG_COOKIE` cannot override the selected browser's session in this helper flow.
 
 ## Applying the changes
