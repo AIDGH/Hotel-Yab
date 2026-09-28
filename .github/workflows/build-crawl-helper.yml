@@ -41,10 +41,12 @@ jobs:
       - name: Install helper dependencies
         run: python -m pip install -r tools/instagram-travel-finder/helper-requirements.txt
       - name: Build standalone helper
-        run: python scripts/build-crawl-helper.py --clean
+        run: python scripts/build-crawl-helper.py --release
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: output/crawl-helper/*.zip
+          path: |
+            output/crawl-helper-release/*.zip
+            output/crawl-helper-release/*.json
           if-no-files-found: error
           retention-days: 14

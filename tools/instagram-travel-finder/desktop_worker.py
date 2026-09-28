@@ -53,6 +53,7 @@ def self_check() -> None:
     root = configure_runtime()
     for name in (
         "local_crawl_worker.py",
+        "capture_profile_request.py",
         "crawl_graphql.py",
         "graphql_client.py",
         "download_approved.py",
@@ -62,9 +63,12 @@ def self_check() -> None:
         if not (SCRIPT_DIR / name).is_file():
             raise RuntimeError(f"Missing bundled resource: {name}")
     from detector import load_locations
+    from playwright.sync_api import sync_playwright
 
     if not load_locations():
         raise RuntimeError("Location catalog is empty")
+    with sync_playwright():
+        pass
     print(f"Hotel-Yab desktop helper is ready; private data: {root}")
 
 

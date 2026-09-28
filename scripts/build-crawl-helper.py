@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import platform
 import shutil
 import subprocess
@@ -45,9 +47,14 @@ def archive_name() -> str:
 
 
 def main() -> None:
+    global DIST_DIR, WORK_DIR
     parser = argparse.ArgumentParser()
     parser.add_argument("--clean", action="store_true")
+    parser.add_argument("--release", action="store_true", help="Build separately from the locally running helper")
     args = parser.parse_args()
+    if args.release:
+        DIST_DIR = ROOT / "output" / "crawl-helper-release"
+        WORK_DIR = ROOT / "tmp" / "crawl-helper-release"
     if args.clean:
         shutil.rmtree(WORK_DIR, ignore_errors=True)
         shutil.rmtree(DIST_DIR, ignore_errors=True)
@@ -101,6 +108,15 @@ def main() -> None:
         shutil.make_archive(str(archive.with_suffix("")), "zip", DIST_DIR, APP_NAME)
     else:
         shutil.make_archive(str(archive).removesuffix(".tar.gz"), "gztar", DIST_DIR, APP_NAME)
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    with archive.open("rb") as archive_file:
+        archive_sha256 = hashlib.file_digest(archive_file, "sha256").hexdigest()
+    manifest = {
+        "archive": archive.name, "revision": revision, "protocol": 3,
+        "platform": sys.platform, "architecture": platform.machine(),
+        "sha256": archive_sha256,
+    }
+    archive.with_suffix(".json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(archive)
 
 

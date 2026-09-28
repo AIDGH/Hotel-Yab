@@ -56,6 +56,37 @@ on reel/card media surfaces. Context menus are suppressed there while editable
 comment fields retain selection. Pointer press/release and vertical scrolling
 remain intact; no global touch preventDefault is installed.
 
+### Release packaging and reviewed imports
+
+Build on each target OS/architecture with Python 3.13 or newer:
+
+```sh
+python -m pip install -r tools/instagram-travel-finder/helper-requirements.txt
+python scripts/build-crawl-helper.py --release
+```
+
+Windows x64, macOS Intel, and macOS Silicon require their corresponding build
+machines; the Silicon archive cannot substitute for the other two. Release
+output goes to `output/crawl-helper-release`, separate from the running local
+app. Each archive has a JSON sidecar recording Git revision, protocol version,
+architecture and SHA-256. GitHub Actions builds all three and uploads artifacts;
+an Actions billing restriction prevents those jobs from starting. It does not
+mean that old server downloads contain the current code.
+
+Publish archives only to the server's private `output/crawl-helper-downloads`
+directory, never `apps/web/public`. Preserve the previous archive, verify the
+uploaded SHA-256, then rename the staged archive to its canonical filename.
+The existing authenticated API serves downloads to ADMIN and MODERATOR.
+
+Once every review row is decided and the batch is READY, a MODERATOR can use
+«دانلود و ورود مستقیم به سایت». The helper exports approved rows, runs
+`download_approved.py --download --prepare-media`, uploads planned media in
+chunks, runs `import_approved.py --dry-run` followed by `--apply`, and marks
+completion only after successful import. A failed job stays retryable. The
+selected local browser must still have an Instagram login for media refresh;
+keep the helper running through upload/import. This documents the implementation,
+not an end-to-end verification of any particular reviewed batch.
+
 Profile identity is validated against `variables.username` before sending the
 request, not against individual media owners. Collaboration posts can legitimately
 have a different owner and must not stop pagination. Review rows use the crawled
