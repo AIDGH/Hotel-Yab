@@ -7,6 +7,11 @@ and screen-time requests are rejected at save time. The local helper validates
 previously stored recipes too, before reading browser cookies or making requests.
 
 The API does not persist cookies, CSRF, `fb_dtsg`, `jazoest`, or LSD tokens.
+At execution the helper keeps only the captured query identifier and variables,
+then builds the Relay envelope locally. Captured rendering metadata such as
+`__csr`, `__dyn`, `__hsi`, and `__spin_*` must not be replayed with a fresh session:
+the captured request failed with 1357054 whereas the minimal profile request
+returned a supported media connection during diagnosis.
 The helper uses the selected local browser's cookies to read the profile page,
 extract `DTSGInitialData` and `LSD`, and complete the GraphQL form in memory.
 The actor ID comes from `RelayAPIConfigDefaults.actorID`, falling back to

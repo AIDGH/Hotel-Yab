@@ -456,6 +456,21 @@ def crawl_with_saved_request(
             "cURL ذخیره‌شده مربوط به پست‌های این چهره نیست؛ درخواست فید یا تبلیغات قابل استفاده نیست. "
             "از مدیر بخواهید درخواست PolarisProfilePostsTabContentQuery_connection همان چهره را ثبت کند."
         )
+    # Captured render/session metadata (__csr, __dyn, __hsi, __spin_*, etc.)
+    # belongs to the capturing browser and invalidates a fresh local session.
+    form = {key: form[key] for key in ("variables", "doc_id", "query_hash") if form.get(key)}
+    form.update({
+        "__a": "1", "__d": "www", "__comet_req": "7",
+        "fb_api_caller_class": "RelayModern",
+        "fb_api_req_friendly_name": operation, "server_timestamps": "true",
+    })
+    headers = {
+        "user-agent": "Mozilla/5.0",
+        "content-type": "application/x-www-form-urlencoded",
+        "origin": "https://www.instagram.com",
+        "x-ig-app-id": headers.get("x-ig-app-id", "1217981644879628"),
+        "x-fb-friendly-name": operation,
+    }
     job.update(status="RUNNING", message="در حال تکمیل نشست Instagram روی لپ‌تاپ")
     cookies = read_browser_cookies(browser)
     for name in ("cookie", "x-csrftoken", "x-fb-lsd", "content-length", "authorization"):
