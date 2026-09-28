@@ -19,6 +19,7 @@ import type {
 import type { NotablePersonListItem } from "@/lib/types";
 import { SiteIcon } from "./site-icon";
 import { VideoComments } from "./video-comments";
+import mediaGestures from "./media-gestures.module.css";
 
 const MOBILE_VIDEO_BATCH_SIZE = 9;
 const DESKTOP_VIDEO_BATCH_SIZE = 12;
@@ -506,7 +507,14 @@ function MobileReelSlide({
   }, []);
 
   return (
-    <article className={`mobile-reel-slide${isImage ? " is-image" : ""}`} onClick={togglePlay}>
+    <article
+      className={`mobile-reel-slide ${mediaGestures.surface}${isImage ? " is-image" : ""}`}
+      onClick={togglePlay}
+      onContextMenu={(event) => {
+        if (!(event.target instanceof Element) || !event.target.closest('input, textarea, [contenteditable="true"]')) event.preventDefault();
+      }}
+      onDragStart={(event) => event.preventDefault()}
+    >
       <div
         className={`mobile-reel-media-track${dragging ? " is-dragging" : ""}`}
         style={{

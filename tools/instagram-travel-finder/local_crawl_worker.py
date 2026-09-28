@@ -424,6 +424,7 @@ def crawl_with_saved_request(
     browser: str,
     max_posts: int | None,
     crawl_request: dict,
+    local_cookies: dict | None = None,
 ):
     username = extract_username(job.username)
     if (
@@ -438,7 +439,7 @@ def crawl_with_saved_request(
 
     parsed_url = urlparse(crawl_request["url"])
     if (parsed_url.scheme != "https" or parsed_url.netloc not in ("www.instagram.com", "instagram.com")
-            or parsed_url.path != "/graphql/query"):
+            or parsed_url.path not in ("/graphql/query", "/api/graphql")):
         raise RuntimeError("آدرس درخواست کرال معتبر نیست؛ cURL تازه ثبت کنید.")
     form = dict(parse_qsl(crawl_request["body"], keep_blank_values=True))
     headers = {str(name).lower(): str(value) for name, value in crawl_request["headers"].items()}
@@ -472,7 +473,7 @@ def crawl_with_saved_request(
         "x-fb-friendly-name": operation,
     }
     job.update(status="RUNNING", message="در حال تکمیل نشست Instagram روی لپ‌تاپ")
-    cookies = read_browser_cookies(browser)
+    cookies = local_cookies if local_cookies is not None else read_browser_cookies(browser)
     for name in ("cookie", "x-csrftoken", "x-fb-lsd", "content-length", "authorization"):
         headers.pop(name, None)
     headers["Cookie"] = "; ".join(
@@ -540,6 +541,25 @@ def crawl_with_saved_request(
         status="SUCCEEDED",
         message=f"کرال تمام شد؛ {job.new_items} محتوای تازه پیدا شد",
     )
+
+
+def crawl_with_automatic_request(job, browser, max_posts, crawl_request):
+    from capture_profile_request import capture_profile_request
+
+    job.update(status="RUNNING", message="در حال دریافت خودکار درخواست اینستاگرام")
+    try:
+        cookies = read_browser_cookies(browser)
+    except Exception:
+        cookies = {}
+    result = capture_profile_request(
+        extract_username(job.username), cookies, browser, job.stop_event.is_set,
+        lambda message: job.update(message=message),
+    )
+    if result is None or job.stop_event.is_set():
+        job.update(status="PAUSED", message="دریافت درخواست متوقف شد؛ قابل شروع مجدد است")
+        return
+    recipe, session = result
+    crawl_with_saved_request(job, browser, max_posts, recipe, local_cookies=session)
 
 
 def read_browser_cookies(browser: str) -> dict[str, str]:
@@ -813,7 +833,7 @@ def run_job(job: WorkerJob, target, *args):
 
 
 class WorkerHandler(BaseHTTPRequestHandler):
-    server_version = "HotelYabLocalWorker/2.0"
+    server_version = "HotelYabLocalWorker/3.0"
 
     def log_message(self, format_string, *args):
         print(f"[{self.log_date_time_string()}] {format_string % args}")
@@ -866,7 +886,7 @@ class WorkerHandler(BaseHTTPRequestHandler):
         if path == "/health":
             self.send_json(
                 200,
-                {"data": {"ready": True, "version": 2, "environment": ENVIRONMENT}},
+                {"data": {"ready": True, "version": 3, "environment": ENVIRONMENT}},
             )
             return
         parts = [unquote(item) for item in path.strip("/").split("/")]
@@ -903,7 +923,8 @@ class WorkerHandler(BaseHTTPRequestHandler):
                 browser = str(payload.get("browser", DEFAULT_BROWSER) or DEFAULT_BROWSER)
                 max_posts = int(payload["maxPosts"]) if payload.get("maxPosts") else None
                 crawl_request = payload.get("crawlRequest")
-                if not isinstance(crawl_request, dict):
+                automatic = payload.get("captureRequest") is True
+                if not automatic and not isinstance(crawl_request, dict):
                     raise ValueError(
                         "درخواست کرال این چهره ثبت نشده است؛ از مدیر بخواهید cURL تازه ثبت کند."
                     )
@@ -912,7 +933,7 @@ class WorkerHandler(BaseHTTPRequestHandler):
                     target=run_job,
                     args=(
                         job,
-                        crawl_with_saved_request,
+                        crawl_with_automatic_request if automatic else crawl_with_saved_request,
                         browser,
                         max_posts,
                         crawl_request,

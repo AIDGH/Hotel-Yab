@@ -14,6 +14,7 @@ import {
 } from "react";
 import { SiteIcon } from "./site-icon";
 import { VideoComments } from "./video-comments";
+import mediaGestures from "./media-gestures.module.css";
 
 const TRAVEL_VIDEO_PLAY_EVENT = "hotel-yab:travel-video-play";
 let suppressTravelVideoClickUntil = 0;
@@ -332,7 +333,11 @@ export function TravelVideoCard({
     <article className="travel-video-card">
       <div
         ref={mediaRef}
-        className="travel-video-media"
+        className={`travel-video-media ${mediaGestures.surface}`}
+        onContextMenu={(event) => {
+          if (!(event.target instanceof Element) || !event.target.closest('input, textarea, [contenteditable="true"]')) event.preventDefault();
+        }}
+        onDragStart={(event) => event.preventDefault()}
         tabIndex={resolvedMediaItems.length > 1 ? 0 : undefined}
         onClick={handleMediaClick}
         onDoubleClick={handleMediaDoubleClick}

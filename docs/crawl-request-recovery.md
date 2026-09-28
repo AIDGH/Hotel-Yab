@@ -28,6 +28,34 @@ data as a successful crawl.
 
 ## Applying the changes
 
+### Automatic capture (helper protocol 3)
+
+The admin crawl page defaults to automatic request capture. No stored recipe is
+required in that mode. The helper opens an isolated, visible installed Chrome
+(Edge when selected) using Playwright and imports only local Instagram cookies.
+If cookie reading fails, the operator can log in in the temporary window.
+Other browser selections supply cookies but still require Chrome for capture.
+The temporary session is not written to disk or sent to Hotel-Yab. The helper
+captures only a successful profile-posts response matching `variables.username`
+and the expected media connection, scrolls for pagination, and stops after two
+minutes or cancellation. It never captures home-feed or promotion requests.
+The resulting credential-free recipe stays in memory, and the matching local
+session is passed directly to the crawler. Manual saved-recipe mode remains
+available. Capturing is not guaranteed if Instagram changes its operation or
+requires a login challenge. Downloading later still uses the selected browser's
+login; a login only in the temporary capture window is not persisted for downloads.
+
+Rebuild the helper with the updated helper requirements (including Playwright).
+No bundled browser download is needed: installed Chrome/Edge is used. Version 2
+helpers can still use manual mode, but cannot automatically capture requests.
+
+### Media long-press on iOS
+
+`media-gestures.module.css` disables selection, touch callouts, and image dragging
+on reel/card media surfaces. Context menus are suppressed there while editable
+comment fields retain selection. Pointer press/release and vertical scrolling
+remain intact; no global touch preventDefault is installed.
+
 Profile identity is validated against `variables.username` before sending the
 request, not against individual media owners. Collaboration posts can legitimately
 have a different owner and must not stop pagination. Review rows use the crawled

@@ -18,6 +18,7 @@ DIST_DIR = ROOT / "output" / "crawl-helper"
 WORK_DIR = ROOT / "tmp" / "crawl-helper"
 APP_NAME = "HotelYab-Crawler"
 RESOURCE_FILES = (
+    "capture_profile_request.py",
     "collector.py",
     "crawl_graphql.py",
     "detector.py",
@@ -78,6 +79,8 @@ def main() -> None:
         "browser_cookie3",
         "--collect-all",
         "instaloader",
+        "--collect-all",
+        "playwright",
         "--icon",
         str(ROOT / "apps" / "web" / "public" / "brand" / "icon-1024.png"),
         *add_data,

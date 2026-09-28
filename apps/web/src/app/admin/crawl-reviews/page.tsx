@@ -198,6 +198,7 @@ export default function CrawlReviewsPage() {
   const [workerJob, setWorkerJob] = useState<WorkerJob | null>(null);
   const [selectedInstagram, setSelectedInstagram] = useState("");
   const [selectedBrowser, setSelectedBrowser] = useState("chrome");
+  const [captureRequest, setCaptureRequest] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importedWorkerJobs = useRef(new Set<string>());
 
@@ -483,11 +484,15 @@ export default function CrawlReviewsPage() {
       });
       return;
     }
-    if (!person.instagramCrawlRequest) {
+    if (!captureRequest && !person.instagramCrawlRequest) {
       setFeedback({
         tone: "error",
         text: "برای این چهره درخواست کرال ثبت نشده است؛ از مدیر بخواهید cURL تازه را در ویرایش چهره ثبت کند.",
       });
+      return;
+    }
+    if (captureRequest && (workerVersion ?? 0) < 3) {
+      setFeedback({ tone: "error", text: "برای دریافت خودکار درخواست، نسخه جدید برنامه کرالر را نصب کنید؛ یا گزینه دریافت خودکار را خاموش کنید." });
       return;
     }
     if (!workerReady) {
@@ -512,6 +517,7 @@ export default function CrawlReviewsPage() {
           username: person.instagramHandle,
           browser: selectedBrowser,
           crawlRequest: person.instagramCrawlRequest,
+          captureRequest,
         }),
       });
       setWorkerJob(response.data);
@@ -819,6 +825,11 @@ export default function CrawlReviewsPage() {
             </div>
           ) : null}
           <div className="crawl-worker-controls">
+            <label>
+              <input type="checkbox" checked={captureRequest} onChange={(event) => setCaptureRequest(event.target.checked)} />
+              دریافت خودکار درخواست از اینستاگرام (بدون cURL)
+              <small>نیازمند نسخه جدید دستیار و نصب Chrome یا Edge؛ اگر پنجره ورود باز شد، همان‌جا وارد اینستاگرام شوید.</small>
+            </label>
             <label>
               چهره
               <input
