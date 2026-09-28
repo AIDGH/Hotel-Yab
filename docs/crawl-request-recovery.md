@@ -28,6 +28,12 @@ data as a successful crawl.
 
 ## Applying the changes
 
+Profile identity is validated against `variables.username` before sending the
+request, not against individual media owners. Collaboration posts can legitimately
+have a different owner and must not stop pagination. Review rows use the crawled
+profile as `instagram_username`, retain the original owner separately as
+`source_owner_username`, and keep the original source URL unchanged.
+
 API changes take effect after the normal server update. Worker changes require
 rebuilding and replacing the desktop helper; a Git push alone does not update an
 already installed application. Replace a previously stored home-feed recipe with

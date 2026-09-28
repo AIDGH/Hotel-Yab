@@ -175,6 +175,7 @@ def parse_curl_capture(
 def update_request_body(
     raw_body: str,
     after: str | None,
+    expected_username: str | None = None,
 ) -> bytes:
     pairs = parse_qsl(
         raw_body,
@@ -203,6 +204,17 @@ def update_request_body(
         raise RuntimeError(
             "Instagram cURL variables are not valid JSON."
         ) from exc
+
+    if not isinstance(variables, dict):
+        raise RuntimeError("Instagram cURL variables must be an object.")
+    if expected_username is not None:
+        captured_username = str(variables.get("username") or "").strip()
+        if not captured_username:
+            raise RuntimeError("درخواست cURL باید مربوط به پست‌های یک چهره و دارای username باشد.")
+        if captured_username.lower() != expected_username.strip().lower():
+            raise RuntimeError(
+                f"درخواست cURL مربوط به @{captured_username} است، نه @{expected_username}."
+            )
 
     variables[
         "after"
@@ -238,6 +250,7 @@ def update_request_body(
 
 def build_request(
     after: str | None,
+    expected_username: str | None = None,
 ) -> Request:
     if REQUEST_OVERRIDE is not None:
         url, configured_headers, raw_body = REQUEST_OVERRIDE
@@ -270,6 +283,7 @@ def build_request(
     body = update_request_body(
         raw_body,
         after,
+        expected_username,
     )
 
     return Request(
@@ -371,7 +385,6 @@ def fetch_profile_page(
     after: str | None = None,
     count: int = 12,
 ) -> dict:
-    del username
     del count
 
     last_error = None
@@ -381,7 +394,8 @@ def fetch_profile_page(
         4,
     ):
         request = build_request(
-            after
+            after,
+            expected_username=username,
         )
 
         response_body = ""

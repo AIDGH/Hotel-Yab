@@ -291,18 +291,6 @@ def crawl_profile(
         )
 
         posts = result["posts"]
-        unexpected_owners = {
-            str(post.get("username", "")).strip().lower()
-            for post in posts
-            if str(post.get("username", "")).strip()
-            and str(post.get("username", "")).strip().lower()
-            != username.lower()
-        }
-        if unexpected_owners:
-            owner = sorted(unexpected_owners)[0]
-            raise RuntimeError(
-                f"درخواست cURL مربوط به @{owner} است، نه @{username}."
-            )
         all_posts.extend(posts)
 
         processed_posts += len(posts)
@@ -494,11 +482,8 @@ def save_matches(
 
         record.update(
             {
-                "instagram_username": (
-                    post[
-                        "username"
-                    ]
-                ),
+                "instagram_username": username,
+                "source_owner_username": post.get("username", ""),
                 "source_url": (
                     post[
                         "post_url"
